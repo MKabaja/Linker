@@ -1,0 +1,11 @@
+@utility card {
+	@apply rounded-card border border-line bg-card shadow-soft;
+}
+
+@utility field {
+	@apply rounded-control border border-line bg-field px-3 py-2 text-main placeholder:text-muted;
+}
+
+@utility focus-ring {
+	@apply outline-2 outline-offset-2 outline-brand;
+}

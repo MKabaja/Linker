@@ -11,8 +11,19 @@
   },
   "formatter": {
     "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2
+    "indentStyle": "tab",
+    "indentWidth": 2,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentStyle": "space"
+    }
   },
   "css": {
     "parser": {
