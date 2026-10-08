@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/*
+  Kozacka Internal App — Dark UI Theme
+  Tailwind CSS v4
+
+  Naming goal:
+  - text-main
+  - text-off
+  - text-muted
+  - bg-app
+  - bg-surface
+  - bg-card
+  - bg-field
+  - bg-hover
+  - border-line
+  - border-line-strong
+  - text-brand / bg-brand / border-brand
+  - shadow-soft
+  - shadow-raised
+  - shadow-inset
+
+  Fonts:
+  - --font-inter, --font-poppins and --font-jetbrains are expected
+    to be provided by next/font variables on <body>.
+*/
+
+@theme {
+  /* =========================
+     COLORS — BASE / SURFACES
+     ========================= */
+
+  --color-app: #0d0f13;
+  --color-surface: #13161c;
+  --color-card: #1a1e26;
+  --color-field: #222731;
+  --color-hover: #2a303b;
+
+  /* =========================
+     COLORS — TEXT
+     ========================= */
+
+  --color-main: #f7f8fa;
+  --color-off: #c3c8d0;
+  --color-muted: #929aa6;
+
+  /* =========================
+     COLORS — BORDERS
+     ========================= */
+
+  --color-line: #343b49;
+  --color-line-strong: #4a5261;
+
+  /* =========================
+     COLORS — BRAND
+     ========================= */
+
+  --color-brand: #ed265f;
+  --color-brand-hover: #f04475;
+  --color-brand-active: #d91e52;
+  --color-brand-orange: #faa535;
+
+  /* =========================
+     COLORS — STATES
+     ========================= */
+
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #ff6b7a;
+  --color-info: #60a5fa;
+
+  /* =========================
+     TYPOGRAPHY
+     ========================= */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* =========================
+     SHADOWS — SUBTLE DARK NEUMORPHISM
+     ========================= */
+
+  --shadow-soft:
+    0 1px 2px rgb(0 0 0 / 0.24),
+    0 8px 24px rgb(0 0 0 / 0.14);
+
+  --shadow-raised:
+    -3px -3px 8px rgb(255 255 255 / 0.018),
+    4px 4px 12px rgb(0 0 0 / 0.28);
+
+  --shadow-inset:
+    inset 1px 1px 3px rgb(0 0 0 / 0.32),
+    inset -1px -1px 2px rgb(255 255 255 / 0.018);
+
+    
+    /* =========================
+     SHADOWS — SUBTLE DARK NEUMORPHISM
+     ========================= */
+
+  --shadow-soft:
+    0 1px 2px rgb(0 0 0 / 0.24),
+    0 8px 24px rgb(0 0 0 / 0.14);
+
+  --shadow-raised:
+    -3px -3px 8px rgb(255 255 255 / 0.018),
+    4px 4px 12px rgb(0 0 0 / 0.28);
+
+  --shadow-inset:
+    inset 1px 1px 3px rgb(0 0 0 / 0.32),
+    inset -1px -1px 2px rgb(255 255 255 / 0.018);
+
+  /* =========================
+     RADIUS
+     ========================= */
+
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
+}
+  
