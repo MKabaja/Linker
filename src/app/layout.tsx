@@ -21,10 +21,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
 	return (
 		<html
-			lang='pl'
+			lang="pl"
 			className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}
 		>
-			<body className='flex min-h-full flex-col bg-app font-sans text-main'>
+			<body className="flex min-h-full flex-col bg-app font-sans text-main">
 				{children}
 			</body>
 		</html>
