@@ -18,6 +18,10 @@ Commity robi wyłącznie użytkownik. Agent nigdy nic nie commituje, nie pushuje
 
 Do not add any attribution or signature to commits or pull requests: no `Co-Authored-By` trailers, no "Generated with Claude Code" lines, no session links.
 
+## Pull requesty
+
+PR tworzy wyłącznie użytkownik, przez GitHuba. Na prośbę agent podaje sam tytuł (Conventional Commits) i treść do wklejenia, zgodną z `docs/PR_TEMPLATE.md`. Agent nie uruchamia `gh pr create` ani nie robi push.
+
 ## Conventional Commits
 
 Format: `typ(zakres): opis`, np. `chore(biome): basic setup of biome.json`. Typy (słowa kluczowe):
