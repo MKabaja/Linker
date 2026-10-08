@@ -1,0 +1,22 @@
+@theme {
+	--animate-fade-in: fade-in 150ms ease-out;
+	--animate-shimmer: shimmer 1.6s linear infinite;
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes shimmer {
+		from {
+			background-position: 200% 0;
+		}
+		to {
+			background-position: -200% 0;
+		}
+	}
+}
