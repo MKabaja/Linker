@@ -16,7 +16,6 @@
 
 ## Faza 0 — sprawy poza kodem (równolegle, od razu)
 
-- [ ] Wymienić token BaseLinkera i token PVEX (oba były wklejone do rozmowy).
 - [ ] Wysłać pytania do administratora (login SQL tylko do odczytu, `xcom_app`, WebAPI Wapro, magazyn realizacji) — odpowiedź zajmie najdłużej.
 - [ ] Zanonimizowana próbka zamówień (same pozycje: `ean`, `name`, `quantity`, `sku`, `bundle_id`) — przyda się do demo i do sprawdzania przypadków brzegowych.
 
