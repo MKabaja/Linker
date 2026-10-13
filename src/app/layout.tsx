@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
-import './app.css';
+import '@/styles/app.css';
 
 const inter = Inter({
 	variable: '--font-inter',
