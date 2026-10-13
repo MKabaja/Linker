@@ -3,7 +3,7 @@
 }
 
 @utility field {
-	@apply rounded-control border border-line bg-field px-3 py-2 text-main placeholder:text-muted;
+	@apply rounded-control border border-line bg-field px-3 py-2 text-main placeholder:text-dim;
 }
 
 @utility focus-ring {
