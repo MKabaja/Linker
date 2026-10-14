@@ -55,7 +55,7 @@ W pokazanym kodzie **nie ma żądania zapisującego do PVEX ani do WAPRO**. PVEX
 
 ### Ryzyka starego skryptu
 
-- Token był wpisany jawnie do kodu. Należy go unieważnić/wymienić i przechowywać nowy poza kodem oraz repozytorium.
+- Token był wpisany jawnie do kodu.
 - Brak kontroli statusu HTTP i formatu odpowiedzi. Jeśli odpowiedź jest pusta, skrypt nie nadpisuje pliku, ale później nadal otwiera `primavera.csv`; może więc zaimportować stary plik.
 - Pobranie jest połączone z zapisami SQL. Nie uruchamiać skryptu jako testu endpointu.
 - Dane z CSV są składane bezpośrednio do zapytań SQL, bez parametrów. Nieoczekiwane cudzysłowy lub zawartość mogłyby zepsuć zapytania lub spowodować SQL injection.
@@ -109,7 +109,7 @@ BaseLinker udostępnia także metody zmieniające dane, np. tworzące zamówieni
 
 ### Nieustalone
 
-- Pełny kontrakt PVEX: kodowanie, typy i formaty pól, dozwolone wartości `wh`, limity, częstotliwość odświeżania, znaczenie błędów i sposób rotacji tokenu.
+- Pełny kontrakt PVEX: kodowanie, typy i formaty pól, dozwolone wartości `wh`, limity, częstotliwość odświeżania, znaczenie błędów.
 - Czy CSV zawiera wszystkie produkty w katalogu, wszystkie produkty możliwe do zamówienia, czy produkty spełniające jeszcze inne warunki dostawcy. Użytkownik określa go jako plik wszystkich produktów dostępnych w Primavera; kryterium „dostępności” nie jest zdefiniowane w kodzie.
 - Znaczenie i format VAT, waluty, jednostek, wartości pustych, ilości ujemnych oraz dostępności produktów z ilością równą zero.
 - Rzeczywiste mapowanie magazynów Primavera/WAPRO/BaseLinker i kierunek oraz częstotliwość synchronizacji.
@@ -117,8 +117,6 @@ BaseLinker udostępnia także metody zmieniające dane, np. tworzące zamówieni
 - Szczegółowe reguły tabel WfMag/Pcmarket oraz logika konfiguracji integratora.
 
 ### Sekrety i zachowanie historycznego kodu
-
-Token PVEX występował jawnie w starym pliku PHP i został przekazany w rozmowie, dlatego należy uznać go za ujawniony. Tokenów nie umieszczono w tym dokumencie.
 
 Stary skrypt nie sprawdza poprawności statusu HTTP ani CSV. Przy pustej odpowiedzi może pozostawić poprzedni plik, a następnie wczytać go do importu. Dane CSV są łączone z SQL bez parametrów; błędy zapytań i częściowe wykonanie nie są obsłużone transakcją. Plik `primavera_new.csv` powstaje tylko dla części rekordów i w pokazanym kodzie nie jest dalej używany.
 

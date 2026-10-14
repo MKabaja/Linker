@@ -76,8 +76,7 @@ Primavera Parfum Sp. z o.o. (Warszawa), hurtownia/dystrybutor e-commerce kosmety
 GET https://orders.pvex.pl/pricelist.php?wh=all&token=<TOKEN>&format=csv
 ```
 - Parametry znane: `wh=all` (inne dozwolone wartości nieznane), `token` (sekret w query stringu), `format=csv`. [POTWIERDZONE z przekazanego URL-a]
-- Kontrakt, limity, kodowanie deklarowane, reguły błędów, częstotliwość odświeżania, rotacja tokenu: [NIEZNANE].
-- **Token PVEX został ujawniony** (stary plik PHP i dokumentacja w rozmowie). Należy go wymienić; kto i jak to robi (opiekun handlowy PVEX?) [NIEZNANE].
+- Kontrakt, limity, kodowanie deklarowane, reguły błędów, częstotliwość odświeżania: [NIEZNANE].
 
 ### Format CSV [POTWIERDZONE na próbce 21 wierszy]
 - Nagłówek: `Nazwa;Cena;EAN;Ilosc;StawkaVAT`
@@ -112,7 +111,6 @@ Pobierał CSV, zerował flagę importu w lokalnej tabeli `primavera`, dopasowywa
 - **Błędy wracają z HTTP 200** i `status: "ERROR"`, z polami `error_code` i `error_message` (nie `error`). Zaobserwowane: `ERROR_EMPTY_METHOD` (brak pola `method` w body), `ERROR_BAD_TOKEN`.
 - Limit: **100 żądań na minutę**. UTF-8. Czasy to **unix timestamp w sekundach**.
 - Token jest przypisany do konta (Konto i inne → Moje konto → API) i ma **pełne uprawnienia do zapisu** na koncie firmy. Czy da się go ograniczyć do odczytu [NIEZNANE]. Zasada projektu: wywoływać wyłącznie metody `get*`.
-- **Token BaseLinkera został ujawniony w rozmowie** (a przy konfiguracji był wklejony z powielonymi fragmentami). Należy go wymienić po zakończeniu rozpoznania.
 - Oficjalne webhooki nie istnieją; zmiany śledzi się przez polling (`getJournalList` — zdarzenia z ostatnich 3 dni).
 - API było aktualizowane 2026-09-30.
 
@@ -289,7 +287,6 @@ Skutek dla zakresu: bez stanów z WAPRO lista dla BrakStanuTowaru zawiera **wszy
 - Znaczenie: `STAN_REALIZ`, `FLAGA_STANU`, `DO_REZERWACJI`; znaczenie magazynów PVEX „000"/„CUE" i parametru `wh`; netto/brutto w CSV PVEX.
 
 ### Tokeny i dostęp
-- Wymienić **token BaseLinkera** i **token PVEX** (oba ujawnione w rozmowie); ustalić, kto generuje nowe tokeny po stronie PVEX.
 - Wszystkie sekrety wyłącznie w zmiennych środowiskowych po stronie serwera (`.env.local` w `.gitignore`).
 
 ---

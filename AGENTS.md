@@ -12,9 +12,36 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Odpowiadaj krótko i na temat, bez rozprawek. Nie dodawaj tematów, o które nie pytano.
 
+# Sposób pracy
+
+Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym kolegą (senior), nie wykonawcą.
+
+- Domyślnie agent jest pasywny: tłumaczy, odpowiada na pytania, robi review. Nie zmienia plików i nie instaluje paczek, dopóki użytkownik wyraźnie nie powie, żeby to zrobić.
+- Przy nowym kroku agent pyta, kto pisze kod. Gdy pisze użytkownik, agent podaje plan, szkielet i wskazówki, a potem robi review tego, co użytkownik napisał.
+- Gdy pisze agent, robi wyłącznie to, o co poproszono, bez rozszerzania zakresu. Przy większej zmianie najpierw przedstawia plan i krytycznie ocenia propozycję użytkownika (zgadza się albo koryguje z uzasadnieniem), a rusza po akceptacji.
+- Agent na bieżąco sugeruje biblioteki, które skracają kod (np. TanStack Table, Zod, motion), ale instaluje je użytkownik. Agent podaje same komendy, po jednej w bloku, gdy użytkownik o to prosi. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik we własnym terminalu.
+- Przed pisaniem kodu zależnego od Next.js agent sprawdza dokumentację w `node_modules/next/dist/docs/` zamiast polegać na pamięci.
+- Tokeny (BaseLinker, PVEX) w wersji dev zostają bez zmian. Agent ich nie rusza i nie przypomina o ich wymianie.
+- Odpowiedzi po polsku, krótko. Po większej zmianie agent podaje podsumowanie: co zrobiono, co usunięto, gdzie co leży.
+
+## Standard kodu
+
+- Bez komentarzy w kodzie i bez opisowych nagłówków w plikach.
+- Biome: tabulatory, apostrofy, LF. Po zmianach agent uruchamia `npm run lint:fix`, `npm run typecheck`, a przy większych zmianach `next build`, i podaje wynik. Nie stosuje `--unsafe` bez zgody.
+- Nazwy zgodnie z Clean Code: mówią, czego dotyczą (np. `useSidebarState`, `sidebarStyles`, `use-is-mobile.ts`).
+- Importy z Reacta nazwane (`import { useState } from 'react'`), bez `React.cos`.
+- Klasy Tailwinda wydzielamy z TSX do pliku `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva). TSX zostaje czysty.
+- Stałe do `*.constants.ts`, typy współdzielone do `*.types.ts`, typ propsów komponentu zostaje w jego pliku.
+- Logika stanu w hookach (`use-*.ts`). Hook używany tylko przez jeden komponent leży w jego folderze, a ogólnego użytku w `src/shared/hooks/`.
+- Struktura: `src/shared/components/<nazwa>/` z plikami `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts` (barrel). Jedna odpowiedzialność na plik. Wspólny kod w `src/shared/` (`components`, `hooks`, `lib`), a aliasy shadcn w `components.json` wskazują na `@/shared/...`.
+- Martwy kod z generatorów (np. nieużywane części shadcn) usuwamy. W razie potrzeby odtworzy go `shadcn add`.
+- Layout wspólny (`<main>`, padding) jest w `src/app/layout.tsx`, a strony zwracają `<section>` z `<h1>`.
+
 # Git
 
-Commity robi wyłącznie użytkownik. Agent nigdy nic nie commituje, nie pushuje i nie tworzy branchy ani PR. Może najwyżej zaproponować treść komunikatu commita.
+Agent robi commit dopiero po tym, jak pokaże użytkownikowi treść komunikatu (i listę plików) i dostanie wyraźną akceptację. Nigdy nie robi push, nie tworzy branchy ani PR. `git add -A` i podobne tylko na prośbę.
+
+Commity są małe i tematyczne. Zmiany różnych typów (np. docs, zależności, przenosiny plików, nowe strony) idą w osobnych commitach. Jeśli jeden plik należy do dwóch tematów, agent rozdziela jego zawartość, tak aby każdy commit osobno się budował.
 
 Do not add any attribution or signature to commits or pull requests: no `Co-Authored-By` trailers, no "Generated with Claude Code" lines, no session links.
 
