@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
+import {
+	SidebarInset,
+	SidebarProvider,
+	SidebarTrigger,
+} from '@/shared/components/sidebar';
 import '@/styles/app.css';
 
 const inter = Inter({
@@ -25,7 +31,13 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
 			className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}
 		>
 			<body className="flex min-h-full flex-col bg-app font-sans text-main">
-				<main className="flex-1 p-8">{children}</main>
+				<SidebarProvider>
+					<AppSidebar />
+					<SidebarInset className="p-8">
+						<SidebarTrigger className="mb-4 md:hidden" />
+						{children}
+					</SidebarInset>
+				</SidebarProvider>
 			</body>
 		</html>
 	);
