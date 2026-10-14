@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { AppMobileHeader } from '@/features/app-sidebar/app-mobile-header';
 import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
-import {
-	SidebarInset,
-	SidebarProvider,
-	SidebarTrigger,
-} from '@/shared/components/sidebar';
+import { SidebarInset, SidebarProvider } from '@/shared/components/sidebar';
 import '@/styles/app.css';
 
 const inter = Inter({
@@ -33,8 +30,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
 			<body className="flex min-h-full flex-col bg-app font-sans text-main">
 				<SidebarProvider>
 					<AppSidebar />
-					<SidebarInset className="p-8">
-						<SidebarTrigger className="mb-4 md:hidden" />
+					<SidebarInset className="px-4 pt-0 pb-4 md:p-8">
+						<AppMobileHeader />
 						{children}
 					</SidebarInset>
 				</SidebarProvider>

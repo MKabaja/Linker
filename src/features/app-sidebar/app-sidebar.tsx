@@ -17,6 +17,7 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from '@/shared/components/sidebar';
+import { AppLogo } from './app-logo';
 import {
 	GUEST_LABEL,
 	NAVIGATION_LINKS,
@@ -28,23 +29,20 @@ export function AppSidebar() {
 	const pathname = usePathname();
 	const { state, isMobile, toggleSidebar, setOpenMobile } = useSidebar();
 	const isCollapsed = state === 'collapsed' && !isMobile;
+	const isLogoActive = isCollapsed || isMobile;
+	const logoLabel = isMobile ? 'Zamknij menu' : 'Rozwiń menu';
 	const closeMobileSidebar = () => setOpenMobile(false);
 	const SettingsIcon = SETTINGS_LINK.icon;
 
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarHeader className={appSidebarStyles.header}>
-				<button
-					type="button"
-					className={appSidebarStyles.logo}
+				<AppLogo
 					onClick={toggleSidebar}
-					disabled={!isCollapsed}
-					aria-label={isCollapsed ? 'Rozwiń menu' : undefined}
-				>
-					<span className={appSidebarStyles.logoMark}>L</span>
-					<span className={appSidebarStyles.logoRest}>INKER</span>
-				</button>
-				<SidebarTrigger className={appSidebarStyles.trigger} />
+					disabled={!isLogoActive}
+					aria-label={isLogoActive ? logoLabel : undefined}
+				/>
+				{!isMobile && <SidebarTrigger className={appSidebarStyles.trigger} />}
 			</SidebarHeader>
 
 			<SidebarSeparator />
