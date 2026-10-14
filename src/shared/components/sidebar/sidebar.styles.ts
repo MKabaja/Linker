@@ -25,7 +25,7 @@ export const sidebarStyles = {
 		'relative flex w-full flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
 	header: 'flex flex-col gap-2 p-2',
 	footer: 'flex flex-col gap-2 p-2',
-	separator: 'mx-2 w-auto bg-sidebar-border',
+	separator: 'mx-2 bg-sidebar-border data-horizontal:w-auto',
 	content:
 		'no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
 	group: 'relative flex w-full min-w-0 flex-col p-2',
