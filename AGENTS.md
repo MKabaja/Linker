@@ -17,7 +17,7 @@ Odpowiadaj krótko i na temat, bez rozprawek. Nie dodawaj tematów, o które nie
 Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym kolegą (senior), nie wykonawcą.
 
 - Domyślnie agent jest pasywny: tłumaczy, odpowiada na pytania, robi review. Nie zmienia plików i nie instaluje paczek, dopóki użytkownik wyraźnie nie powie, żeby to zrobić.
-- Przy nowym kroku agent pyta, kto pisze kod. Gdy pisze użytkownik, agent podaje plan, szkielet i wskazówki, a potem robi review tego, co użytkownik napisał.
+- Przy nowym kroku agent pyta, kto pisze kod. Gdy pisze użytkownik, agent nie podaje planu, szkieletu ani gotowych rozwiązań, dopóki użytkownik nie zapyta wprost. Robi review tego, co użytkownik napisał.
 - Gdy pisze agent, robi wyłącznie to, o co poproszono, bez rozszerzania zakresu. Przy większej zmianie najpierw przedstawia plan i krytycznie ocenia propozycję użytkownika (zgadza się albo koryguje z uzasadnieniem), a rusza po akceptacji.
 - Agent na bieżąco sugeruje biblioteki, które skracają kod (np. TanStack Table, Zod, motion), ale instaluje je użytkownik. Agent podaje same komendy, po jednej w bloku, gdy użytkownik o to prosi. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik we własnym terminalu.
 - Przed pisaniem kodu zależnego od Next.js agent sprawdza dokumentację w `node_modules/next/dist/docs/` zamiast polegać na pamięci.
@@ -28,7 +28,9 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 
 - Bez komentarzy w kodzie i bez opisowych nagłówków w plikach.
 - Biome: tabulatory, apostrofy, LF. Po zmianach agent uruchamia `npm run lint:fix`, `npm run typecheck`, a przy większych zmianach `next build`, i podaje wynik. Nie stosuje `--unsafe` bez zgody.
+- Pracujemy w duchu Clean Code wujka Boba: małe funkcje o jednej odpowiedzialności, czytelne nazwy, mało argumentów (najlepiej 0–2, 3 to maksimum; więcej grupujemy w obiekt), bez flag w argumentach.
 - Nazwy zgodnie z Clean Code: mówią, czego dotyczą (np. `useSidebarState`, `sidebarStyles`, `use-is-mobile.ts`).
+- Kod backendowy w projekcie (serwerowy, spoza warstwy UI) piszemy obiektowo (OOP): klasy z enkapsulacją i jedną odpowiedzialnością, zależności przekazywane przez konstruktor.
 - Importy z Reacta nazwane (`import { useState } from 'react'`), bez `React.cos`.
 - Klasy Tailwinda wydzielamy z TSX do pliku `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva). TSX zostaje czysty.
 - Stałe do `*.constants.ts`, typy współdzielone do `*.types.ts`, typ propsów komponentu zostaje w jego pliku.
