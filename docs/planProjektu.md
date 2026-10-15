@@ -41,6 +41,21 @@ Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 - Wyszukiwanie i stronicowanie działają na serwerze. Wpisane hasło i numer strony są w adresie URL.
 - Bez wirtualizacji i bez dodatkowych optymalizacji, dopóki nie pojawi się realny problem.
 
+struktura :
+
+```text
+
+src/features/pvex/
+        pvex.types.ts
+        pvex.constants.ts
+        parse-pvex-csv.ts
+        fetch-pvex-csv.ts
+        pvex-products-cache.ts
+        get-pvex-products.ts
+        search-pvex-products.ts
+        index.ts
+```
+
 **Szacowany czas całego brancha:** 8–10 godzin pracy.
 
 ### Zadania

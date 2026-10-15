@@ -30,7 +30,7 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - Biome: tabulatory, apostrofy, LF. Po zmianach agent uruchamia `npm run lint:fix`, `npm run typecheck`, a przy większych zmianach `next build`, i podaje wynik. Nie stosuje `--unsafe` bez zgody.
 - Pracujemy w duchu Clean Code wujka Boba: małe funkcje o jednej odpowiedzialności, czytelne nazwy, mało argumentów (najlepiej 0–2, 3 to maksimum; więcej grupujemy w obiekt), bez flag w argumentach.
 - Nazwy zgodnie z Clean Code: mówią, czego dotyczą (np. `useSidebarState`, `sidebarStyles`, `use-is-mobile.ts`).
-- Kod backendowy w projekcie (serwerowy, spoza warstwy UI) piszemy obiektowo (OOP): klasy z enkapsulacją i jedną odpowiedzialnością, zależności przekazywane przez konstruktor.
+- Trzymamy się dobrych praktyk Next.js: funkcje i moduły zamiast klas na siłę, typy jako `type`.
 - Importy z Reacta nazwane (`import { useState } from 'react'`), bez `React.cos`.
 - Klasy Tailwinda wydzielamy z TSX do pliku `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva). TSX zostaje czysty.
 - Stałe do `*.constants.ts`, typy współdzielone do `*.types.ts`, typ propsów komponentu zostaje w jego pliku.
