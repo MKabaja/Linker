@@ -45,23 +45,28 @@ Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 
 ### Zadania
 
-**1. [ ] Nowy branch** (ok. 5 min)
+**1. [x] Nowy branch** (ok. 5 min)
 Zakładasz osobną gałąź na całą fazę.
+
 ```bash
 git switch -c feat/products-view
 ```
 
-**2. [ ] Instalacja `papaparse`** (ok. 15 min)
+**2. [x] Instalacja `papaparse`** (ok. 15 min)
 Biblioteka, która czyta plik CSV za nas (cudzysłowy, średniki, nagłówki).
+
 ```bash
 npm install papaparse
 ```
+
 ```bash
 npm install -D @types/papaparse
 ```
+
 Commit: `build(deps): add papaparse for reading PVEX CSV`
 
 **3. [ ] Typ produktu i czytanie CSV** (ok. 1,5 h)
+
 - Typ `PvexProduct`: nazwa, cena, EAN, ilość, VAT.
 - Funkcja, która zamienia tekst CSV na listę produktów.
 - Do każdego produktu zapisujemy nazwę bez polskich znaków i wielkich liter. Będzie potrzebna do wyszukiwania.
@@ -70,6 +75,7 @@ Commit: `build(deps): add papaparse for reading PVEX CSV`
 Commit: `feat(products): parse PVEX CSV into product list`
 
 **4. [ ] Pobieranie z PVEX i pamięć podręczna** (ok. 1,5 h)
+
 - Funkcja `getPvexProducts()` pobiera plik z PVEX.
 - Dane do 1–2 minut są zwracane z pamięci.
 - Starsze dane są zwracane od razu, a nowe pobierają się w tle.
@@ -79,6 +85,7 @@ Commit: `feat(products): parse PVEX CSV into product list`
 Commit: `feat(products): fetch PVEX products with in-memory cache`
 
 **5. [ ] Wyszukiwanie** (ok. 1 h)
+
 - Same cyfry w polu: szukamy po EAN.
 - Tekst: produkt musi zawierać wszystkie wpisane słowa, bez względu na wielkość liter i polskie znaki.
 - Funkcja zwraca też łączną liczbę wyników.
@@ -86,6 +93,7 @@ Commit: `feat(products): fetch PVEX products with in-memory cache`
 Commit: `feat(products): add search by EAN and name`
 
 **6. [ ] Tabela produktów** (ok. 1,5 h)
+
 - Strona `/products` pobiera dane na serwerze i pokazuje jedną stronę (np. 50 wierszy).
 - Kolumny: EAN, nazwa, cena, ilość, VAT.
 - Tabela korzysta z TanStack Table.
@@ -94,6 +102,7 @@ Commit: `feat(products): add search by EAN and name`
 Commit: `feat(products): show products table with pagination`
 
 **7. [ ] Pole wyszukiwania** (ok. 1 h)
+
 - Pole nad tabelą, odczekuje chwilę po wpisaniu (ok. 300 ms).
 - Wpisane hasło i strona zapisują się w adresie URL, więc działa odświeżenie i przycisk „wstecz”.
 - Nowe hasło wraca na pierwszą stronę.
@@ -102,6 +111,7 @@ Commit: `feat(products): show products table with pagination`
 Commit: `feat(products): add search field synced with URL`
 
 **8. [ ] Błędy i nieaktualne dane** (ok. 1 h)
+
 - Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony.
 - Gdy PVEX nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne”.
 - Nad tabelą pokazujemy „Dane z godz. HH:MM”.
@@ -109,6 +119,7 @@ Commit: `feat(products): add search field synced with URL`
 Commit: `feat(products): show errors and data freshness`
 
 **9. [ ] Odświeżanie po powrocie na kartę** (ok. 45 min)
+
 - Gdy wracasz do karty z aplikacją, strona sama pobiera świeże dane.
 - Logika w osobnym hooku.
 - Bez przycisku „odśwież” jako głównego mechanizmu.
@@ -116,6 +127,7 @@ Commit: `feat(products): show errors and data freshness`
 Commit: `feat(products): refresh data when browser tab becomes active`
 
 **10. [ ] Porządki i sprawdzenie** (ok. 45 min)
+
 - Usuwamy prototyp `src/app/api/primavera/route.ts` i niepotrzebny `src/app/dashboard/page.tsx`, jeśli się zgadzasz.
 - Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
 - Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
