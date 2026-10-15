@@ -31,14 +31,101 @@ Cel: aplikacja się uruchamia, da się klikać między widokami.
 
 ## Faza 2 — produkty z PVEX
 
-Cel: widok `/products` pokazuje cennik hurtowni.
+Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 
-- [ ] Wydzielić z obecnego `route.ts` funkcję pobierającą i parsującą CSV (np. `getPvexProducts()` w `lib/`).
-- [ ] Pobieranie z cache (np. `revalidate` kilka–kilkanaście minut), bo plik ma ok. 22 tys. wierszy.
-- [ ] Tabela: EAN, nazwa, cena, ilość, VAT; wyszukiwanie po EAN i po nazwie; stronicowanie lub wirtualizacja.
-- [ ] Obsługa błędów: pusta odpowiedź, zły token, zmiana formatu — komunikat zamiast pustej strony.
+**Ustalenia:**
 
-**Gotowe, gdy:** wpisujesz EAN i widzisz ilość w PVEX.
+- Zostajemy przy CSV. Bez bazy danych, bez TanStack Query, bez `nuqs` (nie dają tu realnego zysku).
+- Jedyna nowa biblioteka: `papaparse` (czytanie CSV).
+- Dane trzymamy w pamięci serwera. Gdy są starsze niż 1–2 minuty, pokazujemy stare i w tle pobieramy nowe. Nowe dane zastępują stare w całości.
+- Wyszukiwanie i stronicowanie działają na serwerze. Wpisane hasło i numer strony są w adresie URL.
+- Bez wirtualizacji i bez dodatkowych optymalizacji, dopóki nie pojawi się realny problem.
+
+**Szacowany czas całego brancha:** 8–10 godzin pracy.
+
+### Zadania
+
+**1. [ ] Nowy branch** (ok. 5 min)
+Zakładasz osobną gałąź na całą fazę.
+```bash
+git switch -c feat/products-view
+```
+
+**2. [ ] Instalacja `papaparse`** (ok. 15 min)
+Biblioteka, która czyta plik CSV za nas (cudzysłowy, średniki, nagłówki).
+```bash
+npm install papaparse
+```
+```bash
+npm install -D @types/papaparse
+```
+Commit: `build(deps): add papaparse for reading PVEX CSV`
+
+**3. [ ] Typ produktu i czytanie CSV** (ok. 1,5 h)
+- Typ `PvexProduct`: nazwa, cena, EAN, ilość, VAT.
+- Funkcja, która zamienia tekst CSV na listę produktów.
+- Do każdego produktu zapisujemy nazwę bez polskich znaków i wielkich liter. Będzie potrzebna do wyszukiwania.
+- Gdy nagłówek pliku się zmieni, funkcja zgłasza czytelny błąd.
+
+Commit: `feat(products): parse PVEX CSV into product list`
+
+**4. [ ] Pobieranie z PVEX i pamięć podręczna** (ok. 1,5 h)
+- Funkcja `getPvexProducts()` pobiera plik z PVEX.
+- Dane do 1–2 minut są zwracane z pamięci.
+- Starsze dane są zwracane od razu, a nowe pobierają się w tle.
+- Kilka jednoczesnych zapytań korzysta z jednego pobierania.
+- Zapisujemy też godzinę ostatniego pobrania.
+
+Commit: `feat(products): fetch PVEX products with in-memory cache`
+
+**5. [ ] Wyszukiwanie** (ok. 1 h)
+- Same cyfry w polu: szukamy po EAN.
+- Tekst: produkt musi zawierać wszystkie wpisane słowa, bez względu na wielkość liter i polskie znaki.
+- Funkcja zwraca też łączną liczbę wyników.
+
+Commit: `feat(products): add search by EAN and name`
+
+**6. [ ] Tabela produktów** (ok. 1,5 h)
+- Strona `/products` pobiera dane na serwerze i pokazuje jedną stronę (np. 50 wierszy).
+- Kolumny: EAN, nazwa, cena, ilość, VAT.
+- Tabela korzysta z TanStack Table.
+- Przyciski „poprzednia / następna strona”.
+
+Commit: `feat(products): show products table with pagination`
+
+**7. [ ] Pole wyszukiwania** (ok. 1 h)
+- Pole nad tabelą, odczekuje chwilę po wpisaniu (ok. 300 ms).
+- Wpisane hasło i strona zapisują się w adresie URL, więc działa odświeżenie i przycisk „wstecz”.
+- Nowe hasło wraca na pierwszą stronę.
+- Logika w osobnym hooku.
+
+Commit: `feat(products): add search field synced with URL`
+
+**8. [ ] Błędy i nieaktualne dane** (ok. 1 h)
+- Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony.
+- Gdy PVEX nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne”.
+- Nad tabelą pokazujemy „Dane z godz. HH:MM”.
+
+Commit: `feat(products): show errors and data freshness`
+
+**9. [ ] Odświeżanie po powrocie na kartę** (ok. 45 min)
+- Gdy wracasz do karty z aplikacją, strona sama pobiera świeże dane.
+- Logika w osobnym hooku.
+- Bez przycisku „odśwież” jako głównego mechanizmu.
+
+Commit: `feat(products): refresh data when browser tab becomes active`
+
+**10. [ ] Porządki i sprawdzenie** (ok. 45 min)
+- Usuwamy prototyp `src/app/api/primavera/route.ts` i niepotrzebny `src/app/dashboard/page.tsx`, jeśli się zgadzasz.
+- Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
+- Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
+
+Commit: `chore(products): remove PVEX prototype route`
+
+**11. [ ] Pull request** (ok. 15 min)
+Na Twoją prośbę podaję tytuł i treść PR po angielsku. PR tworzysz sam na GitHubie.
+
+**Gotowe, gdy:** wpisujesz EAN lub fragment nazwy i od razu widzisz ilość w PVEX. Dane odświeżają się same.
 
 ## Faza 3 — zamówienia z BaseLinkera
 
@@ -99,7 +186,7 @@ Zaczynamy dopiero po dostaniu loginu tylko do odczytu.
 
 ## Otwarte decyzje (do rozstrzygnięcia po drodze)
 
-- Czy potrzebna jest baza danych, czy wystarczą pliki i cache? (komputer bez Dockera/WSL; na razie raczej bez bazy)
+- Czy potrzebna jest baza danych? Na razie nie (cache w pamięci wystarcza). Wrócimy do tego, gdy pojawi się potrzeba historii stanów lub wielu instancji aplikacji.
 - Jak liczyć ilość do zamówienia dla zestawów.
 - Czy PVEX wymaga nagłówka w pliku importu.
 - Netto czy brutto w cenie z CSV PVEX (jedna próbka sugeruje netto).
