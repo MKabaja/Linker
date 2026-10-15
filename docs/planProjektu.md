@@ -23,9 +23,9 @@
 
 Cel: aplikacja się uruchamia, da się klikać między widokami.
 
-- [ ] Layout z prostym navbarem (`next/link`, podświetlenie aktywnej zakładki przez `usePathname` w małym komponencie klienckim).
-- [ ] Strony: `/orders`, `/products`, `/shopping-list`; `/` przekierowuje na `/orders`.
-- [ ] Puste widoki z nagłówkiem i miejscem na tabelę.
+- [x] Layout z nawigacją: sidebar po lewej (zwijany do ikon, wersja mobilna jako wysuwany panel), podświetlenie aktywnej zakładki przez `usePathname`.
+- [x] Strony: `/orders`, `/products`, `/shopping-list` (oraz `/settings`); `/` tymczasowo przekierowuje na `/orders`.
+- [x] Puste widoki z nagłówkiem i miejscem na tabelę.
 
 **Gotowe, gdy:** nawigacja działa, każda strona się renderuje.
 
