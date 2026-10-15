@@ -36,6 +36,11 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - Struktura: `src/shared/components/<nazwa>/` z plikami `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts` (barrel). Jedna odpowiedzialność na plik. Wspólny kod w `src/shared/` (`components`, `hooks`, `lib`), a aliasy shadcn w `components.json` wskazują na `@/shared/...`.
 - Martwy kod z generatorów (np. nieużywane części shadcn) usuwamy. W razie potrzeby odtworzy go `shadcn add`.
 - Layout wspólny (`<main>`, padding) jest w `src/app/layout.tsx`, a strony zwracają `<section>` z `<h1>`.
+- Pliki i foldery w kebab-case, nazwy komponentów w kodzie w PascalCase (`app-sidebar.tsx` eksportuje `AppSidebar`).
+- Kod specyficzny dla aplikacji (nie wielokrotnego użytku) w `src/features/<temat>/<komponent>/`; dane tylko dla jednego komponentu (np. lista linków) leżą obok niego w `*.constants.ts`, a nie w globalnym configu.
+- Linki typujemy przez `Route` z `next` (włączone `typedRoutes`).
+- Plik z hookami lub kontekstem eksportowany przez barrel do Server Componentu musi mieć `'use client'`.
+- Sekrety wyłącznie w `.env.local` (poza repo), w repo tylko `.env.example` bez wartości. Nigdy nie wklejamy tokenów do kodu ani dokumentacji.
 
 # Git
 
@@ -47,7 +52,9 @@ Do not add any attribution or signature to commits or pull requests: no `Co-Auth
 
 ## Pull requesty
 
-PR tworzy wyłącznie użytkownik, przez GitHuba. Na prośbę agent podaje sam tytuł (Conventional Commits) i treść do wklejenia, zgodną z `docs/PR_TEMPLATE.md`. Agent nie uruchamia `gh pr create` ani nie robi push.
+PR tworzy wyłącznie użytkownik, przez GitHuba. Na prośbę agent podaje sam tytuł (Conventional Commits) i treść do wklejenia, zgodną z `docs/PR_TEMPLATE.md`. Treść PR jest po angielsku, w formacie Markdown (nagłówki `##` z szablonu, listy), podana w bloku kodu do skopiowania. W PR nie odwołujemy się do dokumentacji projektu ani do planu (np. numerów faz). Agent nie uruchamia `gh pr create` ani nie robi push.
+
+Po scaleniu PR agent na prośbę przełącza się na `main`, robi `git pull` i usuwa lokalny branch przez `git branch -d` (nigdy `-D` bez zgody). Nowy branch na kolejny temat zakłada użytkownik.
 
 ## Conventional Commits
 
