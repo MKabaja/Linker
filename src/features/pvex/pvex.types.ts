@@ -1,3 +1,5 @@
+import type { PVEX_CSV_HEADERS } from './pvex.constants';
+
 /**
  * Produkt z cennika PVEX.
  *
@@ -26,3 +28,18 @@ export type PvexProduct = {
 	quantity: number;
 	vat: number;
 };
+
+/**
+ * Surowy wiersz pliku CSV z PVEX, przed konwersją na `PvexProduct`.
+ * Klucze odpowiadają nagłówkom pliku, a wartości są tekstem.
+ *
+ * @example
+ * {
+ *   Nazwa: 'Żel pod prysznic 200ml',
+ *   Cena: '24.9',
+ *   EAN: '085715166012',
+ *   Ilosc: '3',
+ *   StawkaVAT: '23',
+ * }
+ */
+export type PvexCsvRow = Record<(typeof PVEX_CSV_HEADERS)[number], string>;
