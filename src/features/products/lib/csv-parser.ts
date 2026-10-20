@@ -1,7 +1,7 @@
 import type { ParseConfig, ParseError } from 'papaparse';
 import { parse } from 'papaparse';
-import { PVEX_CSV_HEADERS, SEPARATOR } from './pvex.constants';
-import type { PvexCsvRow, PvexProduct } from './pvex.types';
+import { PVEX_CSV_HEADERS, SEPARATOR } from '../constants/csv.constants';
+import type { PvexCsvRow, PvexProduct } from '../products.types';
 
 const config = {
 	header: true,

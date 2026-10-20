@@ -1,4 +1,4 @@
-import type { PVEX_CSV_HEADERS } from './pvex.constants';
+import type { PVEX_CSV_HEADERS } from './constants/csv.constants';
 
 export type PvexProduct = {
 	ean: string;
