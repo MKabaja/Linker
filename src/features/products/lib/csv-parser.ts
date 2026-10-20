@@ -2,6 +2,7 @@ import type { ParseConfig, ParseError } from 'papaparse';
 import { parse } from 'papaparse';
 import { PRIMAVERA_CSV_HEADERS, SEPARATOR } from '../constants/csv.constants';
 import type { PrimaveraCsvRow, PrimaveraProduct } from '../products.types';
+import { normalizeSearchText } from './normalize-search-text';
 
 const config = {
 	header: true,
@@ -36,10 +37,7 @@ function mapToPrimaveraProduct(csvRow: PrimaveraCsvRow): PrimaveraProduct {
 	return {
 		ean: csvRow.EAN,
 		name: csvRow.Nazwa,
-		searchableName: csvRow.Nazwa.toLowerCase()
-			.normalize('NFD')
-			.replace(/[\u0300-\u036f]/g, '')
-			.replace(/\u0142/g, 'l'),
+		searchableName: normalizeSearchText(csvRow.Nazwa),
 		price: Number(csvRow.Cena),
 		quantity: Number(csvRow.Ilosc),
 		vat: Number(csvRow.StawkaVAT),
