@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Komunikacja
 
-Odpowiadaj krótko i na temat, bez rozprawek. Nie dodawaj tematów, o które nie pytano.
+Odpowiadaj po polsku, krótko i na temat, bez rozprawek. Nie dodawaj tematów, o które nie pytano.
 
 # Sposób pracy
 
@@ -22,27 +22,118 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - Agent na bieżąco sugeruje biblioteki, które skracają kod (np. TanStack Table, Zod, motion), ale instaluje je użytkownik. Agent podaje same komendy, po jednej w bloku, gdy użytkownik o to prosi. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik we własnym terminalu.
 - Przed pisaniem kodu zależnego od Next.js agent sprawdza dokumentację w `node_modules/next/dist/docs/` zamiast polegać na pamięci.
 - Tokeny (BaseLinker, PVEX) w wersji dev zostają bez zmian. Agent ich nie rusza i nie przypomina o ich wymianie.
-- Odpowiedzi po polsku, krótko. Po większej zmianie agent podaje podsumowanie: co zrobiono, co usunięto, gdzie co leży.
+- Po większej zmianie agent podaje krótkie podsumowanie: co zrobiono, co usunięto, gdzie co leży, wynik weryfikacji i maksymalnie trzy najważniejsze uwagi jakościowe. Dla drobnych zmian wystarczy jedno zdanie.
 
-## Standard kodu
+# Standard kodu
 
-- Bez komentarzy w kodzie i bez opisowych nagłówków w plikach.
-- Biome: tabulatory, apostrofy, LF. Po zmianach agent uruchamia `npm run lint:fix`, `npm run typecheck`, a przy większych zmianach `next build`, i podaje wynik. Nie stosuje `--unsafe` bez zgody.
-- Pracujemy w duchu Clean Code wujka Boba: małe funkcje o jednej odpowiedzialności, czytelne nazwy, mało argumentów (najlepiej 0–2, 3 to maksimum; więcej grupujemy w obiekt), bez flag w argumentach.
-- Nazwy zgodnie z Clean Code: mówią, czego dotyczą (np. `useSidebarState`, `sidebarStyles`, `use-is-mobile.ts`).
-- Trzymamy się dobrych praktyk Next.js: funkcje i moduły zamiast klas na siłę, typy jako `type`.
-- Importy z Reacta nazwane (`import { useState } from 'react'`), bez `React.cos`.
-- Klasy Tailwinda wydzielamy z TSX do pliku `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva). TSX zostaje czysty.
-- Stałe do `*.constants.ts`, typy współdzielone do `*.types.ts`, typ propsów komponentu zostaje w jego pliku.
-- Logika stanu w hookach (`use-*.ts`). Hook używany tylko przez jeden komponent leży w jego folderze, a ogólnego użytku w `src/shared/hooks/`.
-- Struktura: `src/shared/components/<nazwa>/` z plikami `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts` (barrel). Jedna odpowiedzialność na plik. Wspólny kod w `src/shared/` (`components`, `hooks`, `lib`), a aliasy shadcn w `components.json` wskazują na `@/shared/...`.
-- Martwy kod z generatorów (np. nieużywane części shadcn) usuwamy. W razie potrzeby odtworzy go `shadcn add`.
-- Layout wspólny (`<main>`, padding) jest w `src/app/layout.tsx`, a strony zwracają `<section>` z `<h1>`.
-- Pliki i foldery w kebab-case, nazwy komponentów w kodzie w PascalCase (`app-sidebar.tsx` eksportuje `AppSidebar`).
-- Kod specyficzny dla aplikacji (nie wielokrotnego użytku) w `src/features/<temat>/<komponent>/`; dane tylko dla jednego komponentu (np. lista linków) leżą obok niego w `*.constants.ts`, a nie w globalnym configu.
+## 1. Zasady
+
+- Pracujemy w duchu Clean Code Roberta C. Martina, SOLID, KISS, DRY i YAGNI.
+- Priorytety: poprawność, bezpieczeństwo, czytelność, testowalność, prostota.
+- Bez komentarzy w kodzie i opisowych nagłówków w plikach. Wyjątek: JSDoc wyłącznie dla głównego API modułu oraz hooków wielokrotnego użytku.
+- Nie twórz abstrakcji, klas ani plików bez konkretnego uzasadnienia. Preferuj funkcje i moduły zamiast klas, zgodnie z dobrymi praktykami Next.js.
+- Zmiany małe, celowe i łatwe do przeglądu. Przed implementacją sprawdź istniejące konwencje.
+- Nie refaktoryzuj kodu niezwiązanego z zadaniem. Czytelność jest ważniejsza niż skracanie kodu.
+
+## 2. Formatowanie i weryfikacja
+
+- Biome: tabulatory, apostrofy, LF.
+- Po zmianach uruchamiaj `npm run lint:fix` i `npm run typecheck`, a przy większych zmianach `next build`. Podaj rzeczywiste wyniki.
+- Testy uruchamiaj tylko wtedy, gdy istnieją i zmiana dotyczy kodu nimi pokrytego. Nigdy nie deklaruj sukcesu testów, których nie uruchomiono.
+- Nie stosuj `--unsafe` bez zgody. Nie wyłączaj reguł lintu ani TypeScript, żeby ukryć błąd.
+
+## 3. Nazewnictwo
+
+- Nazwa mówi, czego dotyczy. Nazwa funkcji odpowiada jej rzeczywistemu zachowaniu.
+- Funkcje nazywaj czasownikami (`getUserById`), a zwracające boolean przez `is`, `has`, `can`, `should`.
+- Hooki: `useSidebarState`. Komponenty i typy: PascalCase, bez prefiksów `I` i `T`.
+- Pliki i foldery zawsze w kebab-case, bez wielkich liter (`product-card.tsx`, `use-sidebar-state.ts`, `csv-parser.ts`). Dzięki temu importy działają tak samo na Windowsie i Linuksie. Komponent z `app-sidebar.tsx` eksportujemy jako `AppSidebar`.
+- Unikaj ogólnych nazw (`data`, `item`, `temp`, `helper`, `processData`) i niezrozumiałych skrótów.
+
+## 4. Funkcje
+
+- Jedna funkcja to jedna odpowiedzialność, na jednym poziomie abstrakcji. Wydzielaj funkcję, gdy ma własną regułę lub da się ją testować osobno. Nie dziel sztucznie według liczby linii.
+- Argumenty: najlepiej 0–2, maksymalnie 3. Więcej grupuj w obiekt, jeśli tworzą logiczną całość. Bez argumentów flagowych (`getUsers(true)` → `getActiveUsers()`).
+- Guard clauses i early return zamiast zagnieżdżonych `if`.
+- Nie mieszaj walidacji, transformacji, zapisu i komunikacji z API w jednej funkcji. Oddziel decyzje od efektów ubocznych.
+- Preferuj funkcje czyste. Czas, losowość i zależności zewnętrzne przekazuj jako argumenty.
+- Kolejność w pliku (stepdown rule): na górze główne API modułu, pod spodem coraz drobniejsze helpery. Używaj deklaracji `function` (są hoistowane), a nie `const f = () => {}`.
+
+## 5. TypeScript
+
+- `type` zamiast `interface`. Ścisłe typy, bez `any`, nieuzasadnionych `as`, `!` i `@ts-ignore`.
+- Dane z zewnątrz (API, pliki) są niezaufane do momentu walidacji w czasie działania. Typ przypisany do odpowiedzi niczego nie gwarantuje.
+- Stan modeluj przez discriminated unions zamiast kilku powiązanych booleanów.
+- Jawne typy dla publicznych kontraktów, inferencja dla prostych zmiennych lokalnych. Generyki tylko przy realnej potrzebie.
+
+## 6. React i komponenty
+
+- Komponenty i hooki są czyste w renderze. Nie przechowuj w stanie tego, co można obliczyć. `useEffect` tylko do synchronizacji z systemami zewnętrznymi, z cleanup.
+- Bez automatycznego `useMemo`, `useCallback`, `memo` oraz Contextu dla jednego propsa.
+- Reguły biznesowe w zwykłych funkcjach. Hook tylko dla stanu i logiki Reacta, i nie dla obliczeń.
+- Komponent odpowiada za jeden spójny element UI. Props to jasny kontrakt, z `variant` i `size` zamiast mnożenia booleanów. Typ propsów zostaje w pliku komponentu.
+- Importy z Reacta nazwane (`import { useState } from 'react'`).
+- Dostępność: semantyka HTML i obsługa klawiatury.
+- Klasy Tailwinda wydzielamy z TSX do `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva).
+
+## 7. Next.js App Router
+
+- Preferuj Server Components. `'use client'` tylko na granicach wymagających interaktywności. Plik z hookami lub kontekstem eksportowany przez barrel do Server Componentu musi go mieć.
+- Dane pobieraj na serwerze. Nie importuj sekretów ani modułów serwerowych do kodu klienta.
+- Waliduj dane wejściowe Server Actions i Route Handlers oraz sprawdzaj autoryzację po stronie serwera.
+- Błędy oczekiwane (zła odpowiedź zewnętrznego API, brak danych, walidacja) modeluj jako zwracane wartości i wyświetlaj warunkowo. Błędy nieoczekiwane zostawiamy jako wyjątki obsłużone przez `error.tsx`.
+- Uwzględniaj stany loading, error i empty. Cache dobieraj zgodnie z dokumentacją danej wersji Next.js.
 - Linki typujemy przez `Route` z `next` (włączone `typedRoutes`).
-- Plik z hookami lub kontekstem eksportowany przez barrel do Server Componentu musi mieć `'use client'`.
-- Sekrety wyłącznie w `.env.local` (poza repo), w repo tylko `.env.example` bez wartości. Nigdy nie wklejamy tokenów do kodu ani dokumentacji.
+- Wspólny layout (`<main>`, padding) jest w `src/app/layout.tsx`, a strony zwracają `<section>` z `<h1>`.
+
+## 8. Struktura projektu
+
+- `src/shared/` zawiera kod faktycznie wielokrotnego użytku: `components` (np. button, tooltip), `hooks`, `lib`. Komponent współdzielony: `src/shared/components/<nazwa>/` z `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts` (barrel). Aliasy shadcn w `components.json` wskazują na `@/shared/...`.
+- `src/features/<temat>/` zawiera kod specyficzny dla aplikacji. Wspólna konwencja folderów w każdym feature, tworzonych dopiero gdy mają zawartość:
+  - `components/` – komponenty (każdy w własnym folderze jak w `shared`),
+  - `lib/` – logika i helpery,
+  - `constants/` – stałe (`*.constants.ts`),
+  - `tests/` – testy,
+  - `<temat>.types.ts` – typy współdzielone w obrębie feature,
+  - `index.ts` – barrel ze stabilnym API feature.
+- Hook używany przez jeden komponent leży w jego folderze, ogólnego użytku w `src/shared/hooks/`.
+- Dane tylko dla jednego komponentu leżą obok niego w `*.constants.ts`, a nie w globalnym configu.
+- Jedna odpowiedzialność na plik. Nie rozbijaj małych komponentów bez potrzeby. Nie twórz cyklicznych importów.
+- Martwy kod z generatorów (np. nieużywane części shadcn) usuwamy. W razie potrzeby odtworzy go `shadcn add`.
+
+## 9. Testy
+
+- Reguły biznesowe pisz tak, by dało się je testować bez Reacta, bazy i sieci.
+- Testuj zachowanie, a nie szczegóły implementacji. Mockuj granice infrastruktury, nie logikę biznesową.
+- Obecnie projekt nie ma frameworka testowego. Gdy go dodamy, zasady z sekcji 2 zaczną obowiązywać.
+
+## 10. Bezpieczeństwo
+
+- Sekrety wyłącznie w `.env.local` (poza repo), w repo tylko `.env.example` bez wartości. Nigdy nie umieszczamy tokenów w kodzie, dokumentacji ani logach.
+- `NEXT_PUBLIC_*` jest publiczne. Nie ukrywaj elementów UI zamiast sprawdzać uprawnienia na serwerze.
+
+## 11. Antywzorce (przykłady)
+
+ŹLE: `useEffect(() => setFilteredProducts(products.filter((p) => p.isActive)), [products])`
+DOBRZE: `const filteredProducts = products.filter((product) => product.isActive)`
+
+ŹLE: `createOrder(userId, items, discount, true)`
+DOBRZE: `createOrder({ userId, items, discount })`
+
+ŹLE: `const product = response as Product`
+DOBRZE: walidacja danych przychodzących z API.
+
+ŹLE: `BaseService`, `AbstractManager`, fabryki bez konkretnej potrzeby.
+DOBRZE: proste funkcje i moduły.
+
+# Code review
+
+Agent jest też recenzentem i mentorem, ale w granicach tematu rozmowy.
+
+- Oceniaj kod dostarczony przez użytkownika i kod zmieniany w danym zadaniu. Uwagi spoza tego obszaru zgłaszaj tylko, gdy dotyczą bezpieczeństwa lub poprawności.
+- Nie zakładaj, że kod jest dobry tylko dlatego, że działa. Nie przytakuj bezkrytycznie, a gdy kod jest dobry, powiedz to bez wymuszania zmian.
+- Wyjaśnij, dlaczego zmiana poprawia kod. Krytykuj rozwiązanie, nie autora. Nie zgłaszaj fikcyjnych problemów i nie proponuj refaktoryzacji wyłącznie ze względów stylistycznych.
+- Priorytety: krytyczne (bezpieczeństwo, utrata danych, niepoprawność), ważne (SRP, testowalność, zbędna złożoność, słabe kontrakty), sugestie (nazwy, organizacja plików).
 
 # Git
 
