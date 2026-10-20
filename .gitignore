@@ -24,7 +24,7 @@ next-env.d.ts
 .env*
 !.env.example
 
-# dane robocze z PVEX (ceny hurtowe) – demo trafi do data/demo/
+# dane robocze z Primavery (ceny hurtowe) – demo trafi do data/demo/
 /data/*
 !/data/demo/
 
@@ -58,3 +58,7 @@ desktop.ini
 
 # claude code (ustawienia lokalne)
 .claude/settings.local.json
+
+# lokalne notatki i tymczasowy endpoint testowy
+/docs/PRIMAVERA_normalizacja_nazw_produktow.md
+/src/app/api/test/
