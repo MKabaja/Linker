@@ -1,6 +1,6 @@
-import type { PVEX_CSV_HEADERS } from './constants/csv.constants';
+import type { PRIMAVERA_CSV_HEADERS } from './constants/csv.constants';
 
-export type PvexProduct = {
+export type PrimaveraProduct = {
 	ean: string;
 	name: string;
 	searchableName: string;
@@ -9,4 +9,7 @@ export type PvexProduct = {
 	vat: number;
 };
 
-export type PvexCsvRow = Record<(typeof PVEX_CSV_HEADERS)[number], string>;
+export type PrimaveraCsvRow = Record<
+	(typeof PRIMAVERA_CSV_HEADERS)[number],
+	string
+>;

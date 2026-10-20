@@ -1,7 +1,7 @@
 import type { ParseConfig, ParseError } from 'papaparse';
 import { parse } from 'papaparse';
-import { PVEX_CSV_HEADERS, SEPARATOR } from '../constants/csv.constants';
-import type { PvexCsvRow, PvexProduct } from '../products.types';
+import { PRIMAVERA_CSV_HEADERS, SEPARATOR } from '../constants/csv.constants';
+import type { PrimaveraCsvRow, PrimaveraProduct } from '../products.types';
 
 const config = {
 	header: true,
@@ -9,38 +9,40 @@ const config = {
 	skipEmptyLines: true,
 } satisfies ParseConfig;
 
-export function parsePvexCsv(csvContent: string): PvexProduct[] {
-	const result = parse<PvexCsvRow>(csvContent, config);
-	assertPvexCsvHeaders(result.meta.fields);
+export function parsePrimaveraCsv(csvContent: string): PrimaveraProduct[] {
+	const result = parse<PrimaveraCsvRow>(csvContent, config);
+	assertPrimaveraCsvHeaders(result.meta.fields);
 	assertNoStructuralErrors(result.errors);
 	const badRows = getBadRowIndexes(result.errors);
 	warnAboutSkippedRows(badRows);
 
 	return result.data
 		.filter((_row, index) => !badRows.has(index))
-		.map(mapToPvexProduct);
+		.map(mapToPrimaveraProduct);
 }
 
-function assertPvexCsvHeaders(fields: string[] | undefined) {
+function assertPrimaveraCsvHeaders(fields: string[] | undefined) {
 	const fieldSet = new Set(fields);
-	const missing = PVEX_CSV_HEADERS.filter((header) => !fieldSet.has(header));
+	const missing = PRIMAVERA_CSV_HEADERS.filter(
+		(header) => !fieldSet.has(header),
+	);
 
 	if (missing.length > 0) {
 		throw new Error(`Brakujące nagłówki w pliku CSV: ${missing.join(', ')}`);
 	}
 }
 
-function mapToPvexProduct(pvexCsvRow: PvexCsvRow): PvexProduct {
+function mapToPrimaveraProduct(csvRow: PrimaveraCsvRow): PrimaveraProduct {
 	return {
-		ean: pvexCsvRow.EAN,
-		name: pvexCsvRow.Nazwa,
-		searchableName: pvexCsvRow.Nazwa.toLowerCase()
+		ean: csvRow.EAN,
+		name: csvRow.Nazwa,
+		searchableName: csvRow.Nazwa.toLowerCase()
 			.normalize('NFD')
 			.replace(/[\u0300-\u036f]/g, '')
 			.replace(/\u0142/g, 'l'),
-		price: Number(pvexCsvRow.Cena),
-		quantity: Number(pvexCsvRow.Ilosc),
-		vat: Number(pvexCsvRow.StawkaVAT),
+		price: Number(csvRow.Cena),
+		quantity: Number(csvRow.Ilosc),
+		vat: Number(csvRow.StawkaVAT),
 	};
 }
 

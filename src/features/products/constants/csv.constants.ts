@@ -1,5 +1,5 @@
 const SEPARATOR = ';';
-const PVEX_CSV_HEADERS = [
+const PRIMAVERA_CSV_HEADERS = [
 	'Nazwa',
 	'Cena',
 	'EAN',
@@ -7,4 +7,4 @@ const PVEX_CSV_HEADERS = [
 	'StawkaVAT',
 ] as const;
 
-export { SEPARATOR, PVEX_CSV_HEADERS };
+export { SEPARATOR, PRIMAVERA_CSV_HEADERS };
