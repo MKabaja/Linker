@@ -9,6 +9,15 @@ export type PrimaveraProduct = {
 	vat: number;
 };
 
+export type PrimaveraProductsSnapshot = {
+	products: PrimaveraProduct[];
+	fetchedAt: Date;
+};
+
+export type PrimaveraProductsResult =
+	| ({ status: 'ok' } & PrimaveraProductsSnapshot)
+	| { status: 'error'; message: string };
+
 export type PrimaveraCsvRow = Record<
 	(typeof PRIMAVERA_CSV_HEADERS)[number],
 	string
