@@ -25,8 +25,8 @@ Projekt „Linker" ma uprościć codzienną, ręczną pracę w sklepie interneto
 3. Dwa statusy wymagają pracy człowieka:
    - **BladPowiazaniaTowaru** — któryś produkt z zamówienia nigdy nie był w ERP (nowy EAN). Wg opisu użytkownika: ERP nie zna tego kodu.
    - **BrakStanuTowaru** — ERP zna produkty, ale któregoś brakuje na magazynie. BaseLinker **nie pokazuje, której pozycji** brakuje; listy bywają długie.
-4. Człowiek ręcznie sprawdza w WAPRO, czego brakuje, szuka tego w hurtowni PVEX (Primavera Parfum) i zamawia przez import pliku CSV na stronie PVEX.
-5. Pozycji, których nie ma w PVEX, szuka w sklepach stacjonarnych firmy (Drogeria, Cegielski). Robi to przez wspólny arkusz Google (sekcja 6).
+4. Człowiek ręcznie sprawdza w WAPRO, czego brakuje, szuka tego w hurtowni Primavera Parfum i zamawia przez import pliku CSV na stronie portalu PVEX.
+5. Pozycji, których nie ma w Primaverze, szuka w sklepach stacjonarnych firmy (Drogeria, Cegielski). Robi to przez wspólny arkusz Google (sekcja 6).
 6. Po realizacji kierownik magazynu ręcznie przenosi zamówienie do statusu `TworzZamowienie`, żeby integrator spróbował jeszcze raz. Status `BladERP` ustawia się, gdy coś jest nie tak technicznie. [POTWIERDZONE przez użytkownika]
 
 Skala (zrzut z panelu, 2026-10-02): w BrakStanuTowaru 35 zamówień, w BladPowiazaniaTowaru 3; w grupie „TworzenieZam" łącznie 42.
@@ -34,15 +34,15 @@ Skala (zrzut z panelu, 2026-10-02): w BrakStanuTowaru 35 zamówień, w BladPowia
 ### Co ma robić aplikacja (cel ogólny wg użytkownika)
 
 - Pobrać produkty/pozycje z zamówień w tych statusach.
-- Sprawdzić, które są dostępne w PVEX.
-- Wygenerować listę do ręcznego zamówienia w PVEX (CSV; w przyszłości ewentualnie mail).
-- Przygotować listę pozycji niedostępnych w PVEX do ręcznego wklepania w arkusz sklepów.
-- Dashboard z zamówieniami i dostępnością w PVEX.
-- Pomysł dodatkowy: lista „nowych artykułów do założenia w ERP" dla BladPowiazaniaTowaru (nazwa/EAN/cena z CSV PVEX lub z pozycji zamówienia). Aplikacja **nie ma zapisywać do ERP**.
+- Sprawdzić, które są dostępne w Primaverze.
+- Wygenerować listę do ręcznego zamówienia w Primaverze (CSV; w przyszłości ewentualnie mail).
+- Przygotować listę pozycji niedostępnych w Primaverze do ręcznego wklepania w arkusz sklepów.
+- Dashboard z zamówieniami i dostępnością w Primaverze.
+- Pomysł dodatkowy: lista „nowych artykułów do założenia w ERP" dla BladPowiazaniaTowaru (nazwa/EAN/cena z CSV Primavery lub z pozycji zamówienia). Aplikacja **nie ma zapisywać do ERP**.
 
 ### Wcześniejsza roadmapa użytkownika (plik ROADMAP_PVEX_NEXTJS_FAZA1_2.md)
 
-Faza 1: Next.js + pobranie CSV z PVEX + parsowanie. Faza 2: dashboard z tabelą (EAN, nazwa, cena, ilość), wyszukiwanie po EAN, filtry. Faza 3 (przyszłość): BaseLinker API, filtrowanie po statusie, docelowy przepływ: BaseLinker → BladPowiazaniaTowaru → EAN → PVEX → weryfikacja → lista zakupowa → CSV → wysłanie maila.
+Faza 1: Next.js + pobranie CSV z Primavery + parsowanie. Faza 2: dashboard z tabelą (EAN, nazwa, cena, ilość), wyszukiwanie po EAN, filtry. Faza 3 (przyszłość): BaseLinker API, filtrowanie po statusie, docelowy przepływ: BaseLinker → BladPowiazaniaTowaru → EAN → Primavera → weryfikacja → lista zakupowa → CSV → wysłanie maila.
 
 ---
 
@@ -57,8 +57,8 @@ Faza 1: Next.js + pobranie CSV z PVEX + parsowanie. Faza 2: dashboard z tabelą 
 ### Założenia i zakres zgłoszone przez autora (do rewizji w planowaniu)
 
 - Stack: Next.js (App Router) + TypeScript + Tailwind, Biome, Postgres + Prisma lub Drizzle (do wyboru), Vitest do testów logiki, opcjonalnie DevExtreme DataGrid (komponenty client-side).
-- Architektura: dostęp do danych przez interfejsy (np. ProductSource, OrderSource) z dwiema implementacjami: live (PVEX CSV, BaseLinker API) i demo (zanonimizowane pliki w repo); przełączanie zmienną `DATA_SOURCE=demo|live`; tokeny tylko po stronie serwera; logika biznesowa w warstwie serwisów oddzielonej od Route Handlerów / Server Actions; publiczne demo (i `docker compose up`) bez żadnych tokenów.
-- Zakres MVP: (1) import i parsowanie CSV z PVEX + testy parsera, (2) tabela produktów z wyszukiwaniem po EAN i filtrami, (3) zamówienia z BaseLinkera (w demo z JSON) → lista zakupowa po EAN, (4) eksport listy do CSV, (5) deploy w trybie demo + README z opisem problemu i architektury.
+- Architektura: dostęp do danych przez interfejsy (np. ProductSource, OrderSource) z dwiema implementacjami: live (CSV z Primavery, BaseLinker API) i demo (zanonimizowane pliki w repo); przełączanie zmienną `DATA_SOURCE=demo|live`; tokeny tylko po stronie serwera; logika biznesowa w warstwie serwisów oddzielonej od Route Handlerów / Server Actions; publiczne demo (i `docker compose up`) bez żadnych tokenów.
+- Zakres MVP: (1) import i parsowanie CSV z Primavery + testy parsera, (2) tabela produktów z wyszukiwaniem po EAN i filtrami, (3) zamówienia z BaseLinkera (w demo z JSON) → lista zakupowa po EAN, (4) eksport listy do CSV, (5) deploy w trybie demo + README z opisem problemu i architektury.
 - Poza MVP: wysyłka maila, autoryzacja, cron.
 - Konflikt do rozstrzygnięcia: wymóg `docker compose up` kontra brak Dockera na komputerze autora.
 - Autoryzacja: autor skłania się do jej braku („marnowanie czasu"). Na etapie rozpoznania pojawiło się rozważanie: brak logowania, jeśli tryb live działa wyłącznie lokalnie lub w sieci firmowej. Decyzja nie zapadła.
@@ -208,7 +208,7 @@ Osobny moduł dodatkowy wdrażany przez partnera (APROSYSTEM), udostępnia zawar
 
 ## 6. Arkusz Google sklepów stacjonarnych [POTWIERDZONE zrzutem]
 
-Wspólny arkusz, w którym ktoś ręcznie wpisuje pozycje niedostępne w PVEX; sklepy (DROGERIA, CEGIELSKI) uzupełniają, ile mają i mogą podrzucić. Ok. 750 wierszy od początku arkusza.
+Wspólny arkusz, w którym ktoś ręcznie wpisuje pozycje niedostępne w Primaverze; sklepy (DROGERIA, CEGIELSKI) uzupełniają, ile mają i mogą podrzucić. Ok. 750 wierszy od początku arkusza.
 - Kolumny: Data, EAN, Nazwa, Zamówienie (ilość), Brakuje, DROGERIA, CEGIELSKI, Kontrahent, Czy ukryć (checkbox).
 - **Kolumna „Kontrahent" zawiera numer zamówienia z BaseLinkera** (np. 349893073) — zgodny z `order_id`.
 - Kolory wierszy: zielony przekreślony = załatwione, żółty = częściowo, czerwony = brak. Czy „Brakuje" i kolory są liczone formułą czy ręcznie [NIEZNANE].
@@ -230,7 +230,7 @@ Nie wiemy, jaki mechanizm przenosi zamówienia i ustawia statusy. Z rozpoznania 
 
 ## 8. Porównanie stanów w czterech miejscach [POTWIERDZONE, wnioski ostrożne]
 
-| Produkt (EAN) | WAPRO (KROLEX): stan / dostępna / zarezerw. | BaseLinker `bl_24543` | BaseLinker `shop_3010600` | PVEX |
+| Produkt (EAN) | WAPRO (KROLEX): stan / dostępna / zarezerw. | BaseLinker `bl_24543` | BaseLinker `shop_3010600` | Primavera |
 |---|---|---|---|---|
 | Lattafa Pride Vintage Radio EDP 100ml (6290360592909) | 0 / 0 / 0 | 0 | 32 | 32 (netto 74,90) |
 | Almusso Bravo, ręcznik papierowy (5907678200419) | 169 / 166 / 3 (dostawy 482) | **-12** | 174 | brak w ofercie |
@@ -238,8 +238,8 @@ Nie wiemy, jaki mechanizm przenosi zamówienia i ustawia statusy. Z rozpoznania 
 
 Wnioski:
 - **[ODRZUCONE] `bl_24543` = stan WAPRO.** Ujemny stan (-12) przy 169 w ERP oraz zera przy dodatnich stanach wskazują, że to osobny licznik BaseLinkera (edytowalny ręcznie), niezgodny z ERP.
-- **[ODRZUCONE] `shop_3010600` = dostępne w WAPRO + stan w PVEX.** Pasowało do Lattafy i reklamówek, ale Almusso ma 174 przy 166 dostępnych i braku w PVEX. Możliwe wyjaśnienia (niesprawdzone): opóźnienie synchronizacji, inne rezerwacje w innym momencie, własne źródło sklepu.
-- **Stan sklepu `shop_3010600` zgadza się z PVEX tam, gdzie produkt jest w PVEX (Lattafa: 32 = 32).** Skąd dokładnie pochodzi i jak często się odświeża [NIEZNANE]; w starym skrypcie PHP ilości z PVEX były zapisywane do sklepu.
+- **[ODRZUCONE] `shop_3010600` = dostępne w WAPRO + stan w Primaverze.** Pasowało do Lattafy i reklamówek, ale Almusso ma 174 przy 166 dostępnych i braku w Primaverze. Możliwe wyjaśnienia (niesprawdzone): opóźnienie synchronizacji, inne rezerwacje w innym momencie, własne źródło sklepu.
+- **Stan sklepu `shop_3010600` zgadza się z Primavery tam, gdzie produkt jest w Primaverze (Lattafa: 32 = 32).** Skąd dokładnie pochodzi i jak często się odświeża [NIEZNANE]; w starym skrypcie PHP ilości z Primavery były zapisywane do sklepu.
 - **Wniosek roboczy:** stanów magazynu głównego WAPRO nie da się wiarygodnie odczytać z BaseLinkera. Źródłem musi być WAPRO (baza SQL, eksport do pliku lub WebAPI), albo zostaje wersja bez stanów.
 - Zestaw 4-pakowy w BaseLinkerze (sku `ZESTAWx4x<EAN>`, osobny produkt `354466338`) ma stan 43 = 174 podzielone przez 4 w dół (jedna próbka). Pojedynczy i zestaw mają ten sam EAN.
 - Nazwy tego samego produktu różnią się w trzech systemach (np. „Lattafa Vintage Radio Woda Perfumowana Spray 100ml" / „LATAFFA Pride Vintage Radio EDP 100ml" / „LATTAFA Pride Vintage Radio EDP spray 100ml") → **łączenie wyłącznie po EAN, nie po nazwie.** Przy Almusso kolor w nazwie BaseLinkera („Szary") różni się od WAPRO („BIAŁY") dla tego samego EAN — możliwy błąd w katalogu.
@@ -252,7 +252,7 @@ Skutek dla zakresu: bez stanów z WAPRO lista dla BrakStanuTowaru zawiera **wszy
 
 - Stany z `bl_24543` jako stan WAPRO.
 - Reguła `DO_REZERWACJI` > 0 jako oznaczenie brakującej pozycji.
-- Równanie `shop_3010600 = dostępne w WAPRO + PVEX`.
+- Równanie `shop_3010600 = dostępne w WAPRO + Primavera`.
 - Widok `MAGGEN_Wms_Artykul_Stan_VP` (kolumny `p1`…`p30` bez nazw).
 - Szukanie śladu integratora w katalogu obiektów bazy, sesjach i gniazdach rozszerzeń — bez rozstrzygnięcia.
 - Komentarz z listą brakujących EAN-ów w zamówieniu (integrator tego nie robi; `admin_comments` zawierał inne notatki).
@@ -271,20 +271,20 @@ Skutek dla zakresu: bez stanów z WAPRO lista dla BrakStanuTowaru zawiera **wszy
 
 ### Od osoby, która dziś obsługuje te zamówienia
 - Ile minut dziennie to zajmuje i ile pozycji dziennie trafia do arkusza (liczby do README).
-- Czy najpierw sprawdza PVEX, a do arkusza trafia tylko to, czego tam nie ma.
+- Czy najpierw sprawdza Primavera, a do arkusza trafia tylko to, czego tam nie ma.
 - Czy „Brakuje" i kolory w arkuszu są formułą.
 - Jak często i z jakiego źródła sklep dostaje stany (`shop_3010600`).
 - Co robi z zestawami (`RozbijZestaw`) przy zamawianiu u hurtowni.
 
 ### Dane i testy do dopełnienia
 - Zanonimizowana próbka zamówień z BrakStanuTowaru i BladPowiazaniaTowaru: same pozycje (`ean`, `name`, `quantity`, `sku`, `bundle_id`), w tym zamówienia wielopozycyjne i z zestawem.
-- Większa próbka CSV z PVEX z przypadkami brzegowymi (puste wartości, zera, EAN 8-cyfrowe, cudzysłowy w nazwach).
+- Większa próbka CSV z Primavery z przypadkami brzegowymi (puste wartości, zera, EAN 8-cyfrowe, cudzysłowy w nazwach).
 - Test `czy_brak` w WAPRO dla zamówień z BrakStanuTowaru (porównanie stanu z ilością).
 - Weryfikacja zasady `NR_ZAMOWIENIA_KLIENTA = 'B_' + order_id` na większej liczbie zamówień.
 - Test paginacji `getOrders` (przy ponad 100 zamówieniach) i filtrowania wielu EAN-ów w `getInventoryProductsList`.
 - Sprawdzenie, czy `extra_field_1` jest pusty dla BladPowiazaniaTowaru.
 - Porównanie stanu produktu z kilku godzin (opóźnienie synchronizacji `shop_3010600`).
-- Znaczenie: `STAN_REALIZ`, `FLAGA_STANU`, `DO_REZERWACJI`; znaczenie magazynów PVEX „000"/„CUE" i parametru `wh`; netto/brutto w CSV PVEX.
+- Znaczenie: `STAN_REALIZ`, `FLAGA_STANU`, `DO_REZERWACJI`; znaczenie magazynów Primavery „000"/„CUE" i parametru `wh`; netto/brutto w CSV Primavery.
 
 ### Tokeny i dostęp
 - Wszystkie sekrety wyłącznie w zmiennych środowiskowych po stronie serwera (`.env.local` w `.gitignore`).
@@ -296,9 +296,9 @@ Skutek dla zakresu: bez stanów z WAPRO lista dla BrakStanuTowaru zawiera **wszy
 - Token BaseLinkera ma pełne uprawnienia zapisu na koncie firmy → w kodzie dopuszczać tylko metody `get*`.
 - Konsola SQL w WAPRO działa jako sysadmin → tylko `SELECT` z `TOP`, bez wywoływania procedur `Api_*`/`AddOrModify`, bez zapisu.
 - Dane zamówień zawierają dane osobowe klientów (imię, adres, telefon, e-mail, login kupującego) i linki z kluczem (`order_page`) → nie trafiają do repo, logów, demo ani do rozmów; w demo dane zmyślone lub zanonimizowane.
-- Ceny hurtowe z CSV PVEX to warunki handlowe → w publicznym demo zmienić ceny i ilości (EAN-y i nazwy mogą zostać).
+- Ceny hurtowe z CSV Primavery to warunki handlowe → w publicznym demo zmienić ceny i ilości (EAN-y i nazwy mogą zostać).
 - Odczyt z WAPRO działa tylko w sieci firmowej; publiczne demo nie może zależeć od WAPRO.
-- Aplikacja nie zapisuje do ERP, BaseLinkera ani PVEX; nie zmienia statusów zamówień.
+- Aplikacja nie zapisuje do ERP, BaseLinkera ani Primavery; nie zmienia statusów zamówień.
 - Błędy BaseLinkera przychodzą z HTTP 200 — samo `response.ok` nie wystarcza.
 
 ---

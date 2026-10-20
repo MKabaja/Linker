@@ -21,7 +21,7 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - Gdy pisze agent, robi wyłącznie to, o co poproszono, bez rozszerzania zakresu. Przy większej zmianie najpierw przedstawia plan i krytycznie ocenia propozycję użytkownika (zgadza się albo koryguje z uzasadnieniem), a rusza po akceptacji.
 - Agent na bieżąco sugeruje biblioteki, które skracają kod (np. TanStack Table, Zod, motion), ale instaluje je użytkownik. Agent podaje same komendy, po jednej w bloku, gdy użytkownik o to prosi. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik we własnym terminalu.
 - Przed pisaniem kodu zależnego od Next.js agent sprawdza dokumentację w `node_modules/next/dist/docs/` zamiast polegać na pamięci.
-- Tokeny (BaseLinker, PVEX) w wersji dev zostają bez zmian. Agent ich nie rusza i nie przypomina o ich wymianie.
+- Tokeny (BaseLinker, Primavera) w wersji dev zostają bez zmian. Agent ich nie rusza i nie przypomina o ich wymianie.
 - Po większej zmianie agent podaje krótkie podsumowanie: co zrobiono, co usunięto, gdzie co leży, wynik weryfikacji i maksymalnie trzy najważniejsze uwagi jakościowe. Dla drobnych zmian wystarczy jedno zdanie.
 
 # Standard kodu

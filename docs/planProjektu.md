@@ -2,14 +2,14 @@
 
 > To szkic kierunku, a nie umowa. Kolejność i zakres można zmieniać, gdy dowiemy się czegoś nowego.
 > Zasada robocza: najpierw działa (widać wynik na ekranie), potem porządkujemy i dopisujemy testy.
-> Fakty o systemach (BaseLinker, PVEX, WAPRO) są w `kontekstProjektu.md`.
+> Fakty o systemach (BaseLinker, Primavera, WAPRO) są w `kontekstProjektu.md`.
 
 ## Zasady, których się trzymamy
 
 - **Logika w `lib/`, nie w komponentach ani w `route.ts`.** Parsowanie CSV, agregacja po EAN-ie, budowanie list to zwykłe funkcje. Dzięki temu testy dopiszemy później bez przepisywania.
 - **Strony pobierają dane same** (Server Components wołają funkcje z `lib/`). Route Handler tylko tam, gdzie przeglądarka ma pobrać plik (eksport CSV).
 - **Tokeny wyłącznie po stronie serwera** (`.env.local`, w `.gitignore`).
-- **Aplikacja tylko czyta.** Nic nie zapisuje do BaseLinkera, PVEX ani WAPRO i nie zmienia statusów zamówień.
+- **Aplikacja tylko czyta.** Nic nie zapisuje do BaseLinkera, Primavery ani WAPRO i nie zmienia statusów zamówień.
 - Łączenie danych **tylko po EAN-ie**, nigdy po nazwie.
 
 ---
@@ -29,7 +29,7 @@ Cel: aplikacja się uruchamia, da się klikać między widokami.
 
 **Gotowe, gdy:** nawigacja działa, każda strona się renderuje.
 
-## Faza 2 — produkty z PVEX
+## Faza 2 — produkty z Primavery
 
 Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 
@@ -41,18 +41,19 @@ Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 - Wyszukiwanie i stronicowanie działają na serwerze. Wpisane hasło i numer strony są w adresie URL.
 - Bez wirtualizacji i bez dodatkowych optymalizacji, dopóki nie pojawi się realny problem.
 
-struktura :
+Struktura:
 
 ```text
-
-src/features/pvex/
-        pvex.types.ts
-        pvex.constants.ts
-        parse-pvex-csv.ts
-        fetch-pvex-csv.ts
-        pvex-products-cache.ts
-        get-pvex-products.ts
-        search-pvex-products.ts
+src/features/products/
+        components/
+        constants/csv.constants.ts
+        lib/csv-parser.ts
+        lib/normalize-search-text.ts
+        lib/fetch-primavera-csv.ts
+        lib/primavera-products-cache.ts
+        lib/get-primavera-products.ts
+        lib/search-primavera-products.ts
+        products.types.ts
         index.ts
 ```
 
@@ -80,24 +81,25 @@ npm install -D @types/papaparse
 
 Commit: `build(deps): add papaparse for reading PVEX CSV`
 
-**3. [ ] Typ produktu i czytanie CSV** (ok. 1,5 h)
+**3. [x] Typ produktu i czytanie CSV** (ok. 1,5 h)
 
-- Typ `PvexProduct`: nazwa, cena, EAN, ilość, VAT.
-- Funkcja, która zamienia tekst CSV na listę produktów.
-- Do każdego produktu zapisujemy nazwę bez polskich znaków i wielkich liter. Będzie potrzebna do wyszukiwania.
-- Gdy nagłówek pliku się zmieni, funkcja zgłasza czytelny błąd.
+- Typy `PrimaveraProduct` i `PrimaveraCsvRow` (typ wiersza wyprowadzony ze stałej z nagłówkami).
+- Funkcja `parsePrimaveraCsv` zamienia tekst CSV na listę produktów.
+- Do każdego produktu zapisujemy `searchableName`: małe litery, bez polskich znaków i znaków specjalnych, z jednostką sklejoną z liczbą (`100 ml` → `100ml`).
+- Gdy nagłówek pliku się zmieni lub plik ma błąd strukturalny, funkcja rzuca czytelny błąd. Wadliwe wiersze są pomijane z ostrzeżeniem w logu.
+- Porządki w strukturze: feature `products` z podziałem na `lib` i `constants`, nazwy bez `pvex`, token `PRIMAVERA_TOKEN`, plik roboczy `data/primavera.csv`.
 
-Commit: `feat(products): parse PVEX CSV into product list`
+Commity: typ, stałe i walidacja nagłówka, pomijanie wadliwych wierszy, refaktor nazw i struktury, normalizacja `searchableName`.
 
-**4. [ ] Pobieranie z PVEX i pamięć podręczna** (ok. 1,5 h)
+**4. [ ] Pobieranie z Primavery i pamięć podręczna** (ok. 1,5 h)
 
-- Funkcja `getPvexProducts()` pobiera plik z PVEX.
+- Funkcja `getPrimaveraProducts()` pobiera plik z Primavery.
 - Dane do 1–2 minut są zwracane z pamięci.
 - Starsze dane są zwracane od razu, a nowe pobierają się w tle.
 - Kilka jednoczesnych zapytań korzysta z jednego pobierania.
 - Zapisujemy też godzinę ostatniego pobrania.
 
-Commit: `feat(products): fetch PVEX products with in-memory cache`
+Commit: `feat(products): fetch Primavera products with in-memory cache`
 
 **5. [ ] Wyszukiwanie** (ok. 1 h)
 
@@ -128,7 +130,7 @@ Commit: `feat(products): add search field synced with URL`
 **8. [ ] Błędy i nieaktualne dane** (ok. 1 h)
 
 - Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony.
-- Gdy PVEX nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne”.
+- Gdy Primavera nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne”.
 - Nad tabelą pokazujemy „Dane z godz. HH:MM”.
 
 Commit: `feat(products): show errors and data freshness`
@@ -147,36 +149,36 @@ Commit: `feat(products): refresh data when browser tab becomes active`
 - Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
 - Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
 
-Commit: `chore(products): remove PVEX prototype route`
+Commit: `chore(products): remove Primavera prototype route`
 
 **11. [ ] Pull request** (ok. 15 min)
 Na Twoją prośbę podaję tytuł i treść PR po angielsku. PR tworzysz sam na GitHubie.
 
-**Gotowe, gdy:** wpisujesz EAN lub fragment nazwy i od razu widzisz ilość w PVEX. Dane odświeżają się same.
+**Gotowe, gdy:** wpisujesz EAN lub fragment nazwy i od razu widzisz ilość w Primaverze. Dane odświeżają się same.
 
 ## Faza 3 — zamówienia z BaseLinkera
 
-Cel: widok `/orders` pokazuje zamówienia z dwóch statusów i dostępność ich pozycji w PVEX.
+Cel: widok `/orders` pokazuje zamówienia z dwóch statusów i dostępność ich pozycji w Primaverze.
 
 - [ ] Funkcja `getOrdersByStatus(statusId)` (metoda `getOrders`, statusy 327888 i 332592; błędy wracają z HTTP 200 — sprawdzać `status`).
 - [ ] Przy odpowiedzi ograniczać dane do tego, co potrzebne (pozycje, numer zamówienia, status, `extra_field_1`); **dane osobowe klientów nie trafiają do widoków ani logów**.
-- [ ] Tabela zamówień z pozycjami i znacznikiem „jest / nie ma w PVEX" (po EAN).
+- [ ] Tabela zamówień z pozycjami i znacznikiem „jest / nie ma w Primaverze" (po EAN).
 - [ ] Zdecydować, co robić z zestawami (`ZESTAWx4x<EAN>`, `bundle_id`) po obejrzeniu prawdziwych danych.
 - [ ] Przy 100 lub więcej zamówieniach: paginacja po `date_confirmed_from`.
 
-**Gotowe, gdy:** widzisz bieżące zamówienia z braków i wiesz, co z nich da się zamówić w PVEX.
+**Gotowe, gdy:** widzisz bieżące zamówienia z braków i wiesz, co z nich da się zamówić w Primaverze.
 
 ## Faza 4 — listy zakupowe i eksport (sedno aplikacji)
 
 Cel: zastąpić ręczne przepisywanie.
 
-- [ ] Agregacja pozycji po EAN-ie (suma ilości; sprawdzenie w PVEX).
-- [ ] Lista „zamów w PVEX" → eksport CSV `ean;ilość` do importu w portalu (jeden mały plik testowy najpierw, żeby sprawdzić, czy PVEX chce nagłówek).
-- [ ] Lista „brak w PVEX" → format do wklejenia w arkusz sklepów (EAN, nazwa, ilość, numer zamówienia).
-- [ ] Lista „nowe artykuły do założenia" dla `BladPowiazaniaTowaru` (EAN, nazwa, cena z PVEX lub z zamówienia).
+- [ ] Agregacja pozycji po EAN-ie (suma ilości; sprawdzenie w Primaverze).
+- [ ] Lista „zamów w Primaverze" → eksport CSV `ean;ilość` do importu w portalu (jeden mały plik testowy najpierw, żeby sprawdzić, czy Primavera chce nagłówek).
+- [ ] Lista „brak w Primaverze" → format do wklejenia w arkusz sklepów (EAN, nazwa, ilość, numer zamówienia).
+- [ ] Lista „nowe artykuły do założenia" dla `BladPowiazaniaTowaru` (EAN, nazwa, cena z Primavery lub z zamówienia).
 - [ ] Route Handler eksportu (`/api/shopping-list/export` i analogiczne).
 
-**Gotowe, gdy:** pobierasz plik, wgrywasz go do PVEX i zamówienie przechodzi.
+**Gotowe, gdy:** pobierasz plik, wgrywasz go do Primavery i zamówienie przechodzi.
 **Uwaga:** dla `BrakStanuTowaru` lista bez stanów WAPRO jest górnym szacunkiem (zawiera także pozycje, które są na magazynie).
 
 ## Faza 5 — porządki i tryb demo
@@ -215,6 +217,6 @@ Zaczynamy dopiero po dostaniu loginu tylko do odczytu.
 
 - Czy potrzebna jest baza danych? Na razie nie (cache w pamięci wystarcza). Wrócimy do tego, gdy pojawi się potrzeba historii stanów lub wielu instancji aplikacji.
 - Jak liczyć ilość do zamówienia dla zestawów.
-- Czy PVEX wymaga nagłówka w pliku importu.
-- Netto czy brutto w cenie z CSV PVEX (jedna próbka sugeruje netto).
+- Czy Primavera wymaga nagłówka w pliku importu.
+- Netto czy brutto w cenie z CSV Primavery (jedna próbka sugeruje netto).
 - Czy demo ma być osobnym wdrożeniem, czy trybem tej samej aplikacji.
