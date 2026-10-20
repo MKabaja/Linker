@@ -10,7 +10,7 @@ type NavigationLink = {
 
 export const NAVIGATION_LINKS: NavigationLink[] = [
 	{ href: '/orders', label: 'Zamówienia', icon: ClipboardList },
-	{ href: '/products', label: 'Produkty', icon: Package },
+	{ href: '/products', label: 'Produkty z Primavery', icon: Package },
 	{ href: '/shopping-list', label: 'Lista zakupów', icon: ShoppingCart },
 ];
 

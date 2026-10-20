@@ -18,7 +18,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
 	title: 'Linker',
 	description:
-		'Narzędzie do obsługi braków towaru: zamówienia z BaseLinkera, dostępność w PVEX i listy zakupowe.',
+		'Narzędzie do obsługi braków towaru: zamówienia z BaseLinkera, dostępność w Primaverze i listy zakupowe.',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
