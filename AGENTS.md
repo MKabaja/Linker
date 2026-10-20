@@ -49,6 +49,8 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - Hooki: `useSidebarState`. Komponenty i typy: PascalCase, bez prefiksów `I` i `T`.
 - Pliki i foldery zawsze w kebab-case, bez wielkich liter (`product-card.tsx`, `use-sidebar-state.ts`, `csv-parser.ts`). Dzięki temu importy działają tak samo na Windowsie i Linuksie. Komponent z `app-sidebar.tsx` eksportujemy jako `AppSidebar`.
 - Unikaj ogólnych nazw (`data`, `item`, `temp`, `helper`, `processData`) i niezrozumiałych skrótów.
+- Nazwa zmiennej mówi, czego dotyczy i w jakiej jednostce (`millisecondsSinceFetch`, nie `ageMs`).
+- Mapy nazywamy tak, żeby czytały się jak zdanie: `type SnapshotResolverByFreshness` i `const resolverByFreshness: SnapshotResolverByFreshness`.
 
 ## 4. Funkcje
 
@@ -64,6 +66,8 @@ Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym
 - `type` zamiast `interface`. Ścisłe typy, bez `any`, nieuzasadnionych `as`, `!` i `@ts-ignore`.
 - Dane z zewnątrz (API, pliki) są niezaufane do momentu walidacji w czasie działania. Typ przypisany do odpowiedzi niczego nie gwarantuje.
 - Stan modeluj przez discriminated unions zamiast kilku powiązanych booleanów.
+- Zamiast `switch` po unii stanów używaj obiektu strategii typu `Record<Stan, Handler>`.
+- Typy złożone (`Record<...>`, sygnatury funkcji) wynoś do osobnych nazwanych typów zamiast pisać je inline.
 - Jawne typy dla publicznych kontraktów, inferencja dla prostych zmiennych lokalnych. Generyki tylko przy realnej potrzebie.
 
 ## 6. React i komponenty
