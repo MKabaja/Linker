@@ -2,12 +2,12 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-	const url = `https://orders.pvex.pl/pricelist.php?wh=all&token=${process.env.PVEX_TOKEN}&format=csv`;
+	const url = `https://orders.pvex.pl/pricelist.php?wh=all&token=${process.env.PRIMAVERA_TOKEN}&format=csv`;
 
 	const res = await fetch(url, { cache: 'no-store' });
 	if (!res.ok) {
 		return NextResponse.json(
-			{ error: `PVEX zwrócił ${res.status}` },
+			{ error: `Primavera zwróciła ${res.status}` },
 			{ status: 502 },
 		);
 	}
@@ -17,7 +17,7 @@ export async function GET() {
 
 	// zapis surowego pliku do wglądu
 	await mkdir('data', { recursive: true });
-	await writeFile('data/pvex.csv', Buffer.from(buffer));
+	await writeFile('data/primavera.csv', Buffer.from(buffer));
 
 	const lines = text.split(/\r?\n/).filter(Boolean);
 	console.log('Liczba linii:', lines.length);
