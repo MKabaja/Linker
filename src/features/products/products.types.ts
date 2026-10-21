@@ -1,4 +1,5 @@
-import type { PRIMAVERA_CSV_HEADERS } from './constants/csv.constants';
+import type { z } from 'zod';
+import type { primaveraCsvRowSchema } from './products.schemas';
 
 export type PrimaveraProduct = {
 	ean: string;
@@ -18,7 +19,6 @@ export type PrimaveraProductsResult =
 	| ({ status: 'ok' } & PrimaveraProductsSnapshot)
 	| { status: 'error'; message: string };
 
-export type PrimaveraCsvRow = Record<
-	(typeof PRIMAVERA_CSV_HEADERS)[number],
-	string
->;
+export type PrimaveraCsvRow = z.input<typeof primaveraCsvRowSchema>;
+
+export type ValidPrimaveraCsvRow = z.output<typeof primaveraCsvRowSchema>;
