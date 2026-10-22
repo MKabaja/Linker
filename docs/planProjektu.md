@@ -118,6 +118,32 @@ Commit: `feat(products): add search by EAN and name`
 
 Commit: `feat(products): show products table with pagination`
 
+**6a. [ ] Refaktor `features/products` do warstw z `docs/ARCHITECTURE.md`** (ok. 2 h)
+
+Czysty refaktor: przenosimy, scalamy, zmieniamy nazwy i poprawiamy importy. Bez zmian zachowania i UI.
+
+| Obecnie                                           | Docelowo                                                  |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| `products.types.ts`, `products.schemas.ts`        | `model/`                                                  |
+| `PRODUCTS_PAGE_SIZE`                              | `model/products.constants.ts`                             |
+| `constants/primavera.constants.ts`                | `server/sources/primavera.config.ts`                      |
+| `lib/fetch-primavera-csv.ts`                      | `server/sources/primavera-csv.source.ts`                  |
+| `lib/csv-parser.ts`                               | `server/mappers/primavera-csv.mapper.ts`                  |
+| `lib/get-primavera-products.ts`                   | `server/repositories/products.repository.ts`              |
+| `lib/primavera-products-cache.ts`                 | `server/repositories/products.cache.ts`                   |
+| `lib/search-…`, `lib/get-primavera-products-page` | `server/services/products.service.ts` (scalone)           |
+| `lib/paginate-products.ts`                        | `src/shared/lib/paginate.ts` (`paginate<T>`)              |
+| `lib/normalize-search-text.ts`, `lib/format-price.ts` | `utils/`                                              |
+| `index.ts`                                        | usunięty, importy bezpośrednie                            |
+
+- Pliki przenosimy przez `git mv`, scalanie w osobnym kroku.
+- `import 'server-only'` w każdym pliku `server/` (nowa zależność `server-only`).
+- Typ wyniku strony produktów jako płaskie warianty unii, żeby podpowiedź w edytorze pokazywała pola.
+- Na koniec reguły architektury w `biome.json` (A9).
+- Ręcznie: `/products` działa jak przed refaktorem.
+
+Commity: zależność, przenosiny per warstwa, scalenie serwisu, usunięcie barrela, reguły Biome.
+
 **7. [ ] Pole wyszukiwania** (ok. 1 h)
 
 - Pole nad tabelą, odczekuje chwilę po wpisaniu (ok. 300 ms).
