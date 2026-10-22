@@ -36,12 +36,14 @@ Użytkownik uczy się Next.js (App Router), a agent jest starszym kolegą (mento
 
 ## Architektura
 
-- `src/shared/` — tylko kod faktycznie wielokrotnego użytku (`components`, `hooks`, `lib`). Aliasy shadcn w `components.json` wskazują na `@/shared/...`.
-- `src/features/<temat>/` — kod aplikacji. Foldery tworzone dopiero, gdy mają zawartość: `components/`, `lib/`, `constants/` (`*.constants.ts`), `tests/`, `<temat>.types.ts`, `index.ts` (barrel ze stabilnym API).
+Warstwy, kierunek zależności, nazwy plików i barrele: `docs/ARCHITECTURE.md` (przeczytaj przed tworzeniem lub przenoszeniem plików w `src/features/`). Najważniejsze:
+
+- `src/features/<temat>/`: `components/`, `model/`, `server/` (`sources/`, `mappers/`, `repositories/`, `services/`, każdy plik z `import 'server-only'`), `utils/`.
+- `src/app/` to cienkie kontrolery: walidacja wejścia schematem Zod z `model/`, jedno wywołanie serwisu, render każdego wariantu wyniku. Bez własnych Route Handlerów dla stron.
+- Importy bezpośrednio z pliku. Barrel `index.ts` tylko w folderze komponentu i tylko z publicznym komponentem.
+- `src/shared/` (`components`, `hooks`, `lib`) tylko dla kodu bez wiedzy o featurach. Aliasy shadcn w `components.json` wskazują na `@/shared/...`.
 - Komponent leży w `<nazwa>/` z `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts`. Hook i stałe używane przez jeden komponent leżą obok niego.
 - Wspólny layout (`<main>`, padding) jest w `src/app/layout.tsx`; strony zwracają `<section>` z `<h1>`.
-- `src/app/` to cienkie wejścia (jak kontrolery): `page.tsx`, `route.ts` i Server Actions czytają i walidują wejście (`searchParams`, `params`, body) schematem Zod, wołają funkcję z `features/<temat>/lib/` i renderują lub zwracają wynik. Logika biznesowa nie trafia do `app/`. Strony wołają `lib/` bezpośrednio, bez własnych Route Handlerów.
-- Dane pobierasz na serwerze. Sekrety i moduły serwerowe nie trafiają do kodu klienta.
 - Bez cyklicznych importów. Martwy kod z generatorów (nieużywane części shadcn) usuwamy.
 
 ## Standard kodu
