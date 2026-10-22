@@ -118,7 +118,13 @@ Granica server → client: obiekty przekazywane do Client Components i zwracane 
     - `*.source.ts` / `*.client.ts`, `*.config.ts`, `*.mapper.ts`, `*.repository.ts`, `*.cache.ts`, `*.service.ts`
 - Komponenty: `kebab-case.tsx`, eksport nazwany w PascalCase (`export function ProductsTable`).
 - Eksporty nazwane, bez `export default`. Wyjątek: pliki wymagane przez Next.js (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx` itd.).
-- Nazwy funkcji opisują intencję: `getProductsPage`, `searchProducts`, `findAllProducts`, `fetchPrimaveraCsv`.
+- Plik (moduł) to rzeczownik, jak nazwa klasy: `primavera-csv.mapper.ts` ≈ `PrimaveraCsvMapper`. Eksportowane funkcje to czasowniki, jak metody.
+- Czasownik zależy od warstwy:
+    - `sources` → `fetch…` (`fetchPrimaveraCsv`),
+    - `mappers` → `map…` (`mapPrimaveraCsvToProducts`),
+    - `repositories` → `find…` (`findAllProducts`),
+    - `services` → czasownik przypadku użycia (`getProductsPage`, `searchProducts`).
+- Nazwa źródła (np. `Primavera`) tylko w warstwach, które je znają (`sources`, `mappers`). Repozytorium i serwis mówią językiem domeny (`Products`).
 
 ## A7. Barrele (`index.ts`)
 
