@@ -4,7 +4,7 @@ import type {
 	PrimaveraProductsPageResult,
 } from '@/features/products/model/products.types';
 import { getPrimaveraProducts } from '@/features/products/server/repositories/products.repository';
-import { paginateProducts } from './paginate-products';
+import { paginate } from '@/shared/lib/paginate';
 import { searchPrimaveraProducts } from './search-primavera-products';
 
 /**
@@ -28,12 +28,15 @@ export async function getPrimaveraProductsPage({
 		query,
 	);
 
+	const { items, ...pagination } = paginate(matchingProducts, {
+		page,
+		pageSize: PRODUCTS_PAGE_SIZE,
+	});
+
 	return {
 		status: 'ok',
 		fetchedAt: productsResult.fetchedAt,
-		...paginateProducts(matchingProducts, {
-			page,
-			pageSize: PRODUCTS_PAGE_SIZE,
-		}),
+		products: items,
+		...pagination,
 	};
 }
