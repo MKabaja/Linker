@@ -1,3 +1,4 @@
+import 'server-only';
 import type { PrimaveraProductsSnapshot } from '@/features/products/model/products.types';
 import { parsePrimaveraCsv } from '@/features/products/server/mappers/primavera-csv.mapper';
 import {

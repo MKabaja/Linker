@@ -3,7 +3,7 @@ import type {
 	PrimaveraProductsPageQuery,
 	PrimaveraProductsPageResult,
 } from '@/features/products/model/products.types';
-import { getPrimaveraProducts } from './get-primavera-products';
+import { getPrimaveraProducts } from '@/features/products/server/repositories/products.repository';
 import { paginateProducts } from './paginate-products';
 import { searchPrimaveraProducts } from './search-primavera-products';
 

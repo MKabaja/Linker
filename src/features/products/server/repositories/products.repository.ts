@@ -1,5 +1,6 @@
+import 'server-only';
 import type { PrimaveraProductsResult } from '@/features/products/model/products.types';
-import { getCachedPrimaveraProducts } from './primavera-products-cache';
+import { getCachedPrimaveraProducts } from './products.cache';
 
 /**
  * Zwraca produkty z Primavery z pamięci serwera. Dane młodsze niż minuta
