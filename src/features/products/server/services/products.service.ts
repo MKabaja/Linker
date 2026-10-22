@@ -1,11 +1,15 @@
+import 'server-only';
 import { PRODUCTS_PAGE_SIZE } from '@/features/products/model/products.constants';
 import type {
+	PrimaveraProduct,
 	PrimaveraProductsPageQuery,
 	PrimaveraProductsPageResult,
 } from '@/features/products/model/products.types';
 import { getPrimaveraProducts } from '@/features/products/server/repositories/products.repository';
+import { normalizeSearchText } from '@/features/products/utils/normalize-search-text';
 import { paginate } from '@/shared/lib/paginate';
-import { searchPrimaveraProducts } from './search-primavera-products';
+
+type ProductMatcher = (product: PrimaveraProduct) => boolean;
 
 /**
  * Zwraca jedną stronę produktów z Primavery pasujących do hasła, razem
@@ -39,4 +43,37 @@ export async function getPrimaveraProductsPage({
 		products: items,
 		...pagination,
 	};
+}
+
+/**
+ * Filtruje produkty po haśle. Puste hasło zwraca wszystkie produkty. Hasło
+ * złożone z samych cyfr jest traktowane jako EAN i musi zgadzać się dokładnie.
+ * Pozostałe hasła są normalizowane jak nazwy produktów, a produkt pasuje, gdy
+ * jego nazwa zawiera każde wpisane słowo.
+ */
+export function searchPrimaveraProducts(
+	products: PrimaveraProduct[],
+	query: string,
+): PrimaveraProduct[] {
+	const trimmedQuery = query.trim();
+
+	if (trimmedQuery === '') {
+		return products;
+	}
+
+	return products.filter(createProductMatcher(trimmedQuery));
+}
+
+function createProductMatcher(query: string): ProductMatcher {
+	if (isEanQuery(query)) {
+		return (product) => product.ean === query;
+	}
+
+	const searchWords = normalizeSearchText(query).split(' ');
+	return (product) =>
+		searchWords.every((word) => product.searchableName.includes(word));
+}
+
+function isEanQuery(query: string): boolean {
+	return /^\d+$/.test(query);
 }
