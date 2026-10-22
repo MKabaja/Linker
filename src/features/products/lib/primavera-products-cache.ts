@@ -1,10 +1,10 @@
 import type { PrimaveraProductsSnapshot } from '@/features/products/model/products.types';
+import { parsePrimaveraCsv } from '@/features/products/server/mappers/primavera-csv.mapper';
 import {
 	PRIMAVERA_CACHE_EXPIRE_MS,
 	PRIMAVERA_CACHE_FRESH_MS,
 } from '@/features/products/server/sources/primavera.config';
 import { fetchPrimaveraCsv } from '@/features/products/server/sources/primavera-csv.source';
-import { parsePrimaveraCsv } from './csv-parser';
 
 type SnapshotFreshness = 'fresh' | 'stale' | 'expired';
 

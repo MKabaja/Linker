@@ -1,3 +1,4 @@
+import 'server-only';
 import type { ParseConfig, ParseError } from 'papaparse';
 import { parse } from 'papaparse';
 import { primaveraCsvRowSchema } from '@/features/products/model/products.schemas';
