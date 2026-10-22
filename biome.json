@@ -33,7 +33,23 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "performance": {
+        "noBarrelFile": "error"
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@/features/*"],
+                "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+              }
+            ]
+          }
+        }
+      }
     },
     "domains": {
       "next": "recommended",
@@ -46,5 +62,164 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/**/components/*/index.ts", "src/shared/lib/utils.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/components/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*"],
+                    "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+                  },
+                  {
+                    "group": ["**/server/**"],
+                    "message": "components/ nie importuje server/. Dane dostaje przez propsy (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/utils/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*"],
+                    "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+                  },
+                  {
+                    "group": ["**/server/**", "**/components/**"],
+                    "message": "utils/ nie importuje server/ ani components/ (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/model/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*"],
+                    "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+                  },
+                  {
+                    "group": [
+                      "**/server/**",
+                      "**/components/**",
+                      "**/utils/**"
+                    ],
+                    "message": "model/ importuje tylko zod i inne pliki z model/ (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/features/*/server/sources/**",
+        "src/features/*/server/mappers/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*"],
+                    "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+                  },
+                  {
+                    "group": ["**/repositories/**", "**/services/**"],
+                    "message": "sources/ i mappers/ nie importują repositories/ ani services/ (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/server/repositories/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*"],
+                    "message": "Importuj bezpośrednio z pliku warstwy, nie z korzenia feature'a (docs/ARCHITECTURE.md A7)."
+                  },
+                  {
+                    "group": ["**/services/**"],
+                    "message": "repositories/ nie importuje services/ (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/shared/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/**"],
+                    "message": "shared/ nie importuje niczego z features/ (docs/ARCHITECTURE.md A4)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
