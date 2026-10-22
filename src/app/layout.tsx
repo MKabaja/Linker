@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import { AppMobileHeader } from '@/features/app-sidebar/app-mobile-header';
 import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/shared/components/sidebar';
+import { Toaster } from '@/shared/components/toaster';
 import '@/styles/app.css';
 
 const inter = Inter({
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
 						{children}
 					</SidebarInset>
 				</SidebarProvider>
+				<Toaster />
 			</body>
 		</html>
 	);
