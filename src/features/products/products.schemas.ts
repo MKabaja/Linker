@@ -14,3 +14,8 @@ export const primaveraCsvRowSchema = z.object({
 	Ilosc: nonNegativeInteger,
 	StawkaVAT: nonNegativeInteger,
 });
+
+export const productsSearchParamsSchema = z.object({
+	q: z.string().trim().max(100).catch(''),
+	page: z.coerce.number().int().min(1).catch(1),
+});
