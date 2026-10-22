@@ -1,8 +1,8 @@
 'use client';
 
 import { useTable } from '@tanstack/react-table';
+import type { PrimaveraProduct } from '@/features/products/model/products.types';
 import { cn } from '@/shared/lib/utils';
-import type { PrimaveraProduct } from '../../products.types';
 import {
 	productsTableColumns,
 	productsTableFeatures,

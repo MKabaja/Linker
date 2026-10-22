@@ -1,11 +1,11 @@
 import type { ParseConfig, ParseError } from 'papaparse';
 import { parse } from 'papaparse';
-import { primaveraCsvRowSchema } from '../products.schemas';
+import { primaveraCsvRowSchema } from '@/features/products/model/products.schemas';
 import type {
 	PrimaveraCsvRow,
 	PrimaveraProduct,
 	ValidPrimaveraCsvRow,
-} from '../products.types';
+} from '@/features/products/model/products.types';
 import { normalizeSearchText } from './normalize-search-text';
 
 type RowsValidation = {

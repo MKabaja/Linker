@@ -1,8 +1,8 @@
+import type { PrimaveraProductsSnapshot } from '@/features/products/model/products.types';
 import {
 	PRIMAVERA_CACHE_EXPIRE_MS,
 	PRIMAVERA_CACHE_FRESH_MS,
 } from '../constants/primavera.constants';
-import type { PrimaveraProductsSnapshot } from '../products.types';
 import { parsePrimaveraCsv } from './csv-parser';
 import { fetchPrimaveraCsv } from './fetch-primavera-csv';
 

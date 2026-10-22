@@ -1,4 +1,4 @@
-import type { PrimaveraProductsResult } from '../products.types';
+import type { PrimaveraProductsResult } from '@/features/products/model/products.types';
 import { getCachedPrimaveraProducts } from './primavera-products-cache';
 
 /**

@@ -1,12 +1,11 @@
+import { PRODUCTS_PAGE_SIZE } from '@/features/products/model/products.constants';
 import type {
 	PrimaveraProductsPageQuery,
 	PrimaveraProductsPageResult,
-} from '../products.types';
+} from '@/features/products/model/products.types';
 import { getPrimaveraProducts } from './get-primavera-products';
 import { paginateProducts } from './paginate-products';
 import { searchPrimaveraProducts } from './search-primavera-products';
-
-const PRODUCTS_PAGE_SIZE = 50;
 
 /**
  * Zwraca jedną stronę produktów z Primavery pasujących do hasła, razem

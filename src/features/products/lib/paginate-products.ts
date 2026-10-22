@@ -1,7 +1,7 @@
 import type {
 	PrimaveraProduct,
 	PrimaveraProductsPage,
-} from '../products.types';
+} from '@/features/products/model/products.types';
 
 type PageRequest = {
 	page: number;

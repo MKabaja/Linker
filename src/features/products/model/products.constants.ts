@@ -1,0 +1,3 @@
+const PRODUCTS_PAGE_SIZE = 50;
+
+export { PRODUCTS_PAGE_SIZE };
