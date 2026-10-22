@@ -1,6 +1,6 @@
 import 'server-only';
 import type { PrimaveraProductsSnapshot } from '@/features/products/model/products.types';
-import { parsePrimaveraCsv } from '@/features/products/server/mappers/primavera-csv.mapper';
+import { mapPrimaveraCsvToProducts } from '@/features/products/server/mappers/primavera-csv.mapper';
 import {
 	PRIMAVERA_CACHE_EXPIRE_MS,
 	PRIMAVERA_CACHE_FRESH_MS,
@@ -69,7 +69,7 @@ function refreshSnapshot(): Promise<PrimaveraProductsSnapshot> {
 async function loadSnapshot(): Promise<PrimaveraProductsSnapshot> {
 	const csvContent = await fetchPrimaveraCsv();
 	const snapshot = {
-		products: parsePrimaveraCsv(csvContent),
+		products: mapPrimaveraCsvToProducts(csvContent),
 		fetchedAt: new Date(),
 	};
 

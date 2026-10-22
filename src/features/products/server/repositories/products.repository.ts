@@ -8,7 +8,7 @@ import { getCachedPrimaveraProducts } from './products.cache';
  * a starsze lub brakujące są pobierane przed zwróceniem. Błędy pobierania
  * i parsowania wracają jako wynik ze statusem `error`.
  */
-export async function getPrimaveraProducts(): Promise<PrimaveraProductsResult> {
+export async function findAllProducts(): Promise<PrimaveraProductsResult> {
 	try {
 		const snapshot = await getCachedPrimaveraProducts();
 		return { status: 'ok', ...snapshot };

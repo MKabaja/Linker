@@ -5,7 +5,7 @@ import type {
 	PrimaveraProductsPageQuery,
 	PrimaveraProductsPageResult,
 } from '@/features/products/model/products.types';
-import { getPrimaveraProducts } from '@/features/products/server/repositories/products.repository';
+import { findAllProducts } from '@/features/products/server/repositories/products.repository';
 import { normalizeSearchText } from '@/features/products/utils/normalize-search-text';
 import { paginate } from '@/shared/lib/paginate';
 
@@ -14,20 +14,17 @@ type ProductMatcher = (product: PrimaveraProduct) => boolean;
 /**
  * Zwraca stronę produktów pasujących do hasła albo błąd pobrania jako `status: 'error'`.
  */
-export async function getPrimaveraProductsPage({
+export async function getProductsPage({
 	query,
 	page,
 }: PrimaveraProductsPageQuery): Promise<PrimaveraProductsPageResult> {
-	const productsResult = await getPrimaveraProducts();
+	const productsResult = await findAllProducts();
 
 	if (productsResult.status === 'error') {
 		return productsResult;
 	}
 
-	const matchingProducts = searchPrimaveraProducts(
-		productsResult.products,
-		query,
-	);
+	const matchingProducts = searchProducts(productsResult.products, query);
 
 	const { items, ...pagination } = paginate(matchingProducts, {
 		page,
@@ -48,7 +45,7 @@ export async function getPrimaveraProductsPage({
  * Pozostałe hasła są normalizowane jak nazwy produktów, a produkt pasuje, gdy
  * jego nazwa zawiera każde wpisane słowo.
  */
-export function searchPrimaveraProducts(
+export function searchProducts(
 	products: PrimaveraProduct[],
 	query: string,
 ): PrimaveraProduct[] {

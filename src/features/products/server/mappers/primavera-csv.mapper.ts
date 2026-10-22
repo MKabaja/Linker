@@ -22,7 +22,9 @@ const config = {
 
 const PRIMAVERA_CSV_HEADERS = primaveraCsvRowSchema.keyof().options;
 
-export function parsePrimaveraCsv(csvContent: string): PrimaveraProduct[] {
+export function mapPrimaveraCsvToProducts(
+	csvContent: string,
+): PrimaveraProduct[] {
 	const result = parse<PrimaveraCsvRow>(csvContent, config);
 	assertPrimaveraCsvHeaders(result.meta.fields);
 	assertNoStructuralErrors(result.errors);

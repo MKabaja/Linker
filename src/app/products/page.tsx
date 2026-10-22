@@ -1,13 +1,13 @@
 import { ProductsPagination } from '@/features/products/components/products-pagination';
 import { ProductsTable } from '@/features/products/components/products-table';
 import { productsSearchParamsSchema } from '@/features/products/model/products.schemas';
-import { getPrimaveraProductsPage } from '@/features/products/server/services/products.service';
+import { getProductsPage } from '@/features/products/server/services/products.service';
 
 export default async function ProductsPage(props: PageProps<'/products'>) {
 	const { q, page } = productsSearchParamsSchema.parse(
 		await props.searchParams,
 	);
-	const productsPage = await getPrimaveraProductsPage({ query: q, page });
+	const productsPage = await getProductsPage({ query: q, page });
 
 	return (
 		<section>
