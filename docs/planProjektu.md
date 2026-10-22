@@ -36,25 +36,23 @@ Cel: widok `/products` pokazuje cennik hurtowni ze świeżymi stanami.
 **Ustalenia:**
 
 - Zostajemy przy CSV. Bez bazy danych, bez TanStack Query, bez `nuqs` (nie dają tu realnego zysku).
-- Jedyna nowa biblioteka: `papaparse` (czytanie CSV).
-- Dane trzymamy w pamięci serwera. Gdy są starsze niż 1–2 minuty, pokazujemy stare i w tle pobieramy nowe. Nowe dane zastępują stare w całości.
+- Biblioteki: `papaparse` (czytanie CSV), `zod` (walidacja wierszy i `searchParams`), `sonner` (toasty), `server-only` (granica serwera).
+- Dane trzymamy w pamięci serwera: do 1 min z pamięci, 1–5 min stare od razu i nowe w tle, powyżej 5 min czekamy na świeże. Nowe dane zastępują stare w całości, bez zapisu plików.
 - Wyszukiwanie i stronicowanie działają na serwerze. Wpisane hasło i numer strony są w adresie URL.
 - Bez wirtualizacji i bez dodatkowych optymalizacji, dopóki nie pojawi się realny problem.
 
-Struktura:
+Struktura (warstwy według `docs/ARCHITECTURE.md`):
 
 ```text
 src/features/products/
-        components/
-        constants/csv.constants.ts
-        lib/csv-parser.ts
-        lib/normalize-search-text.ts
-        lib/fetch-primavera-csv.ts
-        lib/primavera-products-cache.ts
-        lib/get-primavera-products.ts
-        lib/search-primavera-products.ts
-        products.types.ts
-        index.ts
+        components/             products-table/, products-pagination/, copy-value-button/
+        model/                  products.types.ts, products.schemas.ts, products.constants.ts
+        server/sources/         primavera-csv.source.ts, primavera.config.ts
+        server/mappers/         primavera-csv.mapper.ts
+        server/repositories/    products.repository.ts, products.cache.ts
+        server/services/        products.service.ts
+        utils/                  format-price.ts, normalize-search-text.ts
+src/shared/lib/paginate.ts
 ```
 
 **Szacowany czas całego brancha:** 8–10 godzin pracy.
@@ -91,34 +89,35 @@ Commit: `build(deps): add papaparse for reading PVEX CSV`
 
 Commity: typ, stałe i walidacja nagłówka, pomijanie wadliwych wierszy, refaktor nazw i struktury, normalizacja `searchableName`.
 
-**4. [ ] Pobieranie z Primavery i pamięć podręczna** (ok. 1,5 h)
+**4. [x] Pobieranie z Primavery i pamięć podręczna** (ok. 1,5 h)
 
-- Funkcja `getPrimaveraProducts()` pobiera plik z Primavery.
-- Dane do 1–2 minut są zwracane z pamięci.
-- Starsze dane są zwracane od razu, a nowe pobierają się w tle.
+- Funkcja `getPrimaveraProducts()` pobiera plik z Primavery (timeout 15 s).
+- Dane do 1 minuty są zwracane z pamięci.
+- Dane od 1 do 5 minut są zwracane od razu, a nowe pobierają się w tle. Starsze czekają na świeże.
 - Kilka jednoczesnych zapytań korzysta z jednego pobierania.
 - Zapisujemy też godzinę ostatniego pobrania.
 
 Commit: `feat(products): fetch Primavera products with in-memory cache`
 
-**5. [ ] Wyszukiwanie** (ok. 1 h)
+**5. [x] Wyszukiwanie** (ok. 1 h)
 
-- Same cyfry w polu: szukamy po EAN.
+- Same cyfry w polu: szukamy po EAN, dopasowanie dokładne (wklejony EAN daje jeden wynik).
 - Tekst: produkt musi zawierać wszystkie wpisane słowa, bez względu na wielkość liter i polskie znaki.
-- Funkcja zwraca też łączną liczbę wyników.
+- Łączna liczba wyników pochodzi z paginacji (zadanie 6), wyszukiwanie tylko filtruje.
 
-Commit: `feat(products): add search by EAN and name`
+Commit: `feat(products): add search by exact EAN and name words`
 
-**6. [ ] Tabela produktów** (ok. 1,5 h)
+**6. [x] Tabela produktów** (ok. 1,5 h)
 
-- Strona `/products` pobiera dane na serwerze i pokazuje jedną stronę (np. 50 wierszy).
+- Strona `/products` pobiera dane na serwerze i pokazuje jedną stronę (50 wierszy). Wejście z URL walidowane Zodem.
 - Kolumny: EAN, nazwa, cena, ilość, VAT.
-- Tabela korzysta z TanStack Table.
-- Przyciski „poprzednia / następna strona”.
+- Tabela korzysta z TanStack Table (v9).
+- Przyciski „poprzednia / następna strona”, spinner w `loading.tsx`.
+- Kliknięcie EAN, ceny lub VAT kopiuje wartość do schowka (cena `243,24`, VAT `23`) i pokazuje toast. Clipboard API wymaga HTTPS lub `localhost`; sposób wdrożenia do ustalenia.
 
-Commit: `feat(products): show products table with pagination`
+Commity: `sonner`, spinner i toaster w `shared`, tabela z paginacją i kopiowaniem.
 
-**6a. [ ] Refaktor `features/products` do warstw z `docs/ARCHITECTURE.md`** (ok. 2 h)
+**6a. [x] Refaktor `features/products` do warstw z `docs/ARCHITECTURE.md`** (ok. 2 h)
 
 Czysty refaktor: przenosimy, scalamy, zmieniamy nazwy i poprawiamy importy. Bez zmian zachowania i UI.
 
