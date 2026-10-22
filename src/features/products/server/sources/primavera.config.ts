@@ -1,3 +1,5 @@
+import 'server-only';
+
 const PRIMAVERA_PRICELIST_URL = 'https://orders.pvex.pl/pricelist.php';
 const PRIMAVERA_FETCH_TIMEOUT_MS = 15_000;
 const PRIMAVERA_CACHE_FRESH_MS = 60_000;

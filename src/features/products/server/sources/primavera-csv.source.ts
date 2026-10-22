@@ -1,7 +1,8 @@
+import 'server-only';
 import {
 	PRIMAVERA_FETCH_TIMEOUT_MS,
 	PRIMAVERA_PRICELIST_URL,
-} from '../constants/primavera.constants';
+} from './primavera.config';
 
 export async function fetchPrimaveraCsv(): Promise<string> {
 	const response = await fetch(buildPricelistUrl(getPrimaveraToken()), {
