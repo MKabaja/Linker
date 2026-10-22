@@ -15,25 +15,38 @@ export type PrimaveraProductsSnapshot = {
 	fetchedAt: Date;
 };
 
-export type PrimaveraProductsResult =
-	| ({ status: 'ok' } & PrimaveraProductsSnapshot)
-	| { status: 'error'; message: string };
-
-export type PrimaveraProductsPage = {
-	products: PrimaveraProduct[];
-	totalCount: number;
-	page: number;
-	pageCount: number;
+export type PrimaveraProductsFailure = {
+	status: 'error';
+	message: string;
 };
+
+export type PrimaveraProductsSuccess = {
+	status: 'ok';
+	products: PrimaveraProduct[];
+	fetchedAt: Date;
+};
+
+export type PrimaveraProductsResult =
+	| PrimaveraProductsSuccess
+	| PrimaveraProductsFailure;
 
 export type PrimaveraProductsPageQuery = {
 	query: string;
 	page: number;
 };
 
+export type PrimaveraProductsPageSuccess = {
+	status: 'ok';
+	products: PrimaveraProduct[];
+	totalCount: number;
+	page: number;
+	pageCount: number;
+	fetchedAt: Date;
+};
+
 export type PrimaveraProductsPageResult =
-	| ({ status: 'ok'; fetchedAt: Date } & PrimaveraProductsPage)
-	| { status: 'error'; message: string };
+	| PrimaveraProductsPageSuccess
+	| PrimaveraProductsFailure;
 
 export type PrimaveraCsvRow = z.input<typeof primaveraCsvRowSchema>;
 

@@ -12,10 +12,7 @@ import { paginate } from '@/shared/lib/paginate';
 type ProductMatcher = (product: PrimaveraProduct) => boolean;
 
 /**
- * Zwraca jedną stronę produktów z Primavery pasujących do hasła, razem
- * z łączną liczbą wyników, liczbą stron i godziną pobrania danych. Numer
- * strony spoza zakresu jest przycinany do ostatniej strony. Błąd pobrania
- * wraca jako wynik ze statusem `error`.
+ * Zwraca stronę produktów pasujących do hasła albo błąd pobrania jako `status: 'error'`.
  */
 export async function getPrimaveraProductsPage({
 	query,
