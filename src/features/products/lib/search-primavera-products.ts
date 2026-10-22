@@ -1,5 +1,5 @@
 import type { PrimaveraProduct } from '@/features/products/model/products.types';
-import { normalizeSearchText } from './normalize-search-text';
+import { normalizeSearchText } from '@/features/products/utils/normalize-search-text';
 
 type ProductMatcher = (product: PrimaveraProduct) => boolean;
 

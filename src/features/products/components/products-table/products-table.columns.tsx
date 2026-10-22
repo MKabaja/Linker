@@ -3,7 +3,7 @@ import type { PrimaveraProduct } from '@/features/products/model/products.types'
 import {
 	formatPriceAmount,
 	formatPriceWithCurrency,
-} from '../../lib/format-price';
+} from '@/features/products/utils/format-price';
 import { CopyValueButton } from '../copy-value-button';
 
 export const productsTableFeatures = tableFeatures({});

@@ -6,7 +6,7 @@ import type {
 	PrimaveraProduct,
 	ValidPrimaveraCsvRow,
 } from '@/features/products/model/products.types';
-import { normalizeSearchText } from './normalize-search-text';
+import { normalizeSearchText } from '@/features/products/utils/normalize-search-text';
 
 type RowsValidation = {
 	validRows: ValidPrimaveraCsvRow[];
