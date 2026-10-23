@@ -20,7 +20,7 @@ export default async function ProductsPage(props: PageProps<'/products'>) {
 				<p className="text-dim">Brak produktów dla hasła „{q}”.</p>
 			) : (
 				<>
-					<ProductsTable products={productsPage.products} />
+					<ProductsTable status="ready" products={productsPage.products} />
 					<ProductsPagination
 						query={q}
 						page={productsPage.page}

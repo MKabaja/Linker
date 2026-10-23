@@ -7,35 +7,41 @@ import {
 	productsTableColumns,
 	productsTableFeatures,
 } from './products-table.columns';
+import { ProductsTableSkeletonRows } from './products-table.skeleton-rows';
 import {
 	productsTableColumnStyles,
 	productsTableStyles,
 } from './products-table.styles';
 
-type ProductsTableProps = {
-	products: PrimaveraProduct[];
-};
+type ProductsTableProps =
+	| { status: 'loading' }
+	| { status: 'ready'; products: PrimaveraProduct[] };
 
-export function ProductsTable({ products }: ProductsTableProps) {
+const noProducts: PrimaveraProduct[] = [];
+
+export function ProductsTable(props: ProductsTableProps) {
 	const {
 		wrapper,
 		tableElement,
 		caption,
 		head,
 		headerCell,
+		loadedBody,
 		bodyRow,
 		bodyCell,
 	} = productsTableStyles;
 
+	const isLoading = props.status === 'loading';
+
 	const table = useTable({
 		features: productsTableFeatures,
 		columns: productsTableColumns,
-		data: products,
+		data: props.status === 'ready' ? props.products : noProducts,
 		getRowId: getProductRowId,
 	});
 
 	return (
-		<div className={wrapper}>
+		<div className={wrapper} aria-busy={isLoading}>
 			<table className={tableElement}>
 				<caption className={caption}>Produkty z Primavery</caption>
 				<thead className={head}>
@@ -58,22 +64,28 @@ export function ProductsTable({ products }: ProductsTableProps) {
 						</tr>
 					))}
 				</thead>
-				<tbody>
-					{table.getRowModel().rows.map((row) => (
-						<tr key={row.id} className={bodyRow}>
-							{row.getAllCells().map((cell) => (
-								<td
-									key={cell.id}
-									className={cn(
-										bodyCell,
-										productsTableColumnStyles[cell.column.id],
-									)}
-								>
-									<table.FlexRender cell={cell} />
-								</td>
-							))}
-						</tr>
-					))}
+				<tbody className={isLoading ? undefined : loadedBody}>
+					{isLoading ? (
+						<ProductsTableSkeletonRows
+							columnIds={table.getAllLeafColumns().map((column) => column.id)}
+						/>
+					) : (
+						table.getRowModel().rows.map((row) => (
+							<tr key={row.id} className={bodyRow}>
+								{row.getAllCells().map((cell) => (
+									<td
+										key={cell.id}
+										className={cn(
+											bodyCell,
+											productsTableColumnStyles[cell.column.id],
+										)}
+									>
+										<table.FlexRender cell={cell} />
+									</td>
+								))}
+							</tr>
+						))
+					)}
 				</tbody>
 			</table>
 		</div>

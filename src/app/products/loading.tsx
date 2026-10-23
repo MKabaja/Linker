@@ -1,10 +1,5 @@
-import { Spinner } from '@/shared/components/spinner';
+import { ProductsTable } from '@/features/products/components/products-table';
 
 export default function ProductsLoading() {
-	return (
-		<section>
-			<h1 className="mb-6 text-2xl font-bold">Produkty z Primavery</h1>
-			<Spinner label="Ładowanie produktów" />
-		</section>
-	);
+	return <ProductsTable status="loading" />;
 }
