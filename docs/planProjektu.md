@@ -152,6 +152,20 @@ Commity: zależność, przenosiny per warstwa, scalenie serwisu, usunięcie barr
 
 Commit: `feat(products): add search field synced with URL`
 
+**7a. [ ] Aliasy typów propsów w `shared/components`** (ok. 20 min)
+
+Czysty refaktor bez zmian zachowania. Sygnatury z przestrzenią nazw base-ui zastępujemy nazwanym aliasem w pliku komponentu, jak w `input`:
+
+```ts
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>;
+```
+
+- Pliki: `button`, `separator`, `sheet` (każda część osobno, np. `SheetTriggerProps`), `tooltip`.
+- Typy złożone (`Popup.Props & Positioner.Props`, `& { side?: … }`) też jako jeden alias.
+- Konwencja zapisana w `AGENTS.md` (sekcja React).
+
+Commit: `refactor(ui): name base-ui props types with aliases`
+
 **8. [ ] Błędy i nieaktualne dane** (ok. 1 h)
 
 - Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony.
