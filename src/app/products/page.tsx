@@ -9,26 +9,27 @@ export default async function ProductsPage(props: PageProps<'/products'>) {
 	);
 	const productsPage = await getProductsPage({ query: q, page });
 
+	if (productsPage.status === 'error') {
+		return (
+			<p role="alert" className="text-danger">
+				Nie udało się pobrać produktów: {productsPage.message}
+			</p>
+		);
+	}
+
+	if (productsPage.totalCount === 0) {
+		return <p className="text-dim">Brak produktów dla hasła „{q}”.</p>;
+	}
+
 	return (
-		<section>
-			<h1 className="mb-6 text-2xl font-bold">Produkty z Primavery</h1>
-			{productsPage.status === 'error' ? (
-				<p role="alert" className="text-danger">
-					Nie udało się pobrać produktów: {productsPage.message}
-				</p>
-			) : productsPage.totalCount === 0 ? (
-				<p className="text-dim">Brak produktów dla hasła „{q}”.</p>
-			) : (
-				<>
-					<ProductsTable status="ready" products={productsPage.products} />
-					<ProductsPagination
-						query={q}
-						page={productsPage.page}
-						pageCount={productsPage.pageCount}
-						totalCount={productsPage.totalCount}
-					/>
-				</>
-			)}
-		</section>
+		<>
+			<ProductsTable status="ready" products={productsPage.products} />
+			<ProductsPagination
+				query={q}
+				page={productsPage.page}
+				pageCount={productsPage.pageCount}
+				totalCount={productsPage.totalCount}
+			/>
+		</>
 	);
 }
