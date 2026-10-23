@@ -17,6 +17,16 @@ type ProductsTableProps = {
 };
 
 export function ProductsTable({ products }: ProductsTableProps) {
+	const {
+		wrapper,
+		tableElement,
+		caption,
+		head,
+		headerCell,
+		bodyRow,
+		bodyCell,
+	} = productsTableStyles;
+
 	const table = useTable({
 		features: productsTableFeatures,
 		columns: productsTableColumns,
@@ -25,12 +35,10 @@ export function ProductsTable({ products }: ProductsTableProps) {
 	});
 
 	return (
-		<div className={productsTableStyles.wrapper}>
-			<table className={productsTableStyles.table}>
-				<caption className={productsTableStyles.caption}>
-					Produkty z Primavery
-				</caption>
-				<thead className={productsTableStyles.head}>
+		<div className={wrapper}>
+			<table className={tableElement}>
+				<caption className={caption}>Produkty z Primavery</caption>
+				<thead className={head}>
 					{table.getHeaderGroups().map((headerGroup) => (
 						<tr key={headerGroup.id}>
 							{headerGroup.headers.map((header) => (
@@ -38,7 +46,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
 									key={header.id}
 									scope="col"
 									className={cn(
-										productsTableStyles.headerCell,
+										headerCell,
 										productsTableColumnStyles[header.column.id],
 									)}
 								>
@@ -52,12 +60,12 @@ export function ProductsTable({ products }: ProductsTableProps) {
 				</thead>
 				<tbody>
 					{table.getRowModel().rows.map((row) => (
-						<tr key={row.id} className={productsTableStyles.row}>
+						<tr key={row.id} className={bodyRow}>
 							{row.getAllCells().map((cell) => (
 								<td
 									key={cell.id}
 									className={cn(
-										productsTableStyles.cell,
+										bodyCell,
 										productsTableColumnStyles[cell.column.id],
 									)}
 								>
