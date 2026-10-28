@@ -41,9 +41,9 @@ export async function getProductsPage({
 
 /**
  * Filtruje produkty po haśle. Puste hasło zwraca wszystkie produkty. Hasło
- * złożone z samych cyfr jest traktowane jako EAN i musi zgadzać się dokładnie.
- * Pozostałe hasła są normalizowane jak nazwy produktów, a produkt pasuje, gdy
- * jego nazwa zawiera każde wpisane słowo.
+ * złożone z samych cyfr jest traktowane jako fragment EAN-u. Pozostałe hasła
+ * są normalizowane jak nazwy produktów, a produkt pasuje, gdy jego nazwa
+ * zawiera każde wpisane słowo.
  */
 export function searchProducts(
 	products: PrimaveraProduct[],
@@ -60,7 +60,7 @@ export function searchProducts(
 
 function createProductMatcher(query: string): ProductMatcher {
 	if (isEanQuery(query)) {
-		return (product) => product.ean === query;
+		return (product) => product.ean.includes(query);
 	}
 
 	const searchWords = normalizeSearchText(query).split(' ');
