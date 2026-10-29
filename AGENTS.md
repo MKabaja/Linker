@@ -50,7 +50,7 @@ Warstwy, kierunek zależności, nazwy plików i barrele: `docs/ARCHITECTURE.md` 
 
 Clean Code, KISS, YAGNI. Priorytety: poprawność, bezpieczeństwo, czytelność, testowalność, prostota.
 
-- Bez komentarzy i nagłówków w plikach. Wyjątek: JSDoc dla głównego API modułu i hooków wielokrotnego użytku, jako jeden blok (`@property`, `@example`), bez komentarzy przy polach.
+- Bez komentarzy i nagłówków w plikach. Wyjątek: TSDoc po polsku dla eksportowanego, reużywalnego API, tylko o tym, czego nie widać w sygnaturze (błędy, efekty uboczne, przypadki brzegowe).
 - Zmiany małe i celowe. Przed implementacją sprawdź istniejące konwencje. Nie refaktoryzuj kodu spoza zadania.
 - Funkcje i moduły zamiast klas; bez abstrakcji i nowych plików bez konkretnego powodu.
 - Pliki i foldery w kebab-case (`product-card.tsx` eksportuje `ProductCard`).
