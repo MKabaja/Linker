@@ -11,7 +11,8 @@ export type Page<T> = {
 };
 
 /**
- * Zwraca jedną stronę listy razem z łączną liczbą elementów i liczbą stron.
+ * Zwraca jedną stronę listy.
+ *
  * Numer strony większy niż liczba stron jest przycinany do ostatniej strony.
  * Pusta lista daje jedną pustą stronę.
  */

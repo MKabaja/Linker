@@ -12,7 +12,9 @@ import { paginate } from '@/shared/lib/paginate';
 type ProductMatcher = (product: PrimaveraProduct) => boolean;
 
 /**
- * Zwraca stronę produktów pasujących do hasła albo błąd pobrania jako `status: 'error'`.
+ * Zwraca stronę produktów pasujących do hasła.
+ *
+ * Nie rzuca: błąd pobrania wraca jako `status: 'error'` z kodem.
  */
 export async function getProductsPage({
 	query,
@@ -40,10 +42,11 @@ export async function getProductsPage({
 }
 
 /**
- * Filtruje produkty po haśle. Puste hasło zwraca wszystkie produkty. Hasło
- * złożone z samych cyfr jest traktowane jako fragment EAN-u. Pozostałe hasła
- * są normalizowane jak nazwy produktów, a produkt pasuje, gdy jego nazwa
- * zawiera każde wpisane słowo.
+ * Filtruje produkty po haśle.
+ *
+ * - puste hasło zwraca wszystkie produkty,
+ * - same cyfry szukają fragmentu EAN-u,
+ * - tekst wymaga każdego słowa w nazwie, bez względu na wielkość liter i polskie znaki.
  */
 export function searchProducts(
 	products: PrimaveraProduct[],

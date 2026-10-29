@@ -12,16 +12,11 @@ type ProductsSearchState = {
 const SEARCH_DEBOUNCE_MILLISECONDS = 300;
 
 /**
- * Synchronizuje pole wyszukiwania z parametrem `q` w adresie. Hasło trafia do
- * adresu po 300 ms bez pisania i wraca na pierwszą stronę. Zmiana `q` z
- * zewnątrz nadpisuje wpisany tekst.
+ * Synchronizuje tekst pola wyszukiwania z parametrem `q` w adresie.
  *
- * @returns Stan pola wyszukiwania.
- * @property searchText Tekst widoczny w polu, aktualizowany od razu.
- * @property changeSearchText Ustawia tekst i planuje zapis hasła w adresie.
- * @property isPending `true`, dopóki trwa nawigacja z nowym hasłem.
- * @example
- * const { searchText, changeSearchText, isPending } = useProductsSearch();
+ * Tekst zmienia się od razu, a adres po 300 ms bez pisania i bez parametru `page`.
+ * Zmiana `q` z zewnątrz (np. przycisk „wstecz”) nadpisuje tekst.
+ * `isPending` jest `true` do końca nawigacji z nowym hasłem.
  */
 export function useProductsSearch(): ProductsSearchState {
 	const router = useRouter();
