@@ -16,6 +16,10 @@ export const primaveraCsvRowSchema = z.object({
 	StawkaVAT: nonNegativeInteger,
 });
 
+export const primaveraErrorResponseSchema = z.object({
+	msg: z.string(),
+});
+
 export const productsSearchParamsSchema = z.object({
 	q: z.string().trim().max(PRODUCTS_SEARCH_MAX_LENGTH).catch(''),
 	page: z.coerce.number().int().min(1).catch(1),

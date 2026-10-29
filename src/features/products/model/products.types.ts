@@ -15,9 +15,17 @@ export type PrimaveraProductsSnapshot = {
 	fetchedAt: Date;
 };
 
+export type PrimaveraErrorCode =
+	| 'MISSING_TOKEN'
+	| 'UNAUTHORIZED'
+	| 'UNAVAILABLE'
+	| 'EMPTY_RESPONSE'
+	| 'INVALID_FORMAT'
+	| 'UNKNOWN';
+
 export type PrimaveraProductsFailure = {
 	status: 'error';
-	message: string;
+	code: PrimaveraErrorCode;
 };
 
 export type PrimaveraProductsSuccess = {

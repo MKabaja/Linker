@@ -7,6 +7,7 @@ import type {
 	PrimaveraProduct,
 	ValidPrimaveraCsvRow,
 } from '@/features/products/model/products.types';
+import { PrimaveraError } from '@/features/products/server/sources/primavera.errors';
 import { normalizeSearchText } from '@/features/products/utils/normalize-search-text';
 
 type RowsValidation = {
@@ -22,6 +23,14 @@ const config = {
 
 const PRIMAVERA_CSV_HEADERS = primaveraCsvRowSchema.keyof().options;
 
+/**
+ * Zamienia tekst CSV z Primavery na listę produktów.
+ *
+ * Wadliwe wiersze są pomijane z ostrzeżeniem w logu serwera.
+ *
+ * @throws {@link PrimaveraError} z kodem `INVALID_FORMAT`, gdy brakuje
+ * nagłówków albo plik ma błąd struktury.
+ */
 export function mapPrimaveraCsvToProducts(
 	csvContent: string,
 ): PrimaveraProduct[] {
@@ -45,7 +54,9 @@ function assertPrimaveraCsvHeaders(fields: string[] | undefined) {
 	);
 
 	if (missing.length > 0) {
-		throw new Error(`Brakujące nagłówki w pliku CSV: ${missing.join(', ')}`);
+		throw new PrimaveraError('INVALID_FORMAT', {
+			cause: new Error(`Brakujące nagłówki w pliku CSV: ${missing.join(', ')}`),
+		});
 	}
 }
 
@@ -53,9 +64,11 @@ function assertNoStructuralErrors(resultErrors: ParseError[]) {
 	const structuralErrors = resultErrors.filter((e) => e.row === undefined);
 
 	if (structuralErrors.length > 0) {
-		throw new Error(
-			`Błąd struktury pliku CSV: ${structuralErrors.map((e) => e.message).join('; ')}`,
-		);
+		throw new PrimaveraError('INVALID_FORMAT', {
+			cause: new Error(
+				`Błąd struktury pliku CSV: ${structuralErrors.map((e) => e.message).join('; ')}`,
+			),
+		});
 	}
 }
 

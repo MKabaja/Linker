@@ -1,5 +1,6 @@
 import { ProductsPagination } from '@/features/products/components/products-pagination';
 import { ProductsTable } from '@/features/products/components/products-table';
+import { primaveraErrorMessageByCode } from '@/features/products/model/products.constants';
 import { productsSearchParamsSchema } from '@/features/products/model/products.schemas';
 import { getProductsPage } from '@/features/products/server/services/products.service';
 
@@ -12,7 +13,7 @@ export default async function ProductsPage(props: PageProps<'/products'>) {
 	if (productsPage.status === 'error') {
 		return (
 			<p role="alert" className="text-danger">
-				Nie udało się pobrać produktów: {productsPage.message}
+				{primaveraErrorMessageByCode[productsPage.code]}
 			</p>
 		);
 	}
