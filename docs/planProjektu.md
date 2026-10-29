@@ -143,7 +143,7 @@ Czysty refaktor: przenosimy, scalamy, zmieniamy nazwy i poprawiamy importy. Bez 
 
 Commity: zależność, przenosiny per warstwa, scalenie serwisu, usunięcie barrela, reguły Biome.
 
-**7. [ ] Pole wyszukiwania** (ok. 1 h)
+**7. [x] Pole wyszukiwania** (ok. 1 h)
 
 - Pole nad tabelą, odczekuje chwilę po wpisaniu (ok. 300 ms).
 - Wpisane hasło i strona zapisują się w adresie URL, więc działa odświeżenie i przycisk „wstecz”.
@@ -152,7 +152,7 @@ Commity: zależność, przenosiny per warstwa, scalenie serwisu, usunięcie barr
 
 Commit: `feat(products): add search field synced with URL`
 
-**7a. [ ] Aliasy typów propsów w `shared/components`** (ok. 20 min)
+**7a. [x] Aliasy typów propsów w `shared/components`** (ok. 20 min)
 
 Czysty refaktor bez zmian zachowania. Sygnatury z przestrzenią nazw base-ui zastępujemy nazwanym aliasem w pliku komponentu, jak w `input`:
 
@@ -168,11 +168,11 @@ Commit: `refactor(ui): name base-ui props types with aliases`
 
 **8. [ ] Błędy i nieaktualne dane** (ok. 1 h)
 
-- Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony.
-- Gdy Primavera nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne”.
-- Nad tabelą pokazujemy „Dane z godz. HH:MM”.
+- [x] Zły token, pusta odpowiedź lub zmieniony format: czytelny komunikat zamiast pustej strony (kody `PrimaveraError` i mapa komunikatów).
+- [ ] ⏸ **Tymczasowo odsunięte, do zrobienia później:** gdy Primavera nie odpowiada, a mamy starsze dane, pokazujemy je z dopiskiem „dane nieaktualne” (wariant wyniku `ok | stale | error`, cache pamięta ostatnią porażkę odświeżenia).
+- [ ] ⏸ **Tymczasowo odsunięte, do zrobienia później:** nad tabelą pokazujemy „Dane z godz. HH:MM” (strefa `Europe/Warsaw`).
 
-Commit: `feat(products): show errors and data freshness`
+Commity: `feat(products): classify Primavera failures by code`; odsunięte: `feat(products): serve stale products when refresh fails`, `feat(products): show data freshness above table`
 
 **9. [ ] Odświeżanie po powrocie na kartę** (ok. 45 min)
 
