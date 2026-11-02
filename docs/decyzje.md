@@ -11,6 +11,7 @@
 | 2026-11-02 | Stan zwinięcia sidebara nie jest zapamiętywany. Usunięty zapis cookie, którego nikt nie czytał. | Zapis nic nie dawał, a `cookieStore` działa tylko w bezpiecznym kontekście (HTTPS lub localhost). | Gdy użytkownicy zaczną tego potrzebować. Odczyt cookie w głównym layoucie uczyni wszystkie strony dynamicznymi. |
 | 2026-11-02 | `ProductsAutoRefresh` zostaje w `features/products`, choć nie wie nic o produktach. | Jest tylko jedno użycie (YAGNI). | Przy drugim użyciu (Faza 3, zamówienia): ogólna nazwa i przeniesienie do `shared/components`. |
 | 2026-11-02 | Importy są grupowane w `biome.json`: Node, pakiety, komponenty, hooki, aliasy, ścieżki względne. | Biome nie ma sortowania po długości ścieżki, grupy dają czytelny układ. | — |
+| 2026-11-02 | Miniatury ładujemy bezpośrednio z `orders.pvex.pl/thumbs/<EAN>.jpg`, bez logowania i bez optymalizacji `next/image`. | Pliki 50×50 px mają ok. 1 KB. Eksporty cennika nie mają zdjęć, a logowania z captchą nie obchodzimy. | Adres jest nieudokumentowany, więc tabela musi działać bez zdjęć. Przed publicznym demo zapytać Primaverę o zgodę albo użyć zdjęć zastępczych. |
 | 2026-11-02 | `motion` zostaje w zależnościach, choć nic go jeszcze nie importuje. | Będzie używany w kolejnych widokach. | Przy porządkach po MVP, jeśli nadal nie będzie używany. |
 
 ## Pominięte do czasu MVP

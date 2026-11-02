@@ -13,6 +13,7 @@ export const productsTableStyles = {
 } satisfies Record<string, string>;
 
 export const productsTableColumnStyles: ClassNameByColumnId = {
+	thumbnail: 'w-12',
 	ean: 'font-mono whitespace-nowrap',
 	name: 'w-full text-main',
 	price: 'text-right whitespace-nowrap tabular-nums',
@@ -21,6 +22,7 @@ export const productsTableColumnStyles: ClassNameByColumnId = {
 };
 
 export const productsTableSkeletonStyles: ClassNameByColumnId = {
+	thumbnail: 'size-12',
 	ean: 'my-1 h-4 w-28',
 	name: 'my-1 h-4 w-full max-w-md',
 	price: 'my-1 ml-auto h-4 w-16',

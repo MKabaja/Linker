@@ -102,6 +102,11 @@ Pobierał CSV, zerował flagę importu w lokalnej tabeli `primavera`, dopasowywa
 - Logowanie ma captcha (wg autora) — **automatyczne składanie zamówień odpada**; zamawia człowiek, importując plik.
 - Znaczenie magazynów „000" i „CUE" oraz wpływ wyboru magazynu na dostępność i czas dostawy [NIEZNANE].
 
+### Eksporty i miniatury [POTWIERDZONE testem 2026-11-02]
+- `format=xml` ma też pola `kategoria`, `model`, `stan`, których nie ma w CSV (znaczenie `model` i `stan` [NIEZNANE]). `format=json` zwraca pustą odpowiedź. Eksporty CSV i XML nie mają zdjęć.
+- Miniatury: `https://orders.pvex.pl/thumbs/<EAN>.jpg`, bez logowania, 50×50 px, białe tło, brak zdjęcia to 404. Na próbce 60 losowych EAN-ów miniaturę miało 50.
+- Adres większego zdjęcia [NIEZNANE].
+
 ---
 
 ## 4. BaseLinker API

@@ -5,6 +5,7 @@ import {
 	formatPriceWithCurrency,
 } from '@/features/products/utils/format-price';
 import { CopyValueButton } from '../copy-value-button';
+import { ProductThumbnail } from '../product-thumbnail';
 
 export const productsTableFeatures = tableFeatures({});
 
@@ -14,6 +15,11 @@ const columnHelper = createColumnHelper<
 >();
 
 export const productsTableColumns = columnHelper.columns([
+	columnHelper.display({
+		id: 'thumbnail',
+		header: 'Zdjęcie',
+		cell: (info) => <ProductThumbnail ean={info.row.original.ean} />,
+	}),
 	columnHelper.accessor('ean', {
 		header: 'EAN',
 		cell: (info) => (
