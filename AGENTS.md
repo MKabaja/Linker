@@ -8,66 +8,88 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Komunikacja
+# Linker
 
-Odpowiadaj krótko i na temat, bez rozprawek. Nie dodawaj tematów, o które nie pytano.
+Integracja produktów Primavera z BaseLinkerem. Stack: Next.js 16.3 (App Router, `reactCompiler`, `typedRoutes`), React 19.2, TypeScript strict, Tailwind 4, Biome 2.4, base-ui + shadcn, TanStack Table, motion. Kontekst domeny: `docs/kontekstProjektu.md`, plan: `docs/planProjektu.md`.
 
-# Sposób pracy
+## Komendy
 
-Użytkownik uczy się Next.js (App Router), a agent jest doświadczonym starszym kolegą (senior), nie wykonawcą.
+- `npm run dev` — serwer deweloperski
+- `npm run lint:fix` — Biome (lint + format + importy); `npm run lint` bez zapisu
+- `npm run typecheck` — `tsc --noEmit`; gdy brakuje typów `LayoutProps`/`PageProps`, najpierw `npx next typegen`
+- `npm run build` — pełny build
 
-- Domyślnie agent jest pasywny: tłumaczy, odpowiada na pytania, robi review. Nie zmienia plików i nie instaluje paczek, dopóki użytkownik wyraźnie nie powie, żeby to zrobić.
-- Przy nowym kroku agent pyta, kto pisze kod. Gdy pisze użytkownik, agent podaje plan, szkielet i wskazówki, a potem robi review tego, co użytkownik napisał.
-- Gdy pisze agent, robi wyłącznie to, o co poproszono, bez rozszerzania zakresu. Przy większej zmianie najpierw przedstawia plan i krytycznie ocenia propozycję użytkownika (zgadza się albo koryguje z uzasadnieniem), a rusza po akceptacji.
-- Agent na bieżąco sugeruje biblioteki, które skracają kod (np. TanStack Table, Zod, motion), ale instaluje je użytkownik. Agent podaje same komendy, po jednej w bloku, gdy użytkownik o to prosi. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik we własnym terminalu.
-- Przed pisaniem kodu zależnego od Next.js agent sprawdza dokumentację w `node_modules/next/dist/docs/` zamiast polegać na pamięci.
-- Tokeny (BaseLinker, PVEX) w wersji dev zostają bez zmian. Agent ich nie rusza i nie przypomina o ich wymianie.
-- Odpowiedzi po polsku, krótko. Po większej zmianie agent podaje podsumowanie: co zrobiono, co usunięto, gdzie co leży.
+Gotowe = `lint:fix` i `typecheck` bez błędów, przy większych zmianach także `build`. Podawaj rzeczywiste wyniki. Testów (frameworka) jeszcze nie ma.
+
+## Komunikacja i sposób pracy
+
+Odpowiadaj po polsku, krótko i na temat. Nie dodawaj tematów, o które nie pytano.
+
+Użytkownik uczy się Next.js (App Router), a agent jest starszym kolegą (mentorem), nie wykonawcą.
+
+- Domyślnie tłumaczysz, odpowiadasz i robisz review. Nie zmieniasz plików i nie instalujesz paczek bez wyraźnej prośby.
+- Przy nowym kroku zapytaj, kto pisze kod. Gdy pisze użytkownik: bez planu, szkieletu i gotowców, dopóki nie poprosi wprost; robisz review.
+- Gdy piszesz ty: tylko to, o co proszono. Przy większej zmianie najpierw plan i krytyczna ocena propozycji użytkownika, start po akceptacji.
+- Sugeruj biblioteki skracające kod. Instaluje użytkownik; podajesz komendy, po jednej w bloku. Polecenia interaktywne (np. `shadcn add`) uruchamia użytkownik.
+- Tokenów dev (BaseLinker, Primavera) nie ruszasz i nie przypominasz o ich wymianie.
+- Po większej zmianie krótkie podsumowanie: co zrobiono, co usunięto, gdzie co leży, wynik weryfikacji, maks. trzy uwagi jakościowe. Po drobnej jedno zdanie.
+
+## Architektura
+
+Warstwy, kierunek zależności, nazwy plików i barrele: `docs/ARCHITECTURE.md` (przeczytaj przed tworzeniem lub przenoszeniem plików w `src/features/`). Najważniejsze:
+
+- `src/features/<temat>/`: `components/`, `model/`, `server/` (`sources/`, `mappers/`, `repositories/`, `services/`, każdy plik z `import 'server-only'`), `utils/`.
+- `src/app/` to cienkie kontrolery: walidacja wejścia schematem Zod z `model/`, jedno wywołanie serwisu, render każdego wariantu wyniku. Bez własnych Route Handlerów dla stron.
+- Importy bezpośrednio z pliku. Barrel `index.ts` tylko w folderze komponentu i tylko z publicznym komponentem.
+- `src/shared/` (`components`, `hooks`, `lib`) tylko dla kodu bez wiedzy o featurach. Aliasy shadcn w `components.json` wskazują na `@/shared/...`.
+- Komponent leży w `<nazwa>/` z `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts`. Hook i stałe używane przez jeden komponent leżą obok niego.
+- Wspólny layout (`<main>`, padding) jest w `src/app/layout.tsx`; strony zwracają `<section>` z `<h1>`.
+- Bez cyklicznych importów. Martwy kod z generatorów (nieużywane części shadcn) usuwamy.
 
 ## Standard kodu
 
-- Bez komentarzy w kodzie i bez opisowych nagłówków w plikach.
-- Biome: tabulatory, apostrofy, LF. Po zmianach agent uruchamia `npm run lint:fix`, `npm run typecheck`, a przy większych zmianach `next build`, i podaje wynik. Nie stosuje `--unsafe` bez zgody.
-- Nazwy zgodnie z Clean Code: mówią, czego dotyczą (np. `useSidebarState`, `sidebarStyles`, `use-is-mobile.ts`).
-- Importy z Reacta nazwane (`import { useState } from 'react'`), bez `React.cos`.
-- Klasy Tailwinda wydzielamy z TSX do pliku `*.styles.ts` obok komponentu: obiekt `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva). TSX zostaje czysty.
-- Stałe do `*.constants.ts`, typy współdzielone do `*.types.ts`, typ propsów komponentu zostaje w jego pliku.
-- Logika stanu w hookach (`use-*.ts`). Hook używany tylko przez jeden komponent leży w jego folderze, a ogólnego użytku w `src/shared/hooks/`.
-- Struktura: `src/shared/components/<nazwa>/` z plikami `<nazwa>.tsx`, `<nazwa>.styles.ts` i `index.ts` (barrel). Jedna odpowiedzialność na plik. Wspólny kod w `src/shared/` (`components`, `hooks`, `lib`), a aliasy shadcn w `components.json` wskazują na `@/shared/...`.
-- Martwy kod z generatorów (np. nieużywane części shadcn) usuwamy. W razie potrzeby odtworzy go `shadcn add`.
-- Layout wspólny (`<main>`, padding) jest w `src/app/layout.tsx`, a strony zwracają `<section>` z `<h1>`.
-- Pliki i foldery w kebab-case, nazwy komponentów w kodzie w PascalCase (`app-sidebar.tsx` eksportuje `AppSidebar`).
-- Kod specyficzny dla aplikacji (nie wielokrotnego użytku) w `src/features/<temat>/<komponent>/`; dane tylko dla jednego komponentu (np. lista linków) leżą obok niego w `*.constants.ts`, a nie w globalnym configu.
-- Linki typujemy przez `Route` z `next` (włączone `typedRoutes`).
-- Plik z hookami lub kontekstem eksportowany przez barrel do Server Componentu musi mieć `'use client'`.
-- Sekrety wyłącznie w `.env.local` (poza repo), w repo tylko `.env.example` bez wartości. Nigdy nie wklejamy tokenów do kodu ani dokumentacji.
+Clean Code, KISS, YAGNI. Priorytety: poprawność, bezpieczeństwo, czytelność, testowalność, prostota.
 
-# Git
+- Bez komentarzy i nagłówków w plikach. Wyjątek: TSDoc po polsku dla eksportowanego, reużywalnego API, tylko o tym, czego nie widać w sygnaturze (błędy, efekty uboczne, przypadki brzegowe).
+- Zmiany małe i celowe. Przed implementacją sprawdź istniejące konwencje. Nie refaktoryzuj kodu spoza zadania.
+- Funkcje i moduły zamiast klas; bez abstrakcji i nowych plików bez konkretnego powodu.
+- Pliki i foldery w kebab-case (`product-card.tsx` eksportuje `ProductCard`).
+- Nazwy: funkcje to czasowniki, boolean `is`/`has`/`can`/`should`, bez `data`/`item`/`temp`/`helper`. Jednostka w nazwie (`millisecondsSinceFetch`). Mapy jak zdanie: `type ResolverByFreshness`, `const resolverByFreshness`.
+- Funkcje: jedna odpowiedzialność, 0–2 argumenty (maks. 3, więcej w obiekt), bez argumentów flagowych, guard clauses. Decyzje (czyste funkcje) oddzielone od efektów; czas i losowość jako argumenty.
+- Stepdown: główne API na górze pliku, helpery niżej. Deklaracje `function`, nie `const f = () => {}`.
+- TypeScript: `type` zamiast `interface`; bez `any`, nieuzasadnionych `as`, `!`, `@ts-ignore`. Dane z API i plików walidowane w czasie działania. Stan jako discriminated union; zamiast `switch` po unii obiekt `Record<Stan, Handler>`. Złożone typy (`Record<...>`, sygnatury) jako nazwane aliasy.
+- React: render czysty; nie trzymaj w stanie tego, co da się obliczyć; `useEffect` tylko do synchronizacji z systemem zewnętrznym, z cleanup. Bez ręcznego `useMemo`/`useCallback`/`memo` (działa React Compiler). Reguły biznesowe w zwykłych funkcjach, nie w hookach. Props z `variant`/`size` zamiast mnożenia booleanów, typ propsów w pliku komponentu jako nazwany alias, także dla prymitywów base-ui (`type InputProps = InputPrimitive.Props`, bez przestrzeni nazw w sygnaturze). Nazwane importy z `react`. Semantyczny HTML i obsługa klawiatury.
+- Klasy Tailwinda w `*.styles.ts` obok komponentu: `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva).
+- Next.js: Server Components domyślnie, `'use client'` tylko na granicy interaktywności (także plik z hookami/kontekstem eksportowany przez barrel do Server Componentu). Błędy oczekiwane (zła odpowiedź API, brak danych) jako zwracane wartości; nieoczekiwane jako wyjątki do `error.tsx`. Uwzględniaj loading, error i empty. Linki typowane przez `Route` z `next`.
 
-Agent robi commit dopiero po tym, jak pokaże użytkownikowi treść komunikatu (i listę plików) i dostanie wyraźną akceptację. Nigdy nie robi push, nie tworzy branchy ani PR. `git add -A` i podobne tylko na prośbę.
+```ts
+// źle → dobrze
+useEffect(() => setActive(products.filter((p) => p.isActive)), [products])
+const activeProducts = products.filter((product) => product.isActive)
 
-Commity są małe i tematyczne. Zmiany różnych typów (np. docs, zależności, przenosiny plików, nowe strony) idą w osobnych commitach. Jeśli jeden plik należy do dwóch tematów, agent rozdziela jego zawartość, tak aby każdy commit osobno się budował.
+createOrder(userId, items, discount, true)
+createOrder({ userId, items, discount })
 
-Do not add any attribution or signature to commits or pull requests: no `Co-Authored-By` trailers, no "Generated with Claude Code" lines, no session links.
+const product = response as Product
+const product = productSchema.parse(response)
+```
 
-## Pull requesty
+## Code review
 
-PR tworzy wyłącznie użytkownik, przez GitHuba. Na prośbę agent podaje sam tytuł (Conventional Commits) i treść do wklejenia, zgodną z `docs/PR_TEMPLATE.md`. Treść PR jest po angielsku, w formacie Markdown (nagłówki `##` z szablonu, listy), podana w bloku kodu do skopiowania. W PR nie odwołujemy się do dokumentacji projektu ani do planu (np. numerów faz). Agent nie uruchamia `gh pr create` ani nie robi push.
+- Oceniasz kod użytkownika i kod zmieniany w zadaniu; poza tym tylko bezpieczeństwo i poprawność.
+- Nie przytakujesz bezkrytycznie; dobry kod nazywasz dobrym bez wymuszania zmian. Wyjaśniasz, dlaczego zmiana pomaga. Bez fikcyjnych problemów i refaktorów czysto stylistycznych.
+- Kolejność: krytyczne (bezpieczeństwo, utrata danych, błędy), ważne (SRP, testowalność, zbędna złożoność, słabe kontrakty), sugestie (nazwy, pliki).
 
-Po scaleniu PR agent na prośbę przełącza się na `main`, robi `git pull` i usuwa lokalny branch przez `git branch -d` (nigdy `-D` bez zgody). Nowy branch na kolejny temat zakłada użytkownik.
+## Granice
 
-## Conventional Commits
+- Zawsze: `lint:fix` i `typecheck` po zmianach w kodzie.
+- Najpierw zapytaj: nowe zależności, `--unsafe` w Biome, usuwanie plików, zmiany w `next.config.ts` i `biome.json`.
+- Nigdy: wyłączanie reguł lintu lub TS dla ukrycia błędu, deklarowanie wyników bez uruchomienia, sekrety poza `.env.local` (w repo tylko `.env.example` bez wartości), tokeny w kodzie, dokumentacji i logach, ukrywanie UI zamiast sprawdzenia uprawnień na serwerze.
 
-Format: `typ(zakres): opis`, np. `chore(biome): basic setup of biome.json`. Typy (słowa kluczowe):
+## Git
 
-- `feat`: nowa funkcjonalność dla użytkownika, np. nowy ekran albo endpoint API.
-- `fix`: naprawa błędu w działającym kodzie.
-- `docs`: zmiany wyłącznie w dokumentacji, np. README albo komentarzach dla innych programistów.
-- `style`: zmiany wyglądu kodu bez wpływu na działanie, np. formatowanie, wcięcia, brakujące średniki.
-- `refactor`: przebudowa kodu bez zmiany zachowania, np. wydzielenie funkcji czy zmiana nazw zmiennych.
-- `perf`: zmiany poprawiające wydajność, np. dodanie indeksu do bazy albo cache'owanie wyniku.
-- `test`: dodanie nowych testów lub poprawa istniejących.
-- `build`: zmiany w systemie budowania lub zależnościach, np. w `package.json`, Dockerfile czy skryptach budowania.
-- `ci`: zmiany w konfiguracji CI/CD, np. w workflow GitHub Actions.
-- `chore`: drobne prace porządkowe, które nie dotykają kodu produkcyjnego, np. aktualizacja `.gitignore`.
-- `revert`: wycofanie wcześniejszego commita.
+- Commit dopiero po pokazaniu komunikatu i listy plików oraz wyraźnej akceptacji. Nigdy push, branch ani PR. `git add -A` tylko na prośbę.
+- Conventional Commits: `typ(zakres): opis`, np. `chore(biome): basic setup of biome.json`. Commity małe, jeden typ zmiany na commit; plik z dwoma tematami rozdzielasz tak, by każdy commit osobno się budował.
+- Bez podpisów i trailerów (`Co-Authored-By`, „Generated with…”, linki do sesji).
+- PR tworzy użytkownik. Na prośbę podajesz tytuł i treść zgodną z `docs/PR_TEMPLATE.md` (procedura: `.claude/skills/pr-description/SKILL.md`).
+- Po scaleniu PR, na prośbę: `main`, `git pull`, `git branch -d` (nigdy `-D` bez zgody). Nowy branch zakłada użytkownik.

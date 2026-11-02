@@ -48,7 +48,7 @@
 	--popover: var(--color-surface);
 	--popover-foreground: var(--color-main);
 	--primary: var(--color-brand);
-	--primary-foreground: var(--color-main);
+	--primary-foreground: var(--color-app);
 	--secondary: var(--color-field);
 	--secondary-foreground: var(--color-main);
 	--muted: var(--color-field);
@@ -68,7 +68,7 @@
 	--sidebar: var(--color-surface);
 	--sidebar-foreground: var(--color-main);
 	--sidebar-primary: var(--color-brand);
-	--sidebar-primary-foreground: var(--color-main);
+	--sidebar-primary-foreground: var(--color-app);
 	--sidebar-accent: var(--color-hover);
 	--sidebar-accent-foreground: var(--color-main);
 	--sidebar-border: var(--color-line);

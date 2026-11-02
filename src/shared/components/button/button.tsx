@@ -3,12 +3,14 @@ import type { VariantProps } from 'class-variance-authority';
 import { cn } from 'cn';
 import { buttonVariants } from './button.styles';
 
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>;
+
 function Button({
 	className,
 	variant = 'default',
 	size = 'default',
 	...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
 	return (
 		<ButtonPrimitive
 			data-slot="button"

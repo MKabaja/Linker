@@ -9,9 +9,9 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from '@/shared/components/sheet';
+import { useSidebar } from './use-sidebar';
 import { SIDEBAR_WIDTH_MOBILE } from './sidebar.constants';
 import { sidebarStyles } from './sidebar.styles';
-import { useSidebar } from './use-sidebar';
 
 type SidebarProps = ComponentProps<'div'> & {
 	side?: 'left' | 'right';

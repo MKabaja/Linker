@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
-import {
-	SIDEBAR_COOKIE_MAX_AGE,
-	SIDEBAR_COOKIE_NAME,
-	SIDEBAR_KEYBOARD_SHORTCUT,
-} from './sidebar.constants';
+import { SIDEBAR_KEYBOARD_SHORTCUT } from './sidebar.constants';
 import type { SidebarContextProps } from './sidebar.types';
 
 type UseSidebarStateOptions = {
@@ -30,8 +26,6 @@ export function useSidebarState({
 			} else {
 				setUncontrolledOpen(nextOpen);
 			}
-
-			document.cookie = `${SIDEBAR_COOKIE_NAME}=${nextOpen}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 		},
 		[onOpenChange],
 	);
