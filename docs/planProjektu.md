@@ -174,7 +174,7 @@ Commit: `refactor(ui): name base-ui props types with aliases`
 
 Commity: `feat(products): classify Primavera failures by code`; odsunięte: `feat(products): serve stale products when refresh fails`, `feat(products): show data freshness above table`
 
-**9. [ ] Odświeżanie po powrocie na kartę** (ok. 45 min)
+**9. [x] Odświeżanie po powrocie na kartę** (ok. 45 min)
 
 - Gdy wracasz do karty z aplikacją, strona sama pobiera świeże dane.
 - Logika w osobnym hooku.
@@ -184,11 +184,11 @@ Commit: `feat(products): refresh data when browser tab becomes active`
 
 **10. [ ] Porządki i sprawdzenie** (ok. 45 min)
 
-- Usuwamy prototyp `src/app/api/primavera/route.ts` i niepotrzebny `src/app/dashboard/page.tsx`, jeśli się zgadzasz.
-- Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
-- Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
+- [x] Usuwamy prototypy `src/app/api/{baselinker,primavera,test}/route.ts` i niepotrzebny `src/app/dashboard/page.tsx`.
+- [x] Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
+- [ ] Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
 
-Commit: `chore(products): remove Primavera prototype route`
+Commit: `chore(app): remove prototype routes`
 
 **11. [ ] Pull request** (ok. 15 min)
 Na Twoją prośbę podaję tytuł i treść PR po angielsku. PR tworzysz sam na GitHubie.
@@ -244,6 +244,8 @@ Zaczynamy dopiero po dostaniu loginu tylko do odczytu.
 - [ ] Odczyt WAPRO działa tylko w sieci firmowej; demo nie może od niego zależeć.
 
 ## Później / może nigdy
+
+Świadome decyzje i to, co pominęliśmy do czasu MVP: `decyzje.md`.
 
 - Wysyłka listy mailem.
 - Automatyczne odświeżanie (cron).
