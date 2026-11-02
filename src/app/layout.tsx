@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
-import { AppMobileHeader } from '@/features/app-sidebar/app-mobile-header';
-import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/shared/components/sidebar';
 import { Toaster } from '@/shared/components/toaster';
+import { AppMobileHeader } from '@/features/app-sidebar/app-mobile-header';
+import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
 import '@/styles/app.css';
 
 const inter = Inter({

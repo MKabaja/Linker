@@ -10,8 +10,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/shared/components/tooltip';
-import { sidebarMenuButtonVariants } from '../sidebar.styles';
 import { useSidebar } from '../use-sidebar';
+import { sidebarMenuButtonVariants } from '../sidebar.styles';
 
 type SidebarMenuButtonProps = useRender.ComponentProps<'button'> &
 	ComponentProps<'button'> &

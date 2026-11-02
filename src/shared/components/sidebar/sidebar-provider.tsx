@@ -2,10 +2,10 @@
 
 import { cn } from 'cn';
 import type { ComponentProps, CSSProperties } from 'react';
+import { useSidebarState } from './use-sidebar-state';
 import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './sidebar.constants';
 import { sidebarStyles } from './sidebar.styles';
 import { SidebarContext } from './sidebar-context';
-import { useSidebarState } from './use-sidebar-state';
 
 type SidebarProviderProps = ComponentProps<'div'> & {
 	defaultOpen?: boolean;

@@ -59,7 +59,19 @@
   "assist": {
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              [":NODE:", ":PACKAGE_WITH_PROTOCOL:"],
+              ":PACKAGE:",
+              "@/**/components/**",
+              ["@/**/hooks/**", "**/use-*"],
+              ":ALIAS:",
+              ":PATH:"
+            ]
+          }
+        }
       }
     }
   },

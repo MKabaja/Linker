@@ -1,10 +1,10 @@
 'use client';
 
 import { useId } from 'react';
-import { PRODUCTS_SEARCH_MAX_LENGTH } from '@/features/products/model/products.constants';
 import { Input } from '@/shared/components/input';
-import { productsSearchStyles } from './products-search.styles';
 import { useProductsSearch } from './use-products-search';
+import { PRODUCTS_SEARCH_MAX_LENGTH } from '@/features/products/model/products.constants';
+import { productsSearchStyles } from './products-search.styles';
 
 export function ProductsSearch() {
 	const inputId = useId();
