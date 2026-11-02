@@ -59,6 +59,5 @@ desktop.ini
 # claude code (ustawienia lokalne)
 .claude/settings.local.json
 
-# lokalne notatki i tymczasowy endpoint testowy
+# lokalne notatki
 /docs/PRIMAVERA_normalizacja_nazw_produktow.md
-/src/app/api/test/
