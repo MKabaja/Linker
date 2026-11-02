@@ -182,13 +182,21 @@ Commity: `feat(products): classify Primavera failures by code`; odsunięte: `fea
 
 Commit: `feat(products): refresh data when browser tab becomes active`
 
-**10. [ ] Porządki i sprawdzenie** (ok. 45 min)
+**10. [x] Porządki i sprawdzenie** (ok. 45 min)
 
 - [x] Usuwamy prototypy `src/app/api/{baselinker,primavera,test}/route.ts` i niepotrzebny `src/app/dashboard/page.tsx`.
 - [x] Uruchamiamy `npm run lint:fix`, `npm run typecheck` i `next build`.
-- [ ] Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
+- [x] Ręcznie sprawdzamy: wpisanie EAN-u, wpisanie fragmentu nazwy, zły token.
 
 Commit: `chore(app): remove prototype routes`
+
+**10a. [x] Miniatury produktów** (ok. 45 min)
+
+- Kolumna „Zdjęcie” w tabeli: miniatura budowana z EAN-a (`orders.pvex.pl/thumbs/<EAN>.jpg`), na białej kafelce.
+- Gdy zdjęcia nie ma (404), ikona zastępcza tego samego rozmiaru.
+- Bez podglądu po najechaniu, dopóki nie znamy adresu większego zdjęcia.
+
+Commit: `feat(products): show product thumbnails in table`
 
 **11. [ ] Pull request** (ok. 15 min)
 Na Twoją prośbę podaję tytuł i treść PR po angielsku. PR tworzysz sam na GitHubie.
