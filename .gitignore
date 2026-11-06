@@ -60,4 +60,7 @@ desktop.ini
 .claude/settings.local.json
 
 # lokalne notatki
-/docs/PRIMAVERA_normalizacja_nazw_produktow.md
+/docs/referencje/PRIMAVERA_normalizacja_nazw_produktow.md
+
+# próbki etykiet i zrzuty z danymi osobowymi klientów
+/docs/referencje/etykiety/
