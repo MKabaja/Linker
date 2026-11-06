@@ -40,7 +40,7 @@ Skala (zrzut z panelu, 2026-10-02): w BrakStanuTowaru 35 zamówień, w BladPowia
 - Dashboard z zamówieniami i dostępnością w Primaverze.
 - Pomysł dodatkowy: lista „nowych artykułów do założenia w ERP" dla BladPowiazaniaTowaru (nazwa/EAN/cena z CSV Primavery lub z pozycji zamówienia). Aplikacja **nie ma zapisywać do ERP**.
 
-### Wcześniejsza roadmapa użytkownika (plik ROADMAP_PVEX_NEXTJS_FAZA1_2.md)
+### Wcześniejsza roadmapa użytkownika (plik `archiwum/ROADMAP_PVEX_NEXTJS_FAZA1_2.md`)
 
 Faza 1: Next.js + pobranie CSV z Primavery + parsowanie. Faza 2: dashboard z tabelą (EAN, nazwa, cena, ilość), wyszukiwanie po EAN, filtry. Faza 3 (przyszłość): BaseLinker API, filtrowanie po statusie, docelowy przepływ: BaseLinker → BladPowiazaniaTowaru → EAN → Primavera → weryfikacja → lista zakupowa → CSV → wysłanie maila.
 
