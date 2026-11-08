@@ -11,7 +11,7 @@ GET https://orders.pvex.pl/pricelist.php?wh=all&token=<TOKEN>&format=csv
 ```
 
 **aktualny token**
-`934E34C74A9BA6465CB3CD89409410CBD020`
+`<PRIMAVERA_TOKEN>`
 
 Znane parametry na podstawie przekazanego URL:
 
