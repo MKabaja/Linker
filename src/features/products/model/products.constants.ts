@@ -16,8 +16,8 @@ const primaveraErrorMessageByCode: PrimaveraErrorMessageByCode = {
 };
 
 export {
+	PRODUCT_THUMBNAILS_URL,
 	PRODUCTS_PAGE_SIZE,
 	PRODUCTS_SEARCH_MAX_LENGTH,
-	PRODUCT_THUMBNAILS_URL,
 	primaveraErrorMessageByCode,
 };
