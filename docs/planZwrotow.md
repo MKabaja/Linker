@@ -142,7 +142,7 @@ src/features/returns/
 src/database/client.ts                 klient Drizzle (server-only)
 src/database/schema/                   order-index.schema.ts, returns.schema.ts
 src/database/migrations/               pliki SQL z drizzle-kit
-src/database/drizzle.config.ts         konfiguracja drizzle-kit
+src/database/config/                    database.config.ts, drizzle.config.ts
 src/app/returns/page.tsx               lista
 src/app/returns/scan/page.tsx          skaner
 src/app/returns/order/[orderId]/page.tsx  nowy zwrot dla zamówienia
@@ -180,9 +180,9 @@ git switch -c feat/returns
 
 - `compose.yaml` z Postgresem (wolumen, port tylko na `localhost`).
 - Zależności: `drizzle-orm`, `postgres`, dev: `drizzle-kit`.
-- `src/database/drizzle.config.ts`, `DATABASE_URL` w `.env.local`, `.env.example` z nazwami zmiennych bez wartości (`BASELINKER_TOKEN`, `PRIMAVERA_TOKEN`, `DATABASE_URL`, `SYNC_SECRET`, `APP_PASSWORD`).
+- `src/database/config/drizzle.config.ts` i `database.config.ts` (Zod), `DATABASE_URL` w `.env.local`, `.env.example` z nazwami zmiennych bez wartości (`BASELINKER_TOKEN`, `PRIMAVERA_TOKEN`, `DATABASE_URL`, `SYNC_SECRET`, `APP_PASSWORD`).
 - `src/database/client.ts` z `import 'server-only'`.
-- Skrypty `db:generate`, `db:migrate` w `package.json` (z `--config src/database/drizzle.config.ts`).
+- Skrypty `db:generate`, `db:migrate` w `package.json` (z `--config src/database/config/drizzle.config.ts`).
 
 **Weryfikacja:** `docker compose up -d`, `npm run db:migrate` na pustym schemacie przechodzi, `typecheck` OK.
 Commity:

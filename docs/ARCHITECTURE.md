@@ -61,7 +61,7 @@ Stałe trafiają do warstwy, która je zna: konfiguracja źródła (URL, timeout
 ```text
 src/database/
 ├─ client.ts            # połączenie i instancja `db` (import 'server-only')
-├─ drizzle.config.ts    # konfiguracja drizzle-kit (uruchamiana z `--config`)
+├─ config/              # database.config.ts (walidacja DATABASE_URL), drizzle.config.ts (drizzle-kit, z `--config`)
 ├─ schema/              # <tabela>.schema.ts – definicje tabel, bez barrela
 └─ migrations/          # wygenerowane pliki SQL (commitowane, nie edytujemy ręcznie)
 ```
@@ -81,7 +81,7 @@ server/repositories
         ↓
 server/sources  (+ server/mappers)
 
-src/database/  ← importuje tylko server/repositories/ (i drizzle.config.ts)
+src/database/  ← importuje tylko server/repositories/ (i config/drizzle.config.ts)
 model/   ← może być importowany przez wszystkie warstwy
 utils/, shared/lib/  ← może być importowany przez wszystkie warstwy
 ```

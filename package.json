@@ -11,7 +11,9 @@
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
     "db:up": "docker compose --env-file .env.local up -d",
-    "db:down": "docker compose --env-file .env.local down"
+    "db:down": "docker compose --env-file .env.local down",
+    "db:generate": "drizzle-kit generate --config src/database/config/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config src/database/config/drizzle.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
