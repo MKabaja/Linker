@@ -16,10 +16,12 @@
     "@tanstack/react-table": "^9.3.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.72.0",
     "motion": "^14.13.0",
     "next": "^16.4.6",
     "papaparse": "^5.7.1",
+    "postgres": "^4.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",
@@ -37,6 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4",
     "typescript": "7.0.2"
   }
