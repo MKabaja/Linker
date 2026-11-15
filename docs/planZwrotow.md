@@ -38,7 +38,7 @@ Prototyp jest **całkowicie darmowy i bez AI**. AI do odczytu etykiet rozważamy
 - **Dane osobowe minimalnie.** Indeks trzyma tylko pola potrzebne do wyszukiwania i ma retencję 45 dni (starsze rekordy kasujemy). Zwrot zapisuje `order_id` i pozycje, bez kopii danych klienta (te pobieramy na żywo z API).
 - **Aplikacja z danymi osobowymi nie jest publiczna.** Przed pierwszym testem przez tunel albo na Hetznerze musi działać ochrona hasłem (zadanie 4).
 - **Logika wyszukiwania to czyste funkcje** w `utils/`: łatwo je przetestować na próbkach etykiet.
-- Architektura według `docs/ARCHITECTURE.md`. Nowa warstwa `server/db/` (schematy Drizzle) do dopisania w A3.
+- Architektura według `docs/ARCHITECTURE.md`. Baza (klient, schematy, migracje, konfiguracja Drizzle) leży w `src/database/` (decyzja z 2026-11-15), opis w A3.
 
 ## 5. Flow użytkownika
 
@@ -133,21 +133,23 @@ src/features/returns/
   components/      returns-scanner/ (aparat, kody → OCR), search-results/, return-form/
                    (pozycje, skan EAN, zapis), returns-table/, return-history/
   model/           returns.types.ts, returns.schemas.ts, returns.constants.ts (wykluczenia, punkty)
-  server/db/       order-index.schema.ts, returns.schema.ts
   server/sources/  baselinker.client.ts, baselinker.config.ts, baselinker.schemas.ts (Zod odpowiedzi)
   server/mappers/  baselinker-order.mapper.ts
   server/repositories/ order-index.repository.ts, returns.repository.ts, sync-state.repository.ts
   server/services/ order-index-sync.service.ts, order-search.service.ts, returns.service.ts
   actions.ts       searchOrder, saveReturn, updateReturn
   utils/           extract-search-traces.ts, score-candidates.ts, normalize-phone.ts, match-ean.ts
-src/shared/lib/db/client.ts            klient Drizzle (server-only)
+src/database/client.ts                 klient Drizzle (server-only)
+src/database/schema/                   order-index.schema.ts, returns.schema.ts
+src/database/migrations/               pliki SQL z drizzle-kit
+src/database/drizzle.config.ts         konfiguracja drizzle-kit
 src/app/returns/page.tsx               lista
 src/app/returns/scan/page.tsx          skaner
 src/app/returns/order/[orderId]/page.tsx  nowy zwrot dla zamówienia
 src/app/returns/[returnId]/page.tsx    szczegóły i historia
 src/app/api/returns/sync/route.ts      wyzwalacz synchronizacji (cron)
 src/proxy.ts                           ochrona hasłem (Next 16: proxy zamiast middleware)
-drizzle.config.ts, compose.yaml (Postgres lokalnie), .env.example
+compose.yaml (Postgres lokalnie), .env.example
 ```
 
 `baselinker.client.ts` leży na razie w `returns`. Przy Fazie 3 (zamówienia) przeniesiemy go do wspólnego miejsca.
@@ -178,9 +180,9 @@ git switch -c feat/returns
 
 - `compose.yaml` z Postgresem (wolumen, port tylko na `localhost`).
 - Zależności: `drizzle-orm`, `postgres`, dev: `drizzle-kit`.
-- `drizzle.config.ts`, `DATABASE_URL` w `.env.local`, `.env.example` z nazwami zmiennych bez wartości (`BASELINKER_TOKEN`, `PRIMAVERA_TOKEN`, `DATABASE_URL`, `SYNC_SECRET`, `APP_PASSWORD`).
-- `src/shared/lib/db/client.ts` z `import 'server-only'`.
-- Skrypty `db:generate`, `db:migrate` w `package.json`.
+- `src/database/drizzle.config.ts`, `DATABASE_URL` w `.env.local`, `.env.example` z nazwami zmiennych bez wartości (`BASELINKER_TOKEN`, `PRIMAVERA_TOKEN`, `DATABASE_URL`, `SYNC_SECRET`, `APP_PASSWORD`).
+- `src/database/client.ts` z `import 'server-only'`.
+- Skrypty `db:generate`, `db:migrate` w `package.json` (z `--config src/database/drizzle.config.ts`).
 
 **Weryfikacja:** `docker compose up -d`, `npm run db:migrate` na pustym schemacie przechodzi, `typecheck` OK.
 Commity:
@@ -188,11 +190,11 @@ Commity:
 - `chore(db): add local postgres and drizzle config`
 - `chore(env): add .env.example`
 
-**3. [ ] Warstwa `server/db/` w architekturze** (ok. 20 min)
+**3. [ ] Warstwa `src/database/` w architekturze** (ok. 20 min)
 
-- Dopisanie w `docs/ARCHITECTURE.md` (A3, A6): `server/db/*.schema.ts`, kto może importować schematy (tylko `repositories/`), reguła w `biome.json` (pytamy przed zmianą).
+- Dopisanie w `docs/ARCHITECTURE.md` (A2, A3, A4): `src/database/` (klient, schematy, migracje, konfiguracja), kto może importować schematy (tylko `repositories/`). Reguła w `biome.json` (pytamy przed zmianą).
 
-Commit: `docs(architecture): add server/db layer for drizzle schemas`
+Commit: `docs(architecture): add src/database layer`
 
 **4. [ ] Ochrona hasłem** (ok. 1–1,5 h)
 

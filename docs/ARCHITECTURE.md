@@ -22,6 +22,8 @@ Obowiązują w całej aplikacji. Każdy nowy feature budujemy według nich.
 | Konfiguracja źródła           | `server/sources/*.config.ts`                                   |
 | Mapper / Transformer          | `server/mappers/*.mapper.ts`                                   |
 | Views (Blade / Razor)         | `components/`                                                  |
+| Migrations + schemat tabel    | `src/database/schema/*.schema.ts`, `src/database/migrations/` |
+| Połączenie z bazą (DB facade) | `src/database/client.ts`                                       |
 | Helpers ogólne                | `src/shared/lib/`                                              |
 
 ## A3. Struktura feature'a
@@ -54,6 +56,18 @@ Puste foldery nie są wymagane. Tworzymy tylko te warstwy, których feature fakt
 
 Stałe trafiają do warstwy, która je zna: konfiguracja źródła (URL, timeouty, czas życia cache) do `server/sources/*.config.ts`, stałe domeny i widoku do `model/*.constants.ts`.
 
+`src/database/` – cała infrastruktura bazy w jednym miejscu (jak katalog `database/` w Laravelu). Baza jest jedna i wspólna, a tabele łączą się kluczami obcymi między feature'ami, więc nie rozrzucamy ich po `features/`:
+
+```text
+src/database/
+├─ client.ts            # połączenie i instancja `db` (import 'server-only')
+├─ drizzle.config.ts    # konfiguracja drizzle-kit (uruchamiana z `--config`)
+├─ schema/              # <tabela>.schema.ts – definicje tabel, bez barrela
+└─ migrations/          # wygenerowane pliki SQL (commitowane, nie edytujemy ręcznie)
+```
+
+Repozytoria i serwisy zostają w `features/<feature>/server/`. Schematy tabel i `db` importuje wyłącznie `server/repositories/` (inne warstwy dostają dane przez repozytorium). `src/database/` nie importuje niczego z `features/`.
+
 `src/shared/lib/` – generyczne funkcje bez wiedzy o żadnym featurze (np. `paginate<T>`, formatowanie dat). Jeśli funkcja zna pojęcie „produkt”, „Primavera” albo reguły nazw produktów (jednostki `ml`, `szt`), **nie** należy do `shared`. Do `shared` przenosimy dopiero wtedy, gdy kod jest naprawdę potrzebny w drugim miejscu.
 
 ## A4. Kierunek zależności (najważniejsza zasada)
@@ -67,6 +81,7 @@ server/repositories
         ↓
 server/sources  (+ server/mappers)
 
+src/database/  ← importuje tylko server/repositories/ (i drizzle.config.ts)
 model/   ← może być importowany przez wszystkie warstwy
 utils/, shared/lib/  ← może być importowany przez wszystkie warstwy
 ```

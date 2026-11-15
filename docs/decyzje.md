@@ -12,6 +12,7 @@
 | 2026-11-02 | `ProductsAutoRefresh` zostaje w `features/products`, choć nie wie nic o produktach. | Jest tylko jedno użycie (YAGNI). | Przy drugim użyciu (Faza 3, zamówienia): ogólna nazwa i przeniesienie do `shared/components`. |
 | 2026-11-02 | Importy są grupowane w `biome.json`: Node, pakiety, komponenty, hooki, aliasy, ścieżki względne. | Biome nie ma sortowania po długości ścieżki, grupy dają czytelny układ. | — |
 | 2026-11-02 | Miniatury ładujemy bezpośrednio z `orders.pvex.pl/thumbs/<EAN>.jpg`, bez logowania i bez optymalizacji `next/image`. | Pliki 50×50 px mają ok. 1 KB. Eksporty cennika nie mają zdjęć, a logowania z captchą nie obchodzimy. | Adres jest nieudokumentowany, więc tabela musi działać bez zdjęć. Przed publicznym demo zapytać Primaverę o zgodę albo użyć zdjęć zastępczych. |
+| 2026-11-15 | Cała infrastruktura bazy (klient, schematy tabel, migracje, konfiguracja drizzle-kit) leży w `src/database/`, nie w `features/` ani `shared/lib/`. | Jedna baza, tabele łączą się kluczami obcymi między feature'ami (Faza 3 sięgnie po indeks zamówień), jeden folder migracji, jedno miejsce na „co jest w bazie”. | Gdy pojawi się feature z własną, odrębną bazą. |
 | 2026-11-02 | `motion` zostaje w zależnościach, choć nic go jeszcze nie importuje. | Będzie używany w kolejnych widokach. | Przy porządkach po MVP, jeśli nadal nie będzie używany. |
 
 ## Pominięte do czasu MVP
