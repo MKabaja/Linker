@@ -36,7 +36,7 @@ Prototyp jest **całkowicie darmowy i bez AI**. AI do odczytu etykiet rozważamy
 
 - **BaseLinker tylko do odczytu.** Wołamy wyłącznie metody `get*`. Linker zapisuje tylko do własnej bazy.
 - **Dane osobowe minimalnie.** Indeks trzyma tylko pola potrzebne do wyszukiwania i ma retencję 45 dni (starsze rekordy kasujemy). Zwrot zapisuje `order_id` i pozycje, bez kopii danych klienta (te pobieramy na żywo z API).
-- **Aplikacja z danymi osobowymi nie jest publiczna.** Przed pierwszym testem przez tunel albo na Hetznerze musi działać ochrona hasłem (zadanie 4).
+- **Aplikacja z danymi osobowymi nie jest publiczna.** Przed pierwszym testem przez tunel albo na Hetznerze musi działać logowanie (zadanie 4).
 - **Logika wyszukiwania to czyste funkcje** w `utils/`: łatwo je przetestować na próbkach etykiet.
 - Architektura według `docs/ARCHITECTURE.md`. Baza (klient, schematy, migracje, konfiguracja Drizzle) leży w `src/database/` (decyzja z 2026-11-15), opis w A3.
 
@@ -124,7 +124,8 @@ return_events       id (PK), return_id (FK), created_at, kind ('created' | 'upda
 - Indeksy: `indexed_packages(package_nr)`, `(inner_nr)`, `indexed_orders(phone_digits)`, `(postcode)`, `(external_order_id)`.
 - Przy 10 000 wierszy wystarczy zwykłe `LIKE`, bez `pg_trgm` i wyszukiwania pełnotekstowego.
 - Status zwrotu (pełny / częściowy) jest **wyliczany** z pozycji, nie zapisywany.
-- Na później, gdy będzie logowanie: kto przyjął zwrot (`received_by`).
+- Tabele `users` i `sessions`: zadanie 4.
+- Kto przyjął zwrot (`received_by`): logowanie powstaje w zadaniu 4, decyzja przy zadaniu 11.
 
 ## 8. Struktura plików (propozycja)
 
@@ -148,7 +149,10 @@ src/app/returns/scan/page.tsx          skaner
 src/app/returns/order/[orderId]/page.tsx  nowy zwrot dla zamówienia
 src/app/returns/[returnId]/page.tsx    szczegóły i historia
 src/app/api/returns/sync/route.ts      wyzwalacz synchronizacji (cron)
-src/proxy.ts                           ochrona hasłem (Next 16: proxy zamiast middleware)
+src/features/auth/                     logowanie, sesje, role (zadanie 4)
+src/database/schema/                   users.schema.ts, sessions.schema.ts
+src/app/login/page.tsx                 formularz logowania
+src/proxy.ts                           przekierowanie niezalogowanych (Next 16: proxy zamiast middleware)
 compose.yaml (Postgres lokalnie), .env.example
 ```
 
@@ -156,13 +160,13 @@ compose.yaml (Postgres lokalnie), .env.example
 
 ## 9. Zadania
 
-Legenda czasu: szacunek dla pracy we dwóch (Ty piszesz, ja robię review), z nauką nowych narzędzi. **Razem ok. 38–48 h**, czyli przy 3–4 h dziennie ok. 2–3 tygodnie.
+Legenda czasu: szacunek dla pracy we dwóch (Ty piszesz, ja robię review), z nauką nowych narzędzi. **Razem ok. 44–56 h**, czyli przy 3–4 h dziennie ok. 2–3 tygodnie.
 
 Po każdym zadaniu: `npm run lint:fix` i `npm run typecheck` bez błędów; przy zadaniach 5, 9, 11 i 13 także `npm run build`.
 
 ---
 
-**0. [ ] Test OCR na próbkach (spike, bez commita)** (ok. 1,5 h)
+**0. [x] Test OCR na próbkach (spike, bez commita)** (ok. 1,5 h)
 
 - Skrypt w scratchpadzie: `tesseract.js` na `1–4.jpg` i PDF-ach (po wyrenderowaniu do PNG).
 - Sprawdzamy: czy wyciąga 24-cyfrowe numery z „Uwag nadawcy”, `Reference 1`, 9-cyfrowe `order_id`; czy radzi sobie z obróconym zdjęciem (`1.jpg`, `2.jpg` są do góry nogami) i ile to trwa.
@@ -170,13 +174,15 @@ Po każdym zadaniu: `npm run lint:fix` i `npm run typecheck` bez błędów; przy
 
 **Weryfikacja:** tabela „próbka → odczytane tropy → trafienie tak/nie”. **Decyzja:** OCR wystarcza / potrzebne obracanie lub przycięcie / plan B (AI) wcześniej.
 
-**1. [ ] Branch** (5 min)
+**Zrobione (2026-11-13):** wyniki i zmiany planu w `docs/referencje/raport-test-ocr-etykiet.md` (commit `2677324`).
+
+**1. [x] Branch** (5 min)
 
 ```bash
 git switch -c feat/returns
 ```
 
-**2. [ ] Postgres lokalnie i Drizzle** (ok. 2 h)
+**2. [x] Postgres lokalnie i Drizzle** (ok. 2 h)
 
 - `compose.yaml` z Postgresem (wolumen, port tylko na `localhost`).
 - Zależności: `drizzle-orm`, `postgres`, dev: `drizzle-kit`.
@@ -185,24 +191,73 @@ git switch -c feat/returns
 - Skrypty `db:generate`, `db:migrate` w `package.json` (z `--config src/database/config/drizzle.config.ts`).
 
 **Weryfikacja:** `docker compose up -d`, `npm run db:migrate` na pustym schemacie przechodzi, `typecheck` OK.
+
+**Zrobione (2026-11-15), kod napisał użytkownik:**
+- Postgres 18 w Dockerze (`compose.yaml`, skrypty `db:up`, `db:down`), `.env.example`, `DATABASE_URL` zapisany literalnie w `.env.local`.
+- Sterownik `postgres` (postgres.js) z `drizzle-orm/postgres-js`. `src/database/client.ts` eksportuje `db`. `config/database.config.ts` waliduje `DATABASE_URL` Zodem (`getDatabaseConfig()`). `config/drizzle.config.ts` ładuje `.env.local` przez `loadEnvConfig` z `@next/env`.
+- Skrypty `db:generate` i `db:migrate`.
+- Połączenie sprawdzone osobno (`select 1` z `DATABASE_URL`, kontener `healthy`).
+- **Niedomknięte:** `npm run db:migrate` na pustym projekcie kończy się kodem 1 bez komunikatu (najpewniej brak wygenerowanej migracji, to hipoteza). Pełny test po pierwszej tabeli w zadaniu 6.
+
 Commity:
 - `build(deps): add drizzle orm and postgres driver`
 - `chore(db): add local postgres and drizzle config`
 - `chore(env): add .env.example`
 
-**3. [ ] Warstwa `src/database/` w architekturze** (ok. 20 min)
+**3. [x] Warstwa `src/database/` w architekturze** (ok. 20 min)
 
 - Dopisanie w `docs/ARCHITECTURE.md` (A2, A3, A4): `src/database/` (klient, schematy, migracje, konfiguracja), kto może importować schematy (tylko `repositories/`). Reguła w `biome.json` (pytamy przed zmianą).
 
 Commit: `docs(architecture): add src/database layer`
 
-**4. [ ] Ochrona hasłem** (ok. 1–1,5 h)
+**Zrobione (2026-11-15):** commity `45f092c` i `1c36bbb`. Reguły w `biome.json` jeszcze nie dodane (pytamy przed zmianą). Dodatkowo do `AGENTS.md` dopisana reguła eksportów: jeden eksport inline, więcej jako lista `export { … }` na końcu pliku (`f64edbf`).
 
-- `src/proxy.ts`: HTTP Basic Auth z `APP_PASSWORD`, porównanie odporne na timing. Wyjątek: `/api/returns/sync` ma własny sekret.
-- Przed implementacją przeczytać `node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`.
+**4. [ ] Konta użytkowników i logowanie** (ok. 7–9 h)
 
-**Weryfikacja:** bez hasła 401 na każdej stronie, z hasłem działa. `curl` bez nagłówka zwraca 401.
-Commit: `feat(auth): protect app with basic auth password`
+Zmiana z 2026-11-15: zamiast wspólnego hasła (Basic Auth) konta użytkowników z sesjami w bazie. Logowanie i tak było w planach, a baza już jest. **Kod pisze użytkownik** (pierwszy raz Drizzle i Next.js), agent robi review i pisze tylko na wyraźną prośbę.
+
+Ustalenia:
+
+- **Własne sesje w bazie**, bez biblioteki (Better Auth odrzucony: dużo nieużywanych funkcji i własne tabele) i bez JWT (nie da się go unieważnić, zmiana roli nie działa od razu). Wzorzec z dokumentacji Next.js: `node_modules/next/dist/docs/01-app/02-guides/authentication.md`, sekcje „Database Sessions” i „Authorization”.
+- Jak to działa: po zalogowaniu serwer losuje token, zapisuje w `sessions` jego **hash** z `user_id` i datą wygaśnięcia, a token daje przeglądarce w ciasteczku (`httpOnly`, `Secure`, `SameSite=Lax`, `path=/`). Wylogowanie albo zablokowanie konta to usunięcie wiersza.
+- Logowanie **e-mailem** i hasłem. Role `admin | employee`. Na razie wszyscy mogą to samo; uprawnienia rozbudujemy przy kolejnych modułach.
+- Sesja **30 dni z przedłużaniem** przy używaniu.
+- Hasła hashowane przez `scrypt` z `node:crypto` (sól, porównanie `timingSafeEqual`), bez nowych zależności.
+- **Bez rejestracji.** Użytkowników tworzy skrypt `npm run`. Ekran zarządzania użytkownikami później, poza tym zadaniem.
+- **Limit prób logowania** (aplikacja będzie w internecie).
+- Proxy robi tylko szybki filtr (jest ciasteczko albo nie). Prawdziwe sprawdzenie (`getCurrentUser`) jest w każdej stronie i Server Action, bo proxy działa przy każdym prefetchu i nie powinno pytać bazy, a zmiana `matcher` mogłaby po cichu odsłonić akcje.
+- Kod auth w `src/features/auth/` według `docs/ARCHITECTURE.md`, schematy w `src/database/schema/`. Dokładne miejsca plików ustalamy w review.
+
+Podzadania (każde osobno do review):
+
+- **4a. Schemat `users` i `sessions`, migracja.** `src/database/schema/users.schema.ts` i `sessions.schema.ts`, potem `db:generate` i `db:migrate`. Do przemyślenia: wielkość liter w e-mailu, co z sesjami przy usunięciu użytkownika. Przy okazji wyjaśniamy kod 1 z `db:migrate` z zadania 2.
+  *Weryfikacja:* tabele są w bazie, migracja w repo.
+  *Stan (2026-11-15):* `users.schema.ts` gotowy: `id` (uuid), `email` (unique), `name`, `passwordHash`, `role` (enum `user_role`: `employee` domyślnie, `admin`), `createdAt`, `updatedAt`; `varchar(255)` świadomie zamiast `text`. W Drizzle `casing: 'snake_case'` (config i klient, w bazie `password_hash` itd.) i `migrations.prefix: 'timestamp'` (nazwy jak w Laravelu, generowanie z `--name`). E-mail zamieniany na małe litery w Zod, nie w bazie. Zostało: `sessions.schema.ts`, `npm run db:generate -- --name create_users`, review SQL, `db:migrate`.
+- **4b. Hasło i skrypt tworzenia użytkownika.** Hashowanie i sprawdzanie hasła, skrypt `npm run` tworzący pierwszego admina. Sposób uruchamiania skryptu TS do sprawdzenia (Node uruchamia `.ts`, ale bez aliasów `@/`, a `server-only` może przeszkadzać).
+  *Weryfikacja:* admin w bazie, w kolumnie hasła nie ma czystego tekstu.
+- **4c. Logowanie.** Server Action z walidacją Zod: sprawdzenie hasła, utworzenie sesji, ciasteczko. Ten sam komunikat dla złego e-maila i złego hasła. Strona `/login` z formularzem.
+  *Weryfikacja:* dobre dane → sesja w bazie i ciasteczko; złe → komunikat, brak sesji.
+- **4d. Sprawdzanie sesji.** `getCurrentUser()` (token z ciasteczka → sesja → użytkownik; wygasła → usunięta), przedłużanie sesji, `requireRole()`. Wywołania w stronach i Server Actions.
+  *Weryfikacja:* usunięcie wiersza sesji w bazie wylogowuje przy następnym wejściu.
+- **4e. `src/proxy.ts`.** Brak ciasteczka → przekierowanie na `/login`. `matcher` pomija `/login`, `api/returns/sync` (własny sekret `SYNC_SECRET`, zadanie 7), `_next/static`, `_next/image`, `favicon.ico`. Wcześniej przeczytać `01-getting-started/16-proxy.md` i `03-api-reference/03-file-conventions/proxy.md`: eksporty `proxy` i `config` inline (Next czyta `config` statycznie), `matcher` jako stała, runtime Node.js.
+  *Weryfikacja:* bez logowania każda strona przekierowuje na `/login`, `/_next/static/...` działa.
+- **4f. Wylogowanie.** Usunięcie sesji z bazy i ciasteczka, przycisk w sidebarze.
+- **4g. Limit prób logowania.** Np. 10 błędnych prób dla e-maila → 15 min blokady. Projekt (tabela czy kolumny w `users`) ustalamy przy tym podzadaniu.
+  *Weryfikacja:* 11. próba jest blokowana także z dobrym hasłem, po czasie blokada mija.
+
+Do wpisu w `docs/decyzje.md`: własne sesje zamiast JWT i Better Auth, `scrypt`, 30 dni, ciasteczko `Secure` (tunel i Hetzner przez HTTPS), brak rejestracji. `APP_PASSWORD` z `.env.example` przestaje być potrzebne.
+
+**Weryfikacja całości:** `lint:fix`, `typecheck`, `build` oraz przejście ręczne: wejście bez logowania → `/login`, złe hasło → komunikat, dobre → aplikacja, wylogowanie → `/login`.
+Commity (propozycja, ostatecznie po review):
+- `feat(auth): add users and sessions schema`
+- `feat(auth): add password hashing and create user script`
+- `feat(auth): log in with email and password`
+- `feat(auth): verify session in pages and actions`
+- `feat(auth): redirect guests to login in proxy`
+- `feat(auth): log out`
+- `feat(auth): limit failed login attempts`
+- `chore(env): remove APP_PASSWORD`
+- `docs(decisions): add session auth decision`
 
 **5. [ ] Klient BaseLinkera** (ok. 2 h)
 
@@ -275,7 +330,7 @@ Commit: `feat(returns): search orders by label traces`
 - Widoki wyniku: trafienie (przekierowanie), kandydaci (karty z powodami), nic (tropy, ponów, pole ręczne).
 - Sprzątanie kamery przy wyjściu (`useEffect` z cleanup), obsługa braku zgody na aparat.
 - Wibracja (`navigator.vibrate`, tylko Android) i krótki dźwięk.
-- Test na telefonie: tunel `cloudflared tunnel --url http://localhost:3000` (HTTPS wymagany dla aparatu), hasło z zadania 4.
+- Test na telefonie: tunel `cloudflared tunnel --url http://localhost:3000` (HTTPS wymagany dla aparatu), logowanie z zadania 4.
 
 **Weryfikacja:** na telefonie wszystkie próbki golden setu (wydruk albo zdjęcie na ekranie) prowadzą do właściwego zamówienia; odmowa dostępu do aparatu daje komunikat i pole ręczne.
 Commity:
@@ -333,7 +388,7 @@ Commit: `docs(returns): record decisions for returns module`
 - Odczyt etykiety przez AI (płatny plan, np. Gemini Flash-Lite albo Claude), gdy OCR nie wystarcza.
 - Zgłoszenie zwrotu klienta z modułu zwrotów BL (`getOrderReturns`) obok tego, co przyszło.
 - Zapis do BL: utworzenie zwrotu (`addOrderReturn`) albo status zamówienia „Zwrot” / „Zwrot Częściowy”. Pierwszy zapis do produkcji, tylko po decyzji.
-- Logowanie użytkowników i „kto przyjął”.
+- „Kto przyjął” (jeśli nie wejdzie w zadaniu 11), ekran zarządzania użytkownikami, rozbudowa uprawnień ról.
 - Miniatury produktów na ekranie zamówienia.
 - Zdjęcia uszkodzonych produktów.
 
