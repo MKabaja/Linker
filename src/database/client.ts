@@ -4,4 +4,7 @@ import { getDatabaseConfig } from './config/database.config';
 
 const { DATABASE_URL } = getDatabaseConfig();
 
-export const db = drizzle({ connection: { url: DATABASE_URL } });
+export const db = drizzle({
+	connection: { url: DATABASE_URL },
+	casing: 'snake_case',
+});
