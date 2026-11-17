@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.7",
+    "@inquirer/prompts": "^8.8.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/papaparse": "^5.5.2",
@@ -45,6 +46,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "7.0.2"
   }
 }
