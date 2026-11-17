@@ -222,7 +222,7 @@ Ustalenia:
 - Jak to działa: po zalogowaniu serwer losuje token, zapisuje w `sessions` jego **hash** z `user_id` i datą wygaśnięcia, a token daje przeglądarce w ciasteczku (`httpOnly`, `Secure`, `SameSite=Lax`, `path=/`). Wylogowanie albo zablokowanie konta to usunięcie wiersza.
 - Logowanie **e-mailem** i hasłem. Role `admin | employee`. Na razie wszyscy mogą to samo; uprawnienia rozbudujemy przy kolejnych modułach.
 - Sesja **30 dni z przedłużaniem** przy używaniu.
-- Hasła hashowane przez `scrypt` z `node:crypto` (sól, porównanie `timingSafeEqual`), bez nowych zależności.
+- Hasła hashowane przez `@node-rs/argon2` (Argon2id, zmiana z 2026-11-17: zamiast ręcznego `scrypt`, biblioteka sama robi sól, format i porównanie w stałym czasie).
 - **Bez rejestracji.** Użytkowników tworzy skrypt `npm run`. Ekran zarządzania użytkownikami później, poza tym zadaniem.
 - **Limit prób logowania** (aplikacja będzie w internecie).
 - Proxy robi tylko szybki filtr (jest ciasteczko albo nie). Prawdziwe sprawdzenie (`getCurrentUser`) jest w każdej stronie i Server Action, bo proxy działa przy każdym prefetchu i nie powinno pytać bazy, a zmiana `matcher` mogłaby po cichu odsłonić akcje.
@@ -232,9 +232,12 @@ Podzadania (każde osobno do review):
 
 - **4a. Schemat `users` i `sessions`, migracja.** `src/database/schema/users.schema.ts` i `sessions.schema.ts`, potem `db:generate` i `db:migrate`. Do przemyślenia: wielkość liter w e-mailu, co z sesjami przy usunięciu użytkownika. Przy okazji wyjaśniamy kod 1 z `db:migrate` z zadania 2.
   *Weryfikacja:* tabele są w bazie, migracja w repo.
-  *Stan (2026-11-15):* `users.schema.ts` gotowy: `id` (uuid), `email` (unique), `name`, `passwordHash`, `role` (enum `user_role`: `employee` domyślnie, `admin`), `createdAt`, `updatedAt`; `varchar(255)` świadomie zamiast `text`. W Drizzle `casing: 'snake_case'` (config i klient, w bazie `password_hash` itd.) i `migrations.prefix: 'timestamp'` (nazwy jak w Laravelu, generowanie z `--name`). E-mail zamieniany na małe litery w Zod, nie w bazie. Zostało: `sessions.schema.ts`, `npm run db:generate -- --name create_users`, review SQL, `db:migrate`.
-- **4b. Hasło i skrypt tworzenia użytkownika.** Hashowanie i sprawdzanie hasła, skrypt `npm run` tworzący pierwszego admina. Sposób uruchamiania skryptu TS do sprawdzenia (Node uruchamia `.ts`, ale bez aliasów `@/`, a `server-only` może przeszkadzać).
-  *Weryfikacja:* admin w bazie, w kolumnie hasła nie ma czystego tekstu.
+  *Zrobione (2026-11-17):* `users`: `id` (integer identity), `email` (unique + `CHECK` na małe litery), `name`, `passwordHash`, `role` (enum `user_role`, domyślnie `employee`), `deactivatedAt` (dezaktywacja zamiast usuwania, konto zostaje w historii zwrotów), `createdAt`, `updatedAt`; `varchar(255)` świadomie. `sessions`: `id` (hash SHA-256 tokenu, `varchar(64)`, PK), `userId` (FK, `onDelete: cascade`), `expiresAt`. Drizzle: `casing: 'snake_case'`, `migrations.prefix: 'timestamp'`. Migracja `20261117064404_create_users_and_sessions` wykonana. Biome pomija `src/database/migrations`. W PowerShellu `--` trzeba pisać jako `'--'` (`npm run db:generate '--' --name ...`).
+- **4b. Komenda `npm run user:create`** (jak komenda konsoli w Symfony). Interaktywna przez `@inquirer/prompts` (`input`, `password` z maską, `select` dla roli); hasło wpisuje admin (bez losowania). Hash: `@node-rs/argon2` (`hash`/`verify`, Argon2id), bez własnego `password.service.ts`. Uruchamianie: `tsx --conditions=react-server` (aliasy `@/` i `server-only`), skrypt sam wczytuje `.env.local` (`loadEnvConfig`). Walidacja Zod w skrypcie (jak FormRequest), serwis dostaje gotowe dane.
+  Pliki: `src/features/auth/model/auth.schemas.ts` (`newUserSchema`, `NewUser`), `server/repositories/users.repository.ts` (`insertUser`, `findUserByEmail`), `server/services/users.service.ts` (`createUser`: sprawdzenie e-maila, hash, zapis, wynik `created | emailTaken`), `scripts/create-user.ts`.
+  Kolejność: krok 1 — schemat Zod + skrypt z pytaniami, który na razie tylko wypisuje zwalidowane dane; krok 2 — repozytorium + serwis, skrypt zapisuje użytkownika.
+  *Weryfikacja:* krok 1 — `Kasia@Firma.PL` → `kasia@firma.pl`, zły e-mail pyta ponownie; krok 2 — użytkownik w SQLTools, `password_hash` zaczyna się od `$argon2id$`, powtórzony e-mail daje komunikat, nie błąd Postgresa.
+  *Stan (2026-11-17):* zależności `tsx`, `@inquirer/prompts` (dev), `@node-rs/argon2` zainstalowane. `auth.schemas.ts` gotowy, niezacommitowany (wejdzie ze skryptem): imię `trim().min(1).max(50)`, e-mail `trim().toLowerCase().max(255).pipe(z.email())`, hasło `min(8).max(64)` bez wymogu cyfr, rola `z.enum` z domyślnym `employee`; komunikaty domyślne (angielskie) na razie. Następne: `scripts/create-user.ts` i `user:create` w `package.json` (pisze użytkownik); do decyzji: pytanie o hasło dwa razy.
 - **4c. Logowanie.** Server Action z walidacją Zod: sprawdzenie hasła, utworzenie sesji, ciasteczko. Ten sam komunikat dla złego e-maila i złego hasła. Strona `/login` z formularzem.
   *Weryfikacja:* dobre dane → sesja w bazie i ciasteczko; złe → komunikat, brak sesji.
 - **4d. Sprawdzanie sesji.** `getCurrentUser()` (token z ciasteczka → sesja → użytkownik; wygasła → usunięta), przedłużanie sesji, `requireRole()`. Wywołania w stronach i Server Actions.
@@ -245,12 +248,12 @@ Podzadania (każde osobno do review):
 - **4g. Limit prób logowania.** Np. 10 błędnych prób dla e-maila → 15 min blokady. Projekt (tabela czy kolumny w `users`) ustalamy przy tym podzadaniu.
   *Weryfikacja:* 11. próba jest blokowana także z dobrym hasłem, po czasie blokada mija.
 
-Do wpisu w `docs/decyzje.md`: własne sesje zamiast JWT i Better Auth, `scrypt`, 30 dni, ciasteczko `Secure` (tunel i Hetzner przez HTTPS), brak rejestracji. `APP_PASSWORD` z `.env.example` przestaje być potrzebne.
+Do wpisu w `docs/decyzje.md`: własne sesje zamiast JWT i Better Auth, Argon2id (`@node-rs/argon2`), 30 dni, dezaktywacja kont zamiast usuwania, ciasteczko `Secure` (tunel i Hetzner przez HTTPS), brak rejestracji. `APP_PASSWORD` z `.env.example` przestaje być potrzebne.
 
 **Weryfikacja całości:** `lint:fix`, `typecheck`, `build` oraz przejście ręczne: wejście bez logowania → `/login`, złe hasło → komunikat, dobre → aplikacja, wylogowanie → `/login`.
 Commity (propozycja, ostatecznie po review):
 - `feat(auth): add users and sessions schema`
-- `feat(auth): add password hashing and create user script`
+- `feat(auth): add create user command`
 - `feat(auth): log in with email and password`
 - `feat(auth): verify session in pages and actions`
 - `feat(auth): redirect guests to login in proxy`
