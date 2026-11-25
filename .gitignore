@@ -28,6 +28,10 @@ next-env.d.ts
 /data/*
 !/data/demo/
 
+# usługa OCR (środowisko Pythona)
+/ocr-service/.venv/
+__pycache__/
+
 # logs
 *.log
 npm-debug.log*
