@@ -14,7 +14,8 @@
     "db:down": "docker compose --env-file .env.local down",
     "db:generate": "drizzle-kit generate --config src/database/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config src/database/config/drizzle.config.ts",
-    "user:create": "tsx --conditions=react-server scripts/create-user.ts"
+    "user:create": "tsx --conditions=react-server scripts/create-user.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -49,6 +50,7 @@
     "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "^4.1.12"
   }
 }
