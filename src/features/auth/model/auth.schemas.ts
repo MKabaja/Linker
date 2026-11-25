@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 type NewUser = z.output<typeof newUserSchema>;
 type UserRole = NewUser['role'];
+type LogInCredentials = z.output<typeof logInSchema>;
 
 const emailSchema = z
 	.string()
@@ -24,4 +25,15 @@ const newUserSchema = z.object({
 	role: z.enum(['employee', 'admin']).default('employee'),
 });
 
-export { type NewUser, newUserSchema, type UserRole };
+const logInSchema = z.object({
+	email: emailSchema,
+	password: z.string().min(1).max(64),
+});
+
+export {
+	type LogInCredentials,
+	logInSchema,
+	type NewUser,
+	newUserSchema,
+	type UserRole,
+};
