@@ -1,3 +1,12 @@
+import type { UserRole } from './auth.schemas';
+
+type CurrentUser = {
+	id: number;
+	name: string;
+	email: string;
+	role: UserRole;
+};
+
 type LogInFailureReason = 'invalidCredentials';
 
 type LogInFormState =
@@ -9,4 +18,4 @@ type NewSession = {
 	expiresAt: Date;
 };
 
-export type { LogInFailureReason, LogInFormState, NewSession };
+export type { CurrentUser, LogInFailureReason, LogInFormState, NewSession };

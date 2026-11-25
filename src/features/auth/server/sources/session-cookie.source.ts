@@ -6,6 +6,11 @@ import {
 } from '@/features/auth/model/auth.constants';
 import type { NewSession } from '@/features/auth/model/auth.types';
 
+async function readSessionToken(): Promise<string | undefined> {
+	const cookieStore = await cookies();
+	return cookieStore.get(SESSION_COOKIE_NAME)?.value;
+}
+
 /**
  * Zapisuje token sesji w ciasteczku.
  *
@@ -19,4 +24,4 @@ async function writeSessionCookie(session: NewSession) {
 	});
 }
 
-export { writeSessionCookie };
+export { readSessionToken, writeSessionCookie };

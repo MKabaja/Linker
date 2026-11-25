@@ -1,10 +1,12 @@
 import { ProductsPagination } from '@/features/products/components/products-pagination';
 import { ProductsTable } from '@/features/products/components/products-table';
+import { requireUser } from '@/features/auth/server/services/current-user.service';
 import { primaveraErrorMessageByCode } from '@/features/products/model/products.constants';
 import { productsSearchParamsSchema } from '@/features/products/model/products.schemas';
 import { getProductsPage } from '@/features/products/server/services/products.service';
 
 export default async function ProductsPage(props: PageProps<'/products'>) {
+	await requireUser();
 	const { q, page } = productsSearchParamsSchema.parse(
 		await props.searchParams,
 	);
