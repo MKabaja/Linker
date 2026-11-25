@@ -166,9 +166,9 @@ function slotToString(slot: PatternSlot): string {
 }
 
 export {
+	type PhoneMask,
 	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,
-	type PhoneMask,
 	patternToString,
 };
