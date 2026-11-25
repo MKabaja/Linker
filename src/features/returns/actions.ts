@@ -15,10 +15,16 @@ import type {
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
 import {
+	type ScanLogInput,
+	scanLogInputSchema,
+} from '@/features/returns/model/scan-log.schemas';
+import type { SaveScanLogResult } from '@/features/returns/model/scan-log.types';
+import {
 	createReturn,
 	deleteReturn,
 	updateReturn,
 } from '@/features/returns/server/services/returns.service';
+import { saveScanLog } from '@/features/returns/server/services/scan-log.service';
 
 type InvalidInput = { status: 'invalid' };
 
@@ -69,4 +75,23 @@ async function deleteReturnAction(
 	return deleteReturn(parsedInput.data.returnId);
 }
 
-export { createReturnAction, deleteReturnAction, updateReturnAction };
+async function saveScanLogAction(
+	input: ScanLogInput,
+): Promise<SaveScanLogResult> {
+	const user = await requireUser();
+	const parsedInput = scanLogInputSchema.safeParse(input);
+
+	if (!parsedInput.success) {
+		return { status: 'invalid' };
+	}
+
+	await saveScanLog({ scanLog: parsedInput.data, userId: user.id });
+	return { status: 'saved' };
+}
+
+export {
+	createReturnAction,
+	deleteReturnAction,
+	saveScanLogAction,
+	updateReturnAction,
+};
