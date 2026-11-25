@@ -1,0 +1,3 @@
+const MAX_OCR_IMAGE_BYTES = 3 * 1024 * 1024;
+
+export { MAX_OCR_IMAGE_BYTES };
