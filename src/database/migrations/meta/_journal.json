@@ -15,6 +15,13 @@
       "when": 1795604120753,
       "tag": "20261125105520_add_login_lockout_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795604775667,
+      "tag": "20261125110615_create_order_index",
+      "breakpoints": true
     }
   ]
 }
