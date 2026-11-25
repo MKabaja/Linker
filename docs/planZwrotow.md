@@ -212,7 +212,7 @@ Commit: `docs(architecture): add src/database layer`
 
 **Zrobione (2026-11-15):** commity `45f092c` i `1c36bbb`. Reguły w `biome.json` jeszcze nie dodane (pytamy przed zmianą). Dodatkowo do `AGENTS.md` dopisana reguła eksportów: jeden eksport inline, więcej jako lista `export { … }` na końcu pliku (`f64edbf`).
 
-**4. [ ] Konta użytkowników i logowanie** (ok. 7–9 h)
+**4. [x] Konta użytkowników i logowanie** (ok. 7–9 h)
 
 Zmiana z 2026-11-15: zamiast wspólnego hasła (Basic Auth) konta użytkowników z sesjami w bazie. Logowanie i tak było w planach, a baza już jest. **Kod pisze użytkownik** (pierwszy raz Drizzle i Next.js), agent robi review i pisze tylko na wyraźną prośbę.
 
@@ -261,6 +261,15 @@ Commity (propozycja, ostatecznie po review):
 - `feat(auth): limit failed login attempts`
 - `chore(env): remove APP_PASSWORD`
 - `docs(decisions): add session auth decision`
+
+**Zrobione (2026-11-25), 4b–4g napisali agenci na prośbę użytkownika:**
+- 4b: `scripts/create-user.ts` (`npm run user:create`), hasło pytane dwa razy, komunikaty Zod po polsku. `createUser` zapisuje przez `onConflictDoNothing`, więc powtórzony e-mail daje `emailTaken` bez wyścigu. `src/database/client.ts` przekazuje klienta `postgres` jawnie (`drizzle({ client })`), bo pod `tsx` (CJS) `drizzle({ connection })` nie widział domyślnego eksportu pakietu `postgres` 4 (tylko ESM).
+- 4c: strony z sidebarem przeniesione do grupy tras `src/app/(app)/` z własnym layoutem; `/login` używa tylko głównego layoutu. Server Action `logIn` w `features/auth/actions.ts`, serwis `logInWithPassword` (atrapa hasha dla nieznanego e-maila, ten sam komunikat dla złego e-maila, hasła i konta dezaktywowanego).
+- 4d: `current-user.service.ts` (`getCurrentUser` z `cache`, `requireUser`, `requireRole` → `notFound()`); `requireUser()` w stronach `(app)`, `/login` przekierowuje zalogowanych na `/`. Sesja przedłużana w bazie, gdy zostało mniej niż 15 dni.
+- 4e: `src/proxy.ts`: brak ciasteczka → `/login`; przy GET odnawia ciasteczko na 30 dni (bez zapytań do bazy). `matcher` pomija `/login`, `/api/returns/sync`, `_next/static`, `_next/image`, `favicon.ico` i pliki z rozszerzeniem.
+- 4f: akcja `logOut` i `LogoutButton` w stopce sidebara.
+- 4g: kolumny `failed_login_count`, `locked_until` (migracja `20261125105520_add_login_lockout_to_users`), licznik zwiększany atomowo w jednym `UPDATE`.
+- Commity: `6452690`, `c591221`, `3f479a1`, `e9a3aff`, `4037256`, `d79fdce`, `ef0ef59`, `4c04984`, `2b50d56`, `1bb111b`.
 
 **5. [ ] Klient BaseLinkera** (ok. 2 h)
 
