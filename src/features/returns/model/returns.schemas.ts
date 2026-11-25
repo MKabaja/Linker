@@ -1,7 +1,10 @@
 import { z } from 'zod';
+import { RETURN_NOTE_MAX_LENGTH } from '@/features/returns/model/returns.constants';
 
 const MAX_TRACES = 60;
 const MAX_PATTERN_SLOTS = 64;
+const MAX_ITEM_QUANTITY = 10_000;
+const MAX_RETURN_ITEMS = 200;
 
 const traceIdSchema = z.string().min(1).max(100);
 const patternSchema = z.array(z.string().max(40)).min(1).max(MAX_PATTERN_SLOTS);
@@ -31,6 +34,65 @@ const searchOrdersRequestSchema = z.object({
 	traces: z.array(traceQuerySchema).max(MAX_TRACES),
 });
 
-type SearchOrdersRequest = z.output<typeof searchOrdersRequestSchema>;
+const idSchema = z.coerce.number().int().positive();
+const conditionSchema = z.enum(['accepted', 'damaged']);
 
-export { type SearchOrdersRequest, searchOrdersRequestSchema };
+const createReturnSchema = z.object({ orderId: idSchema });
+
+const updateReturnSchema = z.object({
+	returnId: idSchema,
+	note: z.string().trim().max(RETURN_NOTE_MAX_LENGTH).optional(),
+	items: z
+		.array(
+			z.object({
+				id: idSchema,
+				quantityReceived: z.number().int().min(0).max(MAX_ITEM_QUANTITY),
+				condition: conditionSchema.optional(),
+			}),
+		)
+		.max(MAX_RETURN_ITEMS)
+		.optional(),
+});
+
+const returnIdSchema = z.object({ returnId: idSchema });
+
+const orderIdSchema = z.object({ orderId: idSchema });
+
+const returnsDaySchema = z.object({ date: z.iso.date() });
+
+const returnSnapshotSchema = z.object({
+	note: z.string(),
+	items: z.array(
+		z.object({
+			id: z.number(),
+			orderProductId: z.number().nullable(),
+			name: z.string(),
+			ean: z.string(),
+			sku: z.string(),
+			quantityOrdered: z.number(),
+			quantityReceived: z.number(),
+			condition: conditionSchema,
+		}),
+	),
+});
+
+type SearchOrdersRequest = z.output<typeof searchOrdersRequestSchema>;
+type CreateReturnInput = z.input<typeof createReturnSchema>;
+type UpdateReturnInput = z.input<typeof updateReturnSchema>;
+type UpdateReturn = z.output<typeof updateReturnSchema>;
+type ReturnIdInput = z.input<typeof returnIdSchema>;
+
+export {
+	type CreateReturnInput,
+	createReturnSchema,
+	orderIdSchema,
+	type ReturnIdInput,
+	returnIdSchema,
+	returnSnapshotSchema,
+	returnsDaySchema,
+	type SearchOrdersRequest,
+	searchOrdersRequestSchema,
+	type UpdateReturn,
+	type UpdateReturnInput,
+	updateReturnSchema,
+};

@@ -16,4 +16,124 @@ type ShopMatchingConfig = {
 	shippingStatusIds: readonly number[];
 };
 
-export type { ShopMatchingConfig };
+type ReturnKind = 'full' | 'partial';
+
+type ReturnItemCondition = 'accepted' | 'damaged';
+
+type ReturnEventKind = 'created' | 'updated';
+
+type ReturnedQuantities = { quantityOrdered: number; quantityReceived: number };
+
+type ReturnItem = ReturnedQuantities & {
+	id: number;
+	/** `null` dla pozycji spoza zamówienia. */
+	orderProductId: number | null;
+	name: string;
+	ean: string;
+	sku: string;
+	condition: ReturnItemCondition;
+};
+
+type ReturnRecord = {
+	id: number;
+	orderId: number;
+	source: string;
+	note: string;
+	receivedBy: { id: number; name: string };
+	createdAt: Date;
+	updatedAt: Date;
+	kind: ReturnKind;
+	items: ReturnItem[];
+};
+
+/** Stan zwrotu zapisany w historii przy utworzeniu i każdej edycji. */
+type ReturnSnapshot = { note: string; items: ReturnItem[] };
+
+type ReturnEvent = {
+	id: number;
+	kind: ReturnEventKind;
+	createdAt: Date;
+	userName: string;
+	snapshot: ReturnSnapshot;
+};
+
+type ReturnDetails = ReturnRecord & { events: ReturnEvent[] };
+
+type DayReturns = {
+	/** `YYYY-MM-DD` w strefie Europe/Warsaw. */
+	date: string;
+	returns: ReturnRecord[];
+	summary: { total: number; full: number; partial: number };
+};
+
+type CreateReturnResult =
+	| { status: 'created'; returnRecord: ReturnRecord }
+	| { status: 'duplicate'; returnRecord: ReturnRecord }
+	| { status: 'notFound' }
+	| { status: 'error'; message: string };
+
+type UpdateReturnResult =
+	| { status: 'updated'; returnRecord: ReturnRecord }
+	| { status: 'notFound' };
+
+type DeleteReturnResult = { status: 'deleted' } | { status: 'notFound' };
+
+type OrderDetailsItem = {
+	position: number;
+	orderProductId: number | null;
+	name: string;
+	ean: string;
+	sku: string;
+	quantity: number;
+};
+
+type OrderDetailsPackage = {
+	courierCode: string;
+	packageNumber: string;
+	innerNumber: string;
+};
+
+/**
+ * Zamówienie na ekranie zwrotu, bez danych osobowych klienta.
+ */
+type OrderDetails = {
+	orderId: number;
+	externalOrderId: string;
+	source: string;
+	statusId: number;
+	/** Nazwa z BaseLinkera, a gdy integracja jest wyłączona, sam identyfikator statusu. */
+	statusName: string;
+	dateAdd: Date;
+	dateConfirmed: Date | null;
+	items: OrderDetailsItem[];
+	packages: OrderDetailsPackage[];
+};
+
+type OrderDetailsResult =
+	| { status: 'found'; order: OrderDetails }
+	| { status: 'notFound' }
+	| { status: 'error'; message: string };
+
+type CsvFile = { fileName: string; content: string };
+
+export type {
+	CreateReturnResult,
+	CsvFile,
+	DayReturns,
+	DeleteReturnResult,
+	OrderDetails,
+	OrderDetailsItem,
+	OrderDetailsPackage,
+	OrderDetailsResult,
+	ReturnDetails,
+	ReturnEvent,
+	ReturnEventKind,
+	ReturnedQuantities,
+	ReturnItem,
+	ReturnItemCondition,
+	ReturnKind,
+	ReturnRecord,
+	ReturnSnapshot,
+	ShopMatchingConfig,
+	UpdateReturnResult,
+};

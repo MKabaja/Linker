@@ -1,4 +1,12 @@
-import type { ShopMatchingConfig } from '@/features/returns/model/returns.types';
+import type {
+	ReturnItemCondition,
+	ReturnKind,
+	ShopMatchingConfig,
+} from '@/features/returns/model/returns.types';
+
+type ReturnKindLabelByKind = Record<ReturnKind, string>;
+
+type ConditionLabelByCondition = Record<ReturnItemCondition, string>;
 
 const defaultShopMatchingConfig: ShopMatchingConfig = {
 	postcode: '32432',
@@ -14,4 +22,23 @@ const BONUS_TRACE_ID = 'bonus';
 /** `order_source` syntetycznych zamówień z `npm run returns:seed`; po nim `--clear` je rozpoznaje i usuwa. */
 const SEED_ORDER_SOURCE = 'seed';
 
-export { BONUS_TRACE_ID, defaultShopMatchingConfig, SEED_ORDER_SOURCE };
+const RETURN_NOTE_MAX_LENGTH = 2000;
+
+const returnKindLabelByKind: ReturnKindLabelByKind = {
+	full: 'Pełny',
+	partial: 'Częściowy',
+};
+
+const conditionLabelByCondition: ConditionLabelByCondition = {
+	accepted: 'przyjęte',
+	damaged: 'uszkodzone',
+};
+
+export {
+	BONUS_TRACE_ID,
+	conditionLabelByCondition,
+	defaultShopMatchingConfig,
+	RETURN_NOTE_MAX_LENGTH,
+	returnKindLabelByKind,
+	SEED_ORDER_SOURCE,
+};
