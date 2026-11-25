@@ -1,5 +1,5 @@
 @utility card {
-	@apply rounded-card border border-line bg-card shadow-soft;
+	@apply rounded-card border border-line bg-card;
 }
 
 @utility field {

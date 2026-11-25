@@ -1,21 +1,22 @@
 @theme {
-	--color-app: #0d0f13;
-	--color-surface: #13161c;
-	--color-card: #1a1e26;
-	--color-field: #222731;
-	--color-hover: #2a303b;
+	--color-app: #141416;
+	--color-surface: #19191c;
+	--color-card: #1c1c1f;
+	--color-field: #222225;
+	--color-hover: #252529;
 
-	--color-main: #f7f8fa;
-	--color-off: #c3c8d0;
-	--color-dim: #929aa6;
+	--color-main: #f4f4f5;
+	--color-off: #d4d4d8;
+	--color-dim: #8b8b93;
 
-	--color-line: #343b49;
-	--color-line-strong: #4a5261;
+	--color-line: #2e2e33;
+	--color-line-strong: #3f3f46;
 
-	--color-brand: #d9a84e;
-	--color-brand-hover: #e2b35a;
-	--color-brand-active: #c99a3e;
+	--color-brand: #8b4ff0;
+	--color-brand-hover: #8044ec;
+	--color-brand-active: #7536e0;
 	--color-brand-orange: #faa535;
+	--color-on-brand: #ffffff;
 
 	--color-success: #4ade80;
 	--color-warning: #fbbf24;
@@ -27,13 +28,6 @@
 		var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, monospace;
 
-	--shadow-soft: 0 1px 2px rgb(0 0 0 / 0.24), 0 8px 24px rgb(0 0 0 / 0.14);
-	--shadow-raised:
-		-3px -3px 8px rgb(255 255 255 / 0.018), 4px 4px 12px rgb(0 0 0 / 0.28);
-	--shadow-inset:
-		inset 1px 1px 3px rgb(0 0 0 / 0.32),
-		inset -1px -1px 2px rgb(255 255 255 / 0.018);
-
-	--radius-card: 0.875rem;
-	--radius-control: 0.625rem;
+	--radius-card: 0;
+	--radius-control: 0;
 }
