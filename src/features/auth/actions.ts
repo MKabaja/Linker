@@ -5,7 +5,12 @@ import { logInErrorMessageByReason } from '@/features/auth/model/auth.constants'
 import { logInSchema } from '@/features/auth/model/auth.schemas';
 import type { LogInFormState } from '@/features/auth/model/auth.types';
 import { logInWithPassword } from '@/features/auth/server/services/auth.service';
-import { writeSessionCookie } from '@/features/auth/server/sources/session-cookie.source';
+import { deleteSessionByToken } from '@/features/auth/server/services/sessions.service';
+import {
+	deleteSessionCookie,
+	readSessionToken,
+	writeSessionCookie,
+} from '@/features/auth/server/sources/session-cookie.source';
 
 async function logIn(
 	_previousState: LogInFormState,
@@ -39,4 +44,15 @@ async function logIn(
 	redirect('/');
 }
 
-export { logIn };
+async function logOut() {
+	const sessionToken = await readSessionToken();
+
+	if (sessionToken) {
+		await deleteSessionByToken(sessionToken);
+	}
+
+	await deleteSessionCookie();
+	redirect('/login');
+}
+
+export { logIn, logOut };

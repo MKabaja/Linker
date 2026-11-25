@@ -24,4 +24,9 @@ async function writeSessionCookie(session: NewSession) {
 	});
 }
 
-export { readSessionToken, writeSessionCookie };
+async function deleteSessionCookie() {
+	const cookieStore = await cookies();
+	cookieStore.delete({ name: SESSION_COOKIE_NAME, ...SESSION_COOKIE_OPTIONS });
+}
+
+export { deleteSessionCookie, readSessionToken, writeSessionCookie };

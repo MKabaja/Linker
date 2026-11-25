@@ -58,6 +58,10 @@ async function validateSessionToken(
 	return user;
 }
 
+async function deleteSessionByToken(token: string) {
+	await deleteSession(hashSessionToken(token));
+}
+
 function isSessionExpired(expiresAt: Date, now: Date): boolean {
 	return expiresAt.getTime() <= now.getTime();
 }
@@ -75,4 +79,4 @@ function hashSessionToken(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
 }
 
-export { createSession, validateSessionToken };
+export { createSession, deleteSessionByToken, validateSessionToken };

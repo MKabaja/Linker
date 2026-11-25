@@ -3,6 +3,7 @@
 import { CircleUser } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LogoutButton } from '@/features/auth/components/logout-button';
 import {
 	Sidebar,
 	SidebarContent,
@@ -91,6 +92,9 @@ export function AppSidebar() {
 							<CircleUser />
 							<span className={appSidebarStyles.linkLabel}>{GUEST_LABEL}</span>
 						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<LogoutButton />
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarFooter>
