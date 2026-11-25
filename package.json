@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate --config src/database/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config src/database/config/drizzle.config.ts",
     "user:create": "tsx --conditions=react-server scripts/create-user.ts",
+    "returns:seed": "tsx --conditions=react-server scripts/seed-returns.ts",
     "test": "vitest run"
   },
   "dependencies": {

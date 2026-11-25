@@ -11,4 +11,7 @@ const defaultShopMatchingConfig: ShopMatchingConfig = {
 
 const BONUS_TRACE_ID = 'bonus';
 
-export { BONUS_TRACE_ID, defaultShopMatchingConfig };
+/** `order_source` syntetycznych zamówień z `npm run returns:seed`; po nim `--clear` je rozpoznaje i usuwa. */
+const SEED_ORDER_SOURCE = 'seed';
+
+export { BONUS_TRACE_ID, defaultShopMatchingConfig, SEED_ORDER_SOURCE };
