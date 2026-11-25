@@ -6,6 +6,8 @@ const SESSION_COOKIE_NAME = 'session';
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const SESSION_DURATION_MILLISECONDS = 30 * DAY_IN_MILLISECONDS;
 const SESSION_RENEWAL_THRESHOLD_MILLISECONDS = 15 * DAY_IN_MILLISECONDS;
+const MAX_FAILED_LOGIN_ATTEMPTS = 10;
+const LOGIN_LOCKOUT_MILLISECONDS = 15 * 60 * 1000;
 
 const SESSION_COOKIE_OPTIONS = {
 	httpOnly: true,
@@ -16,10 +18,13 @@ const SESSION_COOKIE_OPTIONS = {
 
 const logInErrorMessageByReason: LogInErrorMessageByReason = {
 	invalidCredentials: 'Nieprawidłowy e-mail lub hasło.',
+	locked: 'Zbyt wiele nieudanych prób logowania. Spróbuj ponownie za 15 minut.',
 };
 
 export {
+	LOGIN_LOCKOUT_MILLISECONDS,
 	logInErrorMessageByReason,
+	MAX_FAILED_LOGIN_ATTEMPTS,
 	SESSION_COOKIE_NAME,
 	SESSION_COOKIE_OPTIONS,
 	SESSION_DURATION_MILLISECONDS,

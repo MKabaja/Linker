@@ -7,7 +7,7 @@ type CurrentUser = {
 	role: UserRole;
 };
 
-type LogInFailureReason = 'invalidCredentials';
+type LogInFailureReason = 'invalidCredentials' | 'locked';
 
 type LogInFormState =
 	| { status: 'idle'; email: string }

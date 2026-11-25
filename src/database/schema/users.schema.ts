@@ -19,6 +19,8 @@ const users = pgTable(
 		passwordHash: varchar({ length: 255 }).notNull(),
 		role: userRoleEnum().default('employee').notNull(),
 		deactivatedAt: timestamp({ withTimezone: true }),
+		failedLoginCount: integer().default(0).notNull(),
+		lockedUntil: timestamp({ withTimezone: true }),
 		createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp({ withTimezone: true })
 			.defaultNow()

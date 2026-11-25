@@ -8,6 +8,13 @@
       "when": 1794897844885,
       "tag": "20261117064404_create_users_and_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795604120753,
+      "tag": "20261125105520_add_login_lockout_to_users",
+      "breakpoints": true
     }
   ]
 }
