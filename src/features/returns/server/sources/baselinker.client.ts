@@ -1,5 +1,6 @@
 import 'server-only';
 import type { ZodType } from 'zod';
+import type { RemoteResult } from '@/features/returns/model/order-index.types';
 import { getProcessSingleton } from '@/shared/lib/process-singleton';
 import {
 	BASELINKER_ENDPOINT,
@@ -21,10 +22,7 @@ type ReadOnlyMethod = `get${string}`;
 
 type BaseLinkerParameters = Record<string, string | number | boolean>;
 
-type BaseLinkerResult<T> =
-	| { status: 'ok'; data: T }
-	| { status: 'disabled' }
-	| { status: 'error'; code: string; message: string };
+type BaseLinkerResult<T> = RemoteResult<T>;
 
 type BaseLinkerFailure = Exclude<BaseLinkerResult<never>, { status: 'ok' }>;
 

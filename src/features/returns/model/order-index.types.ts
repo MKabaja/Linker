@@ -45,6 +45,14 @@ type OrderIndexEntry = {
 	packages: IndexedPackage[];
 };
 
+/**
+ * Wynik odczytu z zewnętrznego systemu zamówień. `disabled`, gdy integracja nie jest skonfigurowana.
+ */
+type RemoteResult<T> =
+	| { status: 'ok'; data: T }
+	| { status: 'disabled' }
+	| { status: 'error'; code: string; message: string };
+
 type SyncSummary =
 	| {
 			status: 'ok';
@@ -69,5 +77,6 @@ export type {
 	IndexedPackage,
 	OrderIndexEntry,
 	PackagesSyncSummary,
+	RemoteResult,
 	SyncSummary,
 };
