@@ -4,11 +4,12 @@ export const productsTableStyles = {
 	wrapper: 'card overflow-x-auto',
 	tableElement: 'w-full border-collapse text-sm',
 	caption: 'sr-only',
-	head: 'bg-surface',
+	head: 'border-b border-line',
 	headerCell:
-		'px-4 py-3 text-left text-xs font-medium tracking-wide text-dim uppercase',
+		'px-4 py-3 text-left text-[0.6875rem] font-semibold tracking-wider text-dim uppercase',
 	loadedBody: 'motion-safe:animate-in motion-safe:fade-in-60',
-	bodyRow: 'border-t border-line transition-colors hover:bg-hover',
+	bodyRow:
+		'border-t border-line transition-colors first:border-t-0 hover:bg-hover',
 	bodyCell: 'px-4 py-2.5 text-off',
 } satisfies Record<string, string>;
 
