@@ -24,6 +24,7 @@
     "@node-rs/argon2": "^2.2.2",
     "@tanstack/react-table": "^9.3.1",
     "@tesseract.js-data/eng": "^1.0.0",
+    "barcode-detector": "^3.2.5",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "drizzle-orm": "^0.45.4",
