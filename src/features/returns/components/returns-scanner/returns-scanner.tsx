@@ -70,6 +70,7 @@ export function ReturnsScanner() {
 	const [phase, setPhase] = useState<Phase>({ kind: 'scanning' });
 	const [panel, setPanel] = useState<Panel>('none');
 	const [nowMs, setNowMs] = useState(0);
+	const [isOcrUnauthorized, setIsOcrUnauthorized] = useState(false);
 
 	const isScanning = phase.kind === 'scanning';
 	const camera = useCamera({
@@ -95,6 +96,7 @@ export function ReturnsScanner() {
 		scanSession,
 		diagnostics,
 		onReads: traceSearch.addReads,
+		onUnauthorized: () => setIsOcrUnauthorized(true),
 	});
 	useBarcodeLoop({
 		videoRef,
@@ -240,7 +242,7 @@ export function ReturnsScanner() {
 		phase,
 		cameraErrorMessage:
 			camera.status.kind === 'error' ? camera.status.message : null,
-		problem: traceSearch.problem,
+		problem: isOcrUnauthorized ? 'unauthorized' : traceSearch.problem,
 	});
 	const {
 		root,

@@ -1,4 +1,4 @@
-import { requireUser } from '@/features/auth/server/services/current-user.service';
+import { getCurrentUser } from '@/features/auth/server/services/current-user.service';
 import { MAX_OCR_IMAGE_BYTES } from '@/features/returns/model/ocr.constants';
 import { ocrRequestHeadersSchema } from '@/features/returns/model/ocr.schemas';
 import { recognizeOcrFrame } from '@/features/returns/server/ocr/ocr.service';
@@ -26,7 +26,9 @@ const failureResponseByStatus: ResponseByStatus = {
 };
 
 export async function POST(request: Request): Promise<Response> {
-	await requireUser();
+	if (!(await getCurrentUser())) {
+		return Response.json({ message: 'Zaloguj się.' }, { status: 401 });
+	}
 
 	const headers = ocrRequestHeadersSchema.safeParse({
 		contentType: request.headers.get('content-type') ?? '',

@@ -30,6 +30,8 @@ import type { ScanDiagnostics } from './scan-diagnostics';
 
 const TICK_MS = 250;
 const BACKOFF_MS = 1_000;
+const UNAUTHORIZED_BACKOFF_MS = 30_000;
+const UNAUTHORIZED_STATUS = 401;
 const REQUEST_TIMEOUT_MS = 10_000;
 const OCR_URL = '/api/returns/ocr';
 
@@ -50,6 +52,7 @@ type UseOcrLoopOptions = {
 	scanSession: string;
 	diagnostics: ScanDiagnostics;
 	onReads: (reads: RawRead[]) => void;
+	onUnauthorized: () => void;
 };
 
 type UseOcrLoopResult = {
@@ -61,7 +64,7 @@ type UseOcrLoopResult = {
 /**
  * Pętla OCR: co 250 ms, gdy poprzednia odpowiedź już wróciła (nigdy kolejka), plan z `pickOcrPlan`
  * sprawdza bramkę ostrości i ruchu w wątku, a klatka (JPEG q 0,75, maks. 1280 px) idzie na serwer.
- * Odpowiedzi 409 i 503 dają przerwę 1 s. Zapytanie ma limit 10 s i jest przerywane z pętlą.
+ * Odpowiedzi 409 i 503 dają przerwę 1 s, a 401 (wygasła sesja) przerwę 30 s i wywołanie `onUnauthorized`. Zapytanie ma limit 10 s i jest przerywane z pętlą.
  */
 function useOcrLoop({
 	videoRef,
@@ -70,11 +73,13 @@ function useOcrLoop({
 	scanSession,
 	diagnostics,
 	onReads,
+	onUnauthorized,
 }: UseOcrLoopOptions): UseOcrLoopResult {
 	const [hasReturnLabel, setHasReturnLabel] = useState(false);
 	const pipelineRef = useRef<FramePipeline | null>(null);
 	const runtimeRef = useRef<ScheduleRuntime>(createRuntime(0));
 	const handleReads = useEffectEvent(onReads);
+	const handleUnauthorized = useEffectEvent(onUnauthorized);
 
 	useEffect(() => {
 		if (!isEnabled) {
@@ -184,6 +189,11 @@ function useOcrLoop({
 						AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 					]),
 				});
+				if (response.status === UNAUTHORIZED_STATUS) {
+					runtime.backoffUntilMs = Date.now() + UNAUTHORIZED_BACKOFF_MS;
+					handleUnauthorized();
+					return;
+				}
 				if (response.status === 409 || response.status === 503) {
 					runtime.backoffUntilMs = Date.now() + BACKOFF_MS;
 					diagnostics.noteOcrRejected();
