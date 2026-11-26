@@ -30,7 +30,12 @@ function useWakeLock(isEnabled: boolean): void {
 				return;
 			}
 			try {
-				lock = await navigator.wakeLock.request('screen');
+				const acquired = await navigator.wakeLock.request('screen');
+				if (isDisposed) {
+					await acquired.release();
+					return;
+				}
+				lock = acquired;
 			} catch {
 				// Brak zgody systemu (np. oszczędzanie baterii): skaner działa dalej.
 			}
