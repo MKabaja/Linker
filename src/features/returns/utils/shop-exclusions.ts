@@ -2,8 +2,10 @@ import { defaultShopMatchingConfig } from '@/features/returns/model/returns.cons
 import type { ShopMatchingConfig } from '@/features/returns/model/returns.types';
 import type { TraceQuery } from '@/features/returns/model/traces.types';
 import { foldPolishText } from '@/features/returns/utils/normalize-text';
+import { countDiffs } from '@/features/returns/utils/pattern-cost';
 
 const POSTCODE_HEAD_LENGTH = 2;
+const MAX_SHOP_POSTCODE_DIFFS = 1;
 
 const shopTextPatternsByConfig = new WeakMap<ShopMatchingConfig, RegExp[]>();
 
@@ -32,6 +34,7 @@ function isShopPhone(
 
 /**
  * Sprawdza, czy trop wskazuje na sklep (telefon z końcówką sklepu, kod pocztowy sklepu).
+ * Kod pocztowy różniący się od kodu sklepu na jednej pozycji też jest kodem sklepu (pomyłka OCR).
  */
 function isShopTrace(
 	query: TraceQuery,
@@ -45,7 +48,8 @@ function isShopTrace(
 		return query.anchored?.suffix.endsWith(shop.phoneSuffix) ?? false;
 	}
 	if (query.kind === 'postcode') {
-		return query.pattern.join('') === shop.postcode;
+		const diffs = countDiffs(query.pattern, shop.postcode);
+		return diffs >= 0 && diffs <= MAX_SHOP_POSTCODE_DIFFS;
 	}
 	return false;
 }

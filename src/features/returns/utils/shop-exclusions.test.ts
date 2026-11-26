@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parsePhoneMask } from '@/features/returns/utils/pattern-parser';
+import { createOcrResponse } from '@/features/returns/utils/ocr.test-helper';
+import {
+	parseNumberRead,
+	parsePhoneMask,
+} from '@/features/returns/utils/pattern-parser';
+import { readsFromOcr } from '@/features/returns/utils/read-classifier';
 import {
 	isShopPhone,
 	isShopText,
@@ -23,5 +28,27 @@ describe('wykluczenia sklepu', () => {
 		expect(isShopText('Drogeria XYZ')).toBe(true);
 		expect(isShopText('ul. Kozacka 5')).toBe(true);
 		expect(isShopText('620999669102')).toBe(false);
+	});
+
+	it('kod pocztowy sklepu z jedną błędną cyfrą (30-432 zamiast 32-432) nie jest tropem', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([
+				['tess-general', '30-432'],
+				['rapid', '32-482'],
+				['rapid', '31-123'],
+			]),
+		);
+
+		expect(reads.map((read) => read.text)).toEqual(['31-123']);
+	});
+
+	it('kod pocztowy różny od kodu sklepu na dwóch pozycjach zostaje tropem', () => {
+		expect(
+			isShopTrace({
+				id: '',
+				kind: 'postcode',
+				pattern: parseNumberRead('31-532'),
+			}),
+		).toBe(false);
 	});
 });
