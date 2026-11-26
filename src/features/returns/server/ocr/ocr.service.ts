@@ -1,4 +1,5 @@
 import 'server-only';
+import { MAX_OCR_IMAGE_SIDE_PX } from '@/features/returns/model/ocr.constants';
 import type { OcrMode } from '@/features/returns/model/ocr.schemas';
 import type { OcrResponse } from '@/features/returns/model/ocr.types';
 import type { Rect } from '@/features/returns/model/traces.types';
@@ -33,14 +34,18 @@ const orientationStore = globalThis as typeof globalThis & {
 /**
  * Czyta klatkę JPEG przez kolejkę OCR: RapidOCR, a gdy usługa nie działa, zapasowy tesseract.js.
  *
- * @returns `invalid-image`, gdy bajty nie są JPEG-iem; pozostałe warianty jak w kolejce (`done`, `busy`, `superseded`, `aborted`).
+ * @returns `invalid-image`, gdy bajty nie są JPEG-iem albo któryś bok przekracza 2600 px (ochrona przed bombą dekompresyjną); pozostałe warianty jak w kolejce (`done`, `busy`, `superseded`, `aborted`).
  * @remarks Ramki w wyniku są zawsze w układzie klatki 0°. Błąd silnika rzuca wyjątek.
  */
 export async function recognizeOcrFrame(
 	request: OcrFrameRequest,
 ): Promise<OcrFrameResult> {
 	const size = readJpegSize(request.image);
-	if (!size) {
+	if (
+		!size ||
+		size.width > MAX_OCR_IMAGE_SIDE_PX ||
+		size.height > MAX_OCR_IMAGE_SIDE_PX
+	) {
 		return { status: 'invalid-image' };
 	}
 	return runInOcrQueue({
