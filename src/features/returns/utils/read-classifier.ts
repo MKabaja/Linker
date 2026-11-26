@@ -15,6 +15,7 @@ import {
 	type ReadContext,
 	type ReadOrigin,
 } from '@/features/returns/utils/digit-classifier';
+import { stripLabelNoise } from '@/features/returns/utils/label-noise';
 import { normalizeCode } from '@/features/returns/utils/normalize-text';
 import { mergeIntoRows } from '@/features/returns/utils/ocr-rows';
 import {
@@ -171,7 +172,7 @@ function classifyText(text: string, context: ReadContext): RawRead[] {
 		return [];
 	}
 	const reads: (RawRead | null)[] = [];
-	let rest = text;
+	let rest = stripLabelNoise(text);
 	for (const { regex, isTrace, toRead } of textExtractors) {
 		rest = rest.replace(regex, (match) => {
 			if (isTrace && !isTrace(match)) {

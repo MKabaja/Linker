@@ -94,6 +94,34 @@ describe('klasyfikacja odczytów', () => {
 		).toEqual([['zi', 'go']]);
 	});
 
+	it.each([
+		'15.10 cm x 37.10 cm x 30.50 cm',
+		'15,10 cm x 37,10 cm x 30,50 cm 1.00 kg',
+		'15x37x30',
+		'24.11.2026 12:45',
+		'2026-11-24 12:45:10',
+		'24-11-2026',
+		'54P',
+		'PL/KR4',
+	])('wymiary, waga, data, godzina i rejon %s nie dają tropu', (text) => {
+		expect(readsFromOcr(createOcrResponse([['rapid', text]]))).toEqual([]);
+	});
+
+	it.each([
+		'Paczki: 620999669161234567890166 24.11.2026',
+		'Paczki: 620999669161234567890166 15.10',
+		'Paczki: 620999669161234567890166 12:45',
+	])('data lub godzina obok numeru nie dokleja się do niego: %s', (text) => {
+		const reads = readsFromOcr(createOcrResponse([['rapid', text]]));
+
+		expect(
+			reads.map(
+				(read) =>
+					read.query.kind === 'package' && patternToString(read.query.pattern),
+			),
+		).toEqual(['620999669161234567890166']);
+	});
+
 	it('ręczne wpisanie', () => {
 		const reads = readsFromManual('312345678, 7320***83');
 
