@@ -18,7 +18,6 @@ const SESSION_COOKIE_OPTIONS = {
 
 const logInErrorMessageByReason: LogInErrorMessageByReason = {
 	invalidCredentials: 'Nieprawidłowy e-mail lub hasło.',
-	locked: 'Zbyt wiele nieudanych prób logowania. Spróbuj ponownie za 15 minut.',
 };
 
 export {
