@@ -5,7 +5,9 @@ import { logInErrorMessageByReason } from '@/features/auth/model/auth.constants'
 import { logInSchema } from '@/features/auth/model/auth.schemas';
 import type { LogInFormState } from '@/features/auth/model/auth.types';
 import { logInWithPassword } from '@/features/auth/server/services/auth.service';
+import { consumeLoginAttempt } from '@/features/auth/server/services/login-rate-limit.service';
 import { deleteSessionByToken } from '@/features/auth/server/services/sessions.service';
+import { readClientIp } from '@/features/auth/server/sources/client-ip.source';
 import {
 	deleteSessionCookie,
 	readSessionToken,
@@ -30,7 +32,17 @@ async function logIn(
 		};
 	}
 
-	const result = await logInWithPassword(parsedCredentials.data, new Date());
+	const now = new Date();
+
+	if (!consumeLoginAttempt(await readClientIp(), now)) {
+		return {
+			status: 'error',
+			email,
+			message: logInErrorMessageByReason.invalidCredentials,
+		};
+	}
+
+	const result = await logInWithPassword(parsedCredentials.data, now);
 
 	if (result.status === 'failed') {
 		return {
