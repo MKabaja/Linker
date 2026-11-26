@@ -58,7 +58,7 @@ const liveLabelByKind: Record<LiveTraceKind, string> = {
  * @remarks
  * Gdy punktacja nic nie daje, a jest w pełni odczytany numer zamówienia albo ID zewnętrzne spoza indeksu,
  * pyta BaseLinkera na żywo (najwyżej 2 wywołania, numery zamówień pierwsze). Trafienie dopisuje do indeksu
- * i zwraca jako `auto`. Klucze bez wyniku nie są ponawiane przez 10 minut. Bez tokenu krok jest pomijany.
+ * i zwraca jako `candidates` (zawsze wymaga dotknięcia pracownika, bo źródło tropu nie jest znane). Klucze bez wyniku nie są ponawiane przez 10 minut. Bez tokenu krok jest pomijany.
  */
 export async function matchOrdersByTraces(
 	traces: TraceQuery[],
@@ -131,7 +131,7 @@ function toLiveHit({ result, trace, orderId }: LiveHit): ScoreResult {
 
 	return {
 		...result,
-		decision: 'auto',
+		decision: 'candidates',
 		candidates: [
 			{
 				orderId,
