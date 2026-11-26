@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/features/auth/server/services/current-user.service';
 import { searchOrdersRequestSchema } from '@/features/returns/model/returns.schemas';
-import { matchOrdersByTraces } from '@/features/returns/server/services/order-matcher.service';
+import { searchOrders } from '@/features/returns/server/services/order-search.service';
 import { parseJsonOrNull } from '@/shared/lib/parse-json';
 
 const MAX_BODY_CHARACTERS = 64 * 1024;
@@ -28,6 +28,6 @@ export async function POST(request: Request) {
 	}
 
 	return Response.json(
-		await matchOrdersByTraces(parsedRequest.data.traces, new Date()),
+		await searchOrders(parsedRequest.data.traces, new Date()),
 	);
 }

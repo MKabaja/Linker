@@ -6,6 +6,7 @@ import { returnItems } from '@/database/schema/return-items.schema';
 import { returns } from '@/database/schema/returns.schema';
 import { users } from '@/database/schema/users.schema';
 import type { NewReturn } from '@/features/returns/model/new-return.types';
+import type { ExistingReturn } from '@/features/returns/model/order-search.types';
 import { IMPORTED_RECEIVER_NAME } from '@/features/returns/model/return-origin.constants';
 import type { UpdateReturn } from '@/features/returns/model/returns.schemas';
 import { returnSnapshotSchema } from '@/features/returns/model/returns.schemas';
@@ -28,6 +29,7 @@ type NewEvent = {
 	createdAt: Date;
 };
 
+type ExistingReturnByOrderId = Map<number, ExistingReturn>;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -187,6 +189,41 @@ async function findReturnByOrderId(
 }
 
 /**
+ * Zwraca przyjęte zwroty dla podanych zamówień jednym zapytaniem.
+ *
+ * @returns Mapa po `order_id`; zamówień bez zwrotu w niej nie ma.
+ */
+async function findExistingReturnsByOrderIds(
+	orderIds: number[],
+): Promise<ExistingReturnByOrderId> {
+	if (orderIds.length === 0) {
+		return new Map();
+	}
+
+	const rows = await db
+		.select({
+			returnId: returns.id,
+			orderId: returns.orderId,
+			createdAt: returns.createdAt,
+			receivedByName: users.name,
+		})
+		.from(returns)
+		.leftJoin(users, eq(users.id, returns.receivedBy))
+		.where(inArray(returns.orderId, orderIds));
+
+	return new Map(
+		rows.map((row) => [
+			row.orderId,
+			{
+				returnId: row.returnId,
+				receivedAt: row.createdAt.toISOString(),
+				receivedByName: row.receivedByName ?? IMPORTED_RECEIVER_NAME,
+			},
+		]),
+	);
+}
+
+/**
  * Zwraca zwroty przyjęte danego dnia kalendarzowego w Polsce, od najnowszego.
  *
  * @param dateKey - Data `YYYY-MM-DD`.
@@ -293,6 +330,7 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 
 export {
 	deleteReturnById,
+	findExistingReturnsByOrderIds,
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
