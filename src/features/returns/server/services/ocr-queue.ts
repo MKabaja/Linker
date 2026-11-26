@@ -1,5 +1,8 @@
 import 'server-only';
-import { OCR_QUEUE_MAX_RUNNING, OCR_QUEUE_MAX_WAITING } from './ocr.config';
+import {
+	OCR_QUEUE_MAX_RUNNING,
+	OCR_QUEUE_MAX_WAITING,
+} from '@/features/returns/server/sources/ocr.config';
 
 type DroppedStatus = 'superseded' | 'aborted';
 type SlotOutcome = 'start' | 'busy' | DroppedStatus;

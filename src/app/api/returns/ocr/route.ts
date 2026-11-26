@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/features/auth/server/services/current-user.service';
 import { MAX_OCR_IMAGE_BYTES } from '@/features/returns/model/ocr.constants';
 import { ocrRequestHeadersSchema } from '@/features/returns/model/ocr.schemas';
-import { recognizeOcrFrame } from '@/features/returns/server/ocr/ocr.service';
+import { recognizeOcrFrame } from '@/features/returns/server/services/ocr.service';
 import { readLimitedBody } from '@/shared/lib/read-limited-body';
 
 type OcrFailureStatus = 'busy' | 'superseded' | 'aborted' | 'invalid-image';

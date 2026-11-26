@@ -3,6 +3,11 @@ import { MAX_OCR_IMAGE_SIDE_PX } from '@/features/returns/model/ocr.constants';
 import type { OcrMode } from '@/features/returns/model/ocr.schemas';
 import type { OcrResponse } from '@/features/returns/model/ocr.types';
 import type { Rect } from '@/features/returns/model/traces.types';
+import { fetchRapidOcr } from '@/features/returns/server/sources/rapid-ocr.source';
+import {
+	fetchTesseractOcr,
+	type TesseractRead,
+} from '@/features/returns/server/sources/tesseract-ocr.source';
 import {
 	type ImageSize,
 	readJpegSize,
@@ -14,8 +19,6 @@ import {
 	rotateRectBy180,
 } from '@/features/returns/utils/ocr-regions';
 import { type QueueOutcome, runInOcrQueue } from './ocr-queue';
-import { fetchRapidOcr } from './rapid-ocr.source';
-import { fetchTesseractOcr, type TesseractRead } from './tesseract-ocr.source';
 
 type Orientation = OcrResponse['orientation'];
 type OrientedRead = TesseractRead & { orientation: Orientation };

@@ -385,7 +385,7 @@ Tylko propozycja: dopasuj do konwencji Linkera. Ważne jest rozdzielenie odpowie
 | `server/order-search.service.ts` | punktacja + BL na żywo | `returns/server/order-matcher.service.ts` |
 | `server/order-db.ts`, `order-index-sync.service.ts`, `search-index.ts` | indeks zamówień, synchronizacja, kopia w RAM | `orders-index/` (repozytorium w bazie Linkera, zadanie synchronizacji w cronie, cache w pamięci) |
 | `server/baselinker.client.ts` | klient BL | **istniejący klient Linkera** (jedna kolejka) |
-| `server/ocr/*`, `ocr-service/` | OCR | `returns/server/ocr/` + usługa `ocr-service` |
+| `server/ocr/*`, `ocr-service/` | OCR | `returns/server/sources/` (`*-ocr.source.ts`, `ocr.config.ts`) + `returns/server/services/` (`ocr.service.ts`, `ocr-queue.ts`) + usługa `ocr-service` |
 | `server/returns.service.ts` | zwroty | `returns/server/returns.service.ts` na bazie Linkera |
 | `server/scan-log.service.ts`, `model/scan-log.ts` | dziennik skanów, statystyki | `returns/server/scan-log.service.ts` (tabela) |
 | `components/scanner.tsx` (710 linii) | wszystko naraz | rozbić na hooki: `useCamera` (otwieranie, strażnik, latarka, wybór obiektywu), `useBarcodeLoop`, `useOcrLoop` (plan, bramka, wysyłka), `useTraceSearch` (TraceBook + `/api/search` + decyzja) oraz komponent widoku |
@@ -441,7 +441,8 @@ Tylko propozycja: dopasuj do konwencji Linkera. Ważne jest rozdzielenie odpowie
 - `src/features/returns/server/order-search.service.ts`, `orders.service.ts`
 - `src/features/returns/server/returns.service.ts`, `model/returns.ts`
 - `src/features/returns/server/scan-log.service.ts`, `model/scan-log.ts`
-- `src/features/returns/server/ocr/` (`rapid-engine.ts`, `ocr.service.ts`, `ocr-queue.ts`, `tesseract-engines.ts`, `engine.ts`)
+- `src/features/returns/server/sources/` (`rapid-ocr.source.ts`, `tesseract-ocr.source.ts`, `ocr.config.ts`)
+- `src/features/returns/server/services/` (`ocr.service.ts`, `ocr-queue.ts`)
 - `ocr-service/server.py`, `ocr-service/requirements.txt`
 - `src/app/api/` (kontrakty endpointów: `search`, `ocr`, `returns`, `order`, `sync`, `packages`, `scan-log`, `debug-log`)
 - `src/instrumentation.ts` (start auto-sync i rozgrzewka OCR)
