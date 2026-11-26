@@ -43,6 +43,13 @@
       "when": 1795671147861,
       "tag": "20261126053227_record_return_match",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795674489202,
+      "tag": "20261126062809_soft_delete_returns",
+      "breakpoints": true
     }
   ]
 }

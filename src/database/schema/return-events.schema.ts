@@ -9,7 +9,12 @@ import {
 import { returns } from './returns.schema';
 import { users } from './users.schema';
 
-const returnEventKindEnum = pgEnum('return_event_kind', ['created', 'updated']);
+const returnEventKindEnum = pgEnum('return_event_kind', [
+	'created',
+	'updated',
+	'deleted',
+	'restored',
+]);
 
 const returnEvents = pgTable(
 	'return_events',

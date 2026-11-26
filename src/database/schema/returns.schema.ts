@@ -31,6 +31,8 @@ const returns = pgTable(
 		matchedBy: returnMatchedByEnum().default('manual-entry').notNull(),
 		scannedLabel: varchar({ length: 64 }),
 		createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+		deletedAt: timestamp({ withTimezone: true }),
+		deletedBy: integer().references(() => users.id, { onDelete: 'restrict' }),
 		updatedAt: timestamp({ withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => new Date())
