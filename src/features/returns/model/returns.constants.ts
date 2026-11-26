@@ -12,6 +12,7 @@ const defaultShopMatchingConfig: ShopMatchingConfig = {
 	postcode: '32432',
 	textMarkers: ['pcim', '720', 'kozacka', 'drogeria'],
 	phoneSuffix: '9093',
+	shopNameMasks: [['ko'], ['ko', 'dr']],
 	orderIdPrefix: '3',
 	orderIdLength: 9,
 	shippingStatusIds: [327896, 327897, 327898, 338059, 358167, 165343],

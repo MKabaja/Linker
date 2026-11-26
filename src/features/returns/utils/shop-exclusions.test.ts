@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOcrResponse } from '@/features/returns/utils/ocr.test-helper';
 import {
+	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,
 } from '@/features/returns/utils/pattern-parser';
@@ -50,5 +51,42 @@ describe('wykluczenia sklepu', () => {
 				pattern: parseNumberRead('31-532'),
 			}),
 		).toBe(false);
+	});
+
+	it.each([
+		['*********9093', true],
+		['*********909', true],
+		['******909', true],
+		['*******93', true],
+		['500**9093', true],
+		['*****1909', false],
+		['*******83', false],
+		['732*****9', false],
+	])('maska telefonu %s jest telefonem sklepu: %s', (mask, isShop) => {
+		expect(
+			isShopTrace({ id: '', kind: 'phone', ...parsePhoneMask(mask) }),
+		).toBe(isShop);
+	});
+
+	it('ucięty telefon sklepu z etykiety nie daje tropu', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([
+				['rapid', 'tel. *********9093'],
+				['tess-general', 'tel. ********909'],
+			]),
+		);
+
+		expect(reads).toEqual([]);
+	});
+
+	it.each([
+		['Ko***', true],
+		['ko*** dr***', true],
+		['KO*** AN***', false],
+		['ZI*** GÓ***', false],
+	])('maska imienia %s jest nazwą sklepu: %s', (mask, isShop) => {
+		expect(
+			isShopTrace({ id: '', kind: 'name', prefixes: parseNameMask(mask) }),
+		).toBe(isShop);
 	});
 });

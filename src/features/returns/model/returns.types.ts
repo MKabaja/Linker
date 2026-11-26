@@ -7,8 +7,16 @@ type ShopMatchingConfig = {
 	postcode: string;
 	/** Słowa z adresu i nazwy sklepu. Linia, która zawiera którekolwiek z nich jako całe słowo, nie daje tropów. */
 	textMarkers: readonly string[];
-	/** Końcówka telefonu sklepu. Telefon z tą końcówką nie jest tropem. */
+	/**
+	 * Końcówka telefonu sklepu. Telefon z tą końcówką nie jest tropem; maska bez innych znanych cyfr
+	 * niż fragment tej końcówki (np. ucięte `…909`) też nie.
+	 */
 	phoneSuffix: string;
+	/**
+	 * Zamaskowane nazwy sklepu jako prefiksy słów (np. `[['ko'], ['ko', 'dr']]`). Maska imienia o tej samej
+	 * liczbie słów, której każde słowo zaczyna się od prefiksu z tej samej pozycji, nie jest tropem.
+	 */
+	shopNameMasks: readonly (readonly string[])[];
 	/** Początek numerów zamówień BaseLinkera na tym koncie. */
 	orderIdPrefix: string;
 	orderIdLength: number;

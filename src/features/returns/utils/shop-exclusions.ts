@@ -1,6 +1,10 @@
 import { defaultShopMatchingConfig } from '@/features/returns/model/returns.constants';
 import type { ShopMatchingConfig } from '@/features/returns/model/returns.types';
-import type { TraceQuery } from '@/features/returns/model/traces.types';
+import type {
+	Pattern,
+	PhoneTraceQuery,
+	TraceQuery,
+} from '@/features/returns/model/traces.types';
 import { foldPolishText } from '@/features/returns/utils/normalize-text';
 import { countDiffs } from '@/features/returns/utils/pattern-cost';
 
@@ -33,25 +37,64 @@ function isShopPhone(
 }
 
 /**
- * Sprawdza, czy trop wskazuje na sklep (telefon z końcówką sklepu, kod pocztowy sklepu).
- * Kod pocztowy różniący się od kodu sklepu na jednej pozycji też jest kodem sklepu (pomyłka OCR).
+ * Sprawdza, czy trop wskazuje na sklep: telefon sklepu, kod pocztowy sklepu albo zamaskowaną nazwę sklepu.
+ *
+ * @remarks
+ * - Kod pocztowy różniący się od kodu sklepu na jednej pozycji też jest kodem sklepu (pomyłka OCR).
+ * - Maska telefonu, której jedyne znane cyfry to koniec będący fragmentem końcówki sklepu (`…909`, `…93`), jest telefonem sklepu.
  */
 function isShopTrace(
 	query: TraceQuery,
 	shop: ShopMatchingConfig = defaultShopMatchingConfig,
 ): boolean {
 	if (query.kind === 'phone') {
-		if (query.pattern) {
-			const tail = query.pattern.slice(-shop.phoneSuffix.length).join('');
-			return tail === shop.phoneSuffix;
-		}
-		return query.anchored?.suffix.endsWith(shop.phoneSuffix) ?? false;
+		return isShopPhoneMask(query, shop.phoneSuffix);
+	}
+	if (query.kind === 'name') {
+		return isShopName(query.prefixes, shop.shopNameMasks);
 	}
 	if (query.kind === 'postcode') {
 		const diffs = countDiffs(query.pattern, shop.postcode);
 		return diffs >= 0 && diffs <= MAX_SHOP_POSTCODE_DIFFS;
 	}
 	return false;
+}
+
+function isShopPhoneMask(query: PhoneTraceQuery, phoneSuffix: string): boolean {
+	const hasShopSuffix = query.pattern
+		? query.pattern.slice(-phoneSuffix.length).join('') === phoneSuffix
+		: (query.anchored?.suffix.endsWith(phoneSuffix) ?? false);
+	const tail = knownTailOnly(query);
+	return hasShopSuffix || (tail !== null && phoneSuffix.includes(tail));
+}
+
+function knownTailOnly({ pattern, anchored }: PhoneTraceQuery): string | null {
+	if (pattern) {
+		return positionalTailOnly(pattern);
+	}
+	return anchored && anchored.prefix === '' ? anchored.suffix : null;
+}
+
+function positionalTailOnly(pattern: Pattern): string | null {
+	const firstKnown = pattern.findIndex((slot) => slot !== '');
+	if (firstKnown < 0) {
+		return null;
+	}
+	const tail = pattern.slice(firstKnown);
+	return tail.every((slot) => slot.length === 1) ? tail.join('') : null;
+}
+
+function isShopName(
+	prefixes: string[],
+	shopNameMasks: ShopMatchingConfig['shopNameMasks'],
+): boolean {
+	return shopNameMasks.some(
+		(mask) =>
+			mask.length === prefixes.length &&
+			mask.every((word, index) =>
+				prefixes[index].startsWith(foldPolishText(word)),
+			),
+	);
 }
 
 function getShopTextPatterns(shop: ShopMatchingConfig): RegExp[] {
