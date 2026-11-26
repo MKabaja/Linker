@@ -8,6 +8,8 @@ export const returnEditorStyles = {
 
 export const returnItemRowStyles = {
 	row: 'flex flex-col gap-3 border-t border-line p-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between',
+	product: 'flex min-w-0 items-start gap-3',
+	thumbnail: 'shrink-0',
 	description: 'flex min-w-0 flex-col gap-1',
 	name: 'font-medium text-main',
 	codes: 'flex flex-wrap gap-x-4 font-mono text-xs text-dim',
