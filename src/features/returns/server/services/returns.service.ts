@@ -160,6 +160,10 @@ async function getReturn(returnId: number): Promise<ReturnDetails | null> {
 	return { ...returnRecord, events: await findReturnEvents(returnId) };
 }
 
+function getReturnRecord(returnId: number): Promise<ReturnRecord | null> {
+	return findReturnById(returnId);
+}
+
 function getReturnByOrderId(orderId: number): Promise<ReturnRecord | null> {
 	return findReturnByOrderId(orderId);
 }
@@ -217,6 +221,7 @@ export {
 	exportReturnsOfDay,
 	getReturn,
 	getReturnByOrderId,
+	getReturnRecord,
 	getReturnsOfDay,
 	restoreReturn,
 	updateReturn,

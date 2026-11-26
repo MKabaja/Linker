@@ -42,6 +42,12 @@ type LiveLookupResult =
 
 type LiveHit = { result: ScoreResult; trace: LiveTrace; orderId: number };
 
+type MatchOutcome = {
+	result: ScoreResult;
+	/** Ile razy zapytano BaseLinker na żywo (bez wywołań pominiętych z braku tokenu). */
+	liveLookupCount: number;
+};
+
 const liveMissCache = getProcessSingleton<LiveMissCache>(
 	'returns.live-miss-cache',
 	() => ({ expiresAtByKey: new Map() }),
@@ -63,12 +69,12 @@ const liveLabelByKind: Record<LiveTraceKind, string> = {
 export async function matchOrdersByTraces(
 	traces: TraceQuery[],
 	now: Date,
-): Promise<ScoreResult> {
+): Promise<MatchOutcome> {
 	const orders = await getIndexedOrders(now);
 	const result = scoreOrders(traces, orders, { nowMs: now.getTime() });
 
 	if (result.decision !== 'none') {
-		return result;
+		return { result, liveLookupCount: 0 };
 	}
 
 	pruneExpiredMisses(now);
@@ -76,19 +82,26 @@ export async function matchOrdersByTraces(
 		.filter((trace) => !isRecentMiss(trace, now))
 		.slice(0, MAX_LIVE_LOOKUPS);
 
+	let liveLookupCount = 0;
+
 	for (const trace of liveTraces) {
 		const lookup = await lookUpLiveOrder({ trace, now });
 
 		if (lookup.status === 'disabled') {
-			return result;
+			return { result, liveLookupCount };
 		}
 
+		liveLookupCount++;
+
 		if (lookup.status === 'found') {
-			return toLiveHit({ result, trace, orderId: lookup.orderId });
+			return {
+				result: toLiveHit({ result, trace, orderId: lookup.orderId }),
+				liveLookupCount,
+			};
 		}
 	}
 
-	return result;
+	return { result, liveLookupCount };
 }
 
 async function lookUpLiveOrder({

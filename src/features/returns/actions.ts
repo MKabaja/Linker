@@ -24,12 +24,24 @@ import type { SaveScanLogResult } from '@/features/returns/model/scan-log.types'
 import {
 	createReturn,
 	deleteReturn,
+	getReturnRecord,
 	restoreReturn,
 	updateReturn,
 } from '@/features/returns/server/services/returns.service';
 import { saveScanLog } from '@/features/returns/server/services/scan-log.service';
+import {
+	isEventLogEnabled,
+	logReturnsEvent,
+} from '@/features/returns/server/sources/event-log.source';
+import { toReturnItemQuantities } from '@/features/returns/utils/event-log-items';
 
 type InvalidInput = { status: 'invalid' };
+
+type LoggedUser = { id: number; name: string };
+
+function toUserLogContext(user: LoggedUser) {
+	return { userId: user.id, userName: user.name };
+}
 
 async function createReturnAction(
 	input: CreateReturnInput,
@@ -49,6 +61,17 @@ async function createReturnAction(
 		now: new Date(),
 	});
 
+	if (result.status === 'created' || result.status === 'duplicate') {
+		logReturnsEvent({
+			...toUserLogContext(user),
+			type: result.status === 'created' ? 'return.created' : 'return.duplicate',
+			orderId: parsedInput.data.orderId,
+			returnId: result.returnRecord.id,
+			matchedBy: parsedInput.data.matchedBy,
+			scannedLabel: parsedInput.data.scannedLabel ?? null,
+		});
+	}
+
 	if (result.status === 'created') {
 		revalidatePath('/returns');
 	}
@@ -66,6 +89,9 @@ async function updateReturnAction(
 		return { status: 'invalid' };
 	}
 
+	const recordBefore = isEventLogEnabled()
+		? await getReturnRecord(parsedInput.data.returnId)
+		: null;
 	const result = await updateReturn({
 		update: parsedInput.data,
 		userId: user.id,
@@ -73,6 +99,16 @@ async function updateReturnAction(
 	});
 
 	if (result.status === 'updated') {
+		logReturnsEvent({
+			...toUserLogContext(user),
+			type: 'return.updated',
+			returnId: parsedInput.data.returnId,
+			noteChanged:
+				parsedInput.data.note !== undefined &&
+				parsedInput.data.note !== recordBefore?.note,
+			itemsBefore: toReturnItemQuantities(recordBefore?.items ?? []),
+			itemsAfter: toReturnItemQuantities(result.returnRecord.items),
+		});
 		revalidatePath('/returns');
 		revalidatePath(`/returns/${parsedInput.data.returnId}`);
 	}
@@ -98,6 +134,11 @@ async function deleteReturnAction(
 	});
 
 	if (result.status === 'deleted') {
+		logReturnsEvent({
+			...toUserLogContext(user),
+			type: 'return.deleted',
+			returnId,
+		});
 		revalidatePath('/returns');
 		revalidatePath(`/returns/${returnId}`);
 	}
@@ -123,6 +164,11 @@ async function restoreReturnAction(
 	});
 
 	if (result.status === 'restored') {
+		logReturnsEvent({
+			...toUserLogContext(user),
+			type: 'return.restored',
+			returnId,
+		});
 		revalidatePath('/returns');
 		revalidatePath(`/returns/${returnId}`);
 	}

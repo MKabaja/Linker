@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { getCurrentUser } from '@/features/auth/server/services/current-user.service';
 import { searchOrdersRequestSchema } from '@/features/returns/model/returns.schemas';
 import { searchOrders } from '@/features/returns/server/services/order-search.service';
@@ -7,7 +8,9 @@ import { readLimitedBody } from '@/shared/lib/read-limited-body';
 const MAX_BODY_BYTES = 64 * 1024;
 
 export async function POST(request: Request) {
-	if (!(await getCurrentUser())) {
+	const user = await getCurrentUser();
+
+	if (!user) {
 		return Response.json({ message: 'Zaloguj się.' }, { status: 401 });
 	}
 
@@ -28,7 +31,17 @@ export async function POST(request: Request) {
 		);
 	}
 
+	const scanId = z.uuid().safeParse(request.headers.get('x-scan-session'));
+
 	return Response.json(
-		await searchOrders(parsedRequest.data.traces, new Date()),
+		await searchOrders({
+			traces: parsedRequest.data.traces,
+			now: new Date(),
+			logContext: {
+				scanId: scanId.success ? scanId.data : undefined,
+				userId: user.id,
+				userName: user.name,
+			},
+		}),
 	);
 }

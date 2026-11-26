@@ -46,8 +46,12 @@ describe('matchOrdersByTraces', () => {
 			pattern: parseNumberRead(String(LIVE_ORDER_ID)),
 		};
 
-		const result = await matchOrdersByTraces([trace], new Date());
+		const { result, liveLookupCount } = await matchOrdersByTraces(
+			[trace],
+			new Date(),
+		);
 
+		expect(liveLookupCount).toBe(1);
 		expect(result.decision).toBe('candidates');
 		expect(result.candidates[0]?.orderId).toBe(LIVE_ORDER_ID);
 	});

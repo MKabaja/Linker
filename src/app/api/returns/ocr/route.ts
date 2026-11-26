@@ -26,7 +26,8 @@ const failureResponseByStatus: ResponseByStatus = {
 };
 
 export async function POST(request: Request): Promise<Response> {
-	if (!(await getCurrentUser())) {
+	const user = await getCurrentUser();
+	if (!user) {
 		return Response.json({ message: 'Zaloguj się.' }, { status: 401 });
 	}
 
@@ -58,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
 		mode: headers.data.mode,
 		scanSession: headers.data.scanSession,
 		signal: request.signal,
+		logContext: { userId: user.id, userName: user.name },
 	});
 	if (result.status === 'done') {
 		return Response.json(result.value);

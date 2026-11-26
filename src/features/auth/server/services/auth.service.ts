@@ -17,7 +17,12 @@ import {
 import { createSession } from './sessions.service';
 
 type LogInResult =
-	| { status: 'loggedIn'; session: NewSession }
+	| {
+			status: 'loggedIn';
+			session: NewSession;
+			userId: number;
+			userName: string;
+	  }
 	| { status: 'failed'; reason: LogInFailureReason };
 
 const dummyPasswordHash = hash('dummy-password-for-timing');
@@ -64,7 +69,12 @@ async function logInWithPassword(
 	await resetFailedLogins(user.id);
 
 	const session = await createSession(user.id, now);
-	return { status: 'loggedIn', session };
+	return {
+		status: 'loggedIn',
+		session,
+		userId: user.id,
+		userName: user.name,
+	};
 }
 
 export { logInWithPassword };
