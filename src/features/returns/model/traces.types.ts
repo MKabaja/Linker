@@ -22,7 +22,16 @@ type NumberTraceKind = Exclude<TraceKind, 'phone' | 'name'>;
 
 type TraceSource = 'code' | 'rapid' | 'tess-digits' | 'tess-general' | 'manual';
 
-type NumberTraceQuery = { id: string; kind: NumberTraceKind; pattern: Pattern };
+type NumberTraceQuery = {
+	id: string;
+	kind: NumberTraceKind;
+	pattern: Pattern;
+	/**
+	 * Numer paczki z jednego odczytu OCR (bez kodu, wpisu ręcznego i drugiego zgodnego głosu).
+	 * Przybliżone trafienie takim numerem nie wystarcza do `auto`.
+	 */
+	isSingleOcrRead?: boolean;
+};
 
 type PhoneTraceQuery = {
 	id: string;

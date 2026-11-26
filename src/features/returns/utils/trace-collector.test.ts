@@ -82,6 +82,27 @@ describe('createTraceCollector', () => {
 		expect(collector.entries()[0].state).toBe('reading');
 	});
 
+	it('numer paczki z jednego odczytu OCR po kandydatach czeka na drugi zgodny głos', () => {
+		const number = '620999669161234567890166';
+		const orders = [
+			...generateOrders(2_000),
+			makeOrder({ orderId: 399_000_001, packageNumbers: [number] }),
+		];
+		const collector = createTraceCollector();
+		collector.addReads(readDigits('rapid', `${number.slice(0, -1)}4`));
+		const [single] = collector.queries();
+		expect(single).toMatchObject({ kind: 'package', isSingleOcrRead: true });
+
+		collector.markResult(
+			scoreOrders(collector.queries(), orders, SCORING_OPTIONS),
+		);
+		expect(collector.entries()[0].state).toBe('candidates');
+
+		collector.addReads(readDigits('rapid', `${number.slice(0, -1)}4`));
+		expect(collector.needsSearch(), 'drugi głos — ponowne szukanie').toBe(true);
+		expect(collector.queries()[0]).not.toHaveProperty('isSingleOcrRead');
+	});
+
 	it('trafienie oznacza trop jako hit', () => {
 		const orders = [
 			...generateOrders(2_000),

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { TraceQuery } from '@/features/returns/model/traces.types';
+import type {
+	NumberTraceQuery,
+	TraceQuery,
+} from '@/features/returns/model/traces.types';
 import {
 	generateOrders,
 	INPOST_PREFIX,
@@ -31,7 +34,7 @@ function nameTrace(id: string, mask: string): TraceQuery {
 	return { id, kind: 'name', prefixes: parseNameMask(mask) };
 }
 
-function packageTrace(id: string, text: string): TraceQuery {
+function packageTrace(id: string, text: string): NumberTraceQuery {
 	return { id, kind: 'package', pattern: parseNumberRead(text) };
 }
 
@@ -138,6 +141,85 @@ describe('scoreOrders', () => {
 				.map((candidate) => candidate.orderId)
 				.sort(),
 		).toEqual([TARGET_ID, TARGET_ID + 1]);
+	});
+
+	it('sam kod pocztowy, nawet unikalny, nie daje auto', () => {
+		const orders = withTarget({ orderId: TARGET_ID, postcode: '27315' });
+
+		const result = scoreOrders(
+			[{ id: 'z', kind: 'postcode', pattern: [...'27315'] }],
+			orders,
+			SCORING_OPTIONS,
+		);
+
+		expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		expect(result.candidates[0].bits).toBeGreaterThanOrEqual(result.threshold);
+		expect(result.decision).toBe('candidates');
+	});
+
+	it('same słabe tropy (imię, kod, krótki telefon) ponad progiem → kandydaci', () => {
+		const orders = withTarget({
+			orderId: TARGET_ID,
+			firstNameNorm: 'monika',
+			lastNameNorm: 'kalina',
+			phoneDigits: '600000483',
+			postcode: '31123',
+		});
+
+		const result = scoreOrders(
+			[
+				nameTrace('n', 'm*** ka***'),
+				phoneTrace('t', '*******83'),
+				{ id: 'z', kind: 'postcode', pattern: [...'31123'] },
+			],
+			orders,
+			SCORING_OPTIONS,
+		);
+
+		expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		expect(result.candidates[0].bits).toBeGreaterThanOrEqual(result.threshold);
+		expect(result.decision).toBe('candidates');
+	});
+
+	describe('przybliżony numer paczki z jednego odczytu OCR', () => {
+		const number = `${INPOST_PREFIX}61234567890166`;
+		const orders = withTarget({
+			orderId: TARGET_ID,
+			packageNumbers: [number],
+			firstNameNorm: 'monika',
+			lastNameNorm: 'kalina',
+		});
+
+		function scoreSingleRead(read: string, isSingleOcrRead: boolean) {
+			return scoreOrders(
+				[
+					{ ...packageTrace('p', read), isSingleOcrRead },
+					nameTrace('n', 'm*** ka***'),
+				],
+				orders,
+				SCORING_OPTIONS,
+			);
+		}
+
+		it('z inną cyfrą (koszt > 0,3) daje kandydatów, a z drugim głosem auto', () => {
+			const misread = `${number.slice(0, -1)}4`;
+
+			const single = scoreSingleRead(misread, true);
+			const confirmed = scoreSingleRead(misread, false);
+
+			expect(single.candidates[0].orderId).toBe(TARGET_ID);
+			expect(single.decision).toBe('candidates');
+			expect(confirmed.decision).toBe('auto');
+		});
+
+		it('z jedną typową pomyłką OCR (5 zamiast 6) daje auto', () => {
+			const misread = `${number.slice(0, -2)}56`;
+
+			const result = scoreSingleRead(misread, true);
+
+			expect(result.decision).toBe('auto');
+			expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		});
 	});
 
 	it('trop bez dopasowań daje 0 bitów', () => {

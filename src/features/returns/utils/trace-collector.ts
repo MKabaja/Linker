@@ -12,10 +12,12 @@ import {
 	type CollectedTrace,
 	isProtected,
 	isSearchable,
+	isSingleOcrPackage,
 	patternOf,
 	toExactKey,
 	toPublicEntry,
 	toSearchKey,
+	toSearchQuery,
 	withPattern,
 } from '@/features/returns/utils/collected-trace';
 import { isShopTrace } from '@/features/returns/utils/shop-exclusions';
@@ -48,7 +50,10 @@ type TraceCollector = {
 	/** Dodaje odczyty i zwraca tropy nowe albo ze zmienionym wzorcem. */
 	addReads: (reads: RawRead[]) => TraceEntry[];
 	entries: () => TraceEntry[];
-	/** Zwraca tropy gotowe do punktacji; odczyty OCR krótkich numerów i telefonów dopiero po 2 głosach. */
+	/**
+	 * Zwraca tropy gotowe do punktacji; odczyty OCR krótkich numerów i telefonów dopiero po 2 głosach.
+	 * Numer paczki z jednego odczytu OCR ma `isSingleOcrRead`; gdy dał kandydatów, drugi zgodny głos zmienia jego wersję.
+	 */
 	queries: () => TraceQuery[];
 	/** Sprawdza, czy zestaw tropów albo ich wzorce zmieniły się od ostatniego `markResult`. */
 	needsSearch: () => boolean;
@@ -94,7 +99,7 @@ function createTraceCollector({
 	}
 
 	function queries(): TraceQuery[] {
-		return traces.filter(isSearchable).map((trace) => trace.query);
+		return traces.filter(isSearchable).map(toSearchQuery);
 	}
 
 	function needsSearch(): boolean {
@@ -184,6 +189,7 @@ function createTraceCollector({
 		read: RawRead,
 		pattern: Pattern | null,
 	): CollectedTrace | null {
+		const wasSingleOcrPackage = isSingleOcrPackage(trace);
 		trace.votes++;
 		trace.lastSeenTick = tick;
 		trace.seenAt = now();
@@ -201,7 +207,12 @@ function createTraceCollector({
 		const voted = votePattern(trace.reads, pattern.length);
 		const isUnchanged =
 			voted.join('|') === (patternOf(trace.query) ?? []).join('|');
-		if (!isUnchanged) {
+		const isConfirmedCandidate =
+			wasSingleOcrPackage &&
+			!isSingleOcrPackage(trace) &&
+			trace.state === 'candidates';
+		const needsNewVersion = !isUnchanged || isConfirmedCandidate;
+		if (needsNewVersion) {
 			trace.version++;
 			trace.query = withPattern(
 				trace.query,
@@ -211,7 +222,7 @@ function createTraceCollector({
 			trace.state = 'reading';
 		}
 		trace.display = describeTrace(trace.query, trace.sources);
-		return isUnchanged ? null : trace;
+		return needsNewVersion ? trace : null;
 	}
 
 	function evictExcessTraces(): void {

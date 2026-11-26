@@ -40,6 +40,27 @@ function isSearchable(trace: CollectedTrace): boolean {
 	return trace.votes >= MIN_OCR_VOTES;
 }
 
+/**
+ * Sprawdza, czy trop to numer paczki z jednego odczytu OCR, bez kodu, wpisu ręcznego i drugiego głosu.
+ */
+function isSingleOcrPackage(trace: CollectedTrace): boolean {
+	return (
+		trace.query.kind === 'package' &&
+		trace.votes < MIN_OCR_VOTES &&
+		!isTrustedSource(trace.sources)
+	);
+}
+
+/**
+ * Zwraca zapytanie do punktacji; numer paczki z jednego odczytu OCR dostaje `isSingleOcrRead`.
+ */
+function toSearchQuery(trace: CollectedTrace): TraceQuery {
+	const { query } = trace;
+	return query.kind === 'package' && isSingleOcrPackage(trace)
+		? { ...query, isSingleOcrRead: true }
+		: query;
+}
+
 function patternOf(query: TraceQuery): Pattern | null {
 	return query.kind === 'name' ? null : query.pattern;
 }
@@ -97,9 +118,11 @@ export {
 	type CollectedTrace,
 	isProtected,
 	isSearchable,
+	isSingleOcrPackage,
 	patternOf,
 	toExactKey,
 	toPublicEntry,
 	toSearchKey,
+	toSearchQuery,
 	withPattern,
 };

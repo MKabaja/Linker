@@ -24,12 +24,14 @@ import {
 	type BonusContext,
 	bonusBits,
 	decide,
+	isIdentifyingTrace,
 	rankTopOrders,
 } from '@/features/returns/utils/score-decision';
 import { describeMatchReason } from '@/features/returns/utils/score-reasons';
 
 const COST_WEIGHT_BITS = 5;
 const COST_PENALTY_BITS = 1;
+const MIN_IDENTIFYING_BITS = 1;
 
 type KindSlotByKind = Record<TraceKind, number>;
 
@@ -57,6 +59,7 @@ type KindScores = { bits: Float64Array; traceIndex: Int32Array };
  * - Z jednego rodzaju tropu liczy się najlepszy.
  * - Premia za datę (2–40 dni) i status wysyłki tylko dla zamówień z jakimkolwiek tropem.
  * - `auto`, gdy najlepszy ma co najmniej `log2(N)` bitów i 3 bity przewagi; `candidates` od 40% progu (najwyżej 3).
+ * - `auto` wymaga tropu identyfikującego (patrz {@link isIdentifyingTrace}); bez niego wynik to najwyżej `candidates`.
  *
  * Pusty indeks daje `none`. Kolejne wywołania z tą samą tablicą `orders` korzystają z przeliczonego widoku.
  */
@@ -110,7 +113,11 @@ export function scoreOrders(
 	const top = rankTopOrders(touchedIndices, (orderIndex) =>
 		totalBits(orderIndex),
 	);
-	const decision = decide(top, threshold);
+	const scoreDecision = decide(top, threshold);
+	const decision =
+		scoreDecision === 'auto' && !hasIdentifyingTrace(top[0].orderIndex)
+			? 'candidates'
+			: scoreDecision;
 	const candidates: ScoredCandidate[] =
 		decision === 'none'
 			? []
@@ -174,6 +181,24 @@ export function scoreOrders(
 			bits += kindScores.bits[orderIndex * KIND_COUNT + slot];
 		}
 		return bits;
+	}
+
+	function hasIdentifyingTrace(orderIndex: number): boolean {
+		for (let slot = 0; slot < KIND_COUNT; slot++) {
+			const cell = orderIndex * KIND_COUNT + slot;
+			const traceIndex = kindScores.traceIndex[cell];
+			const isIdentifying =
+				traceIndex >= 0 &&
+				kindScores.bits[cell] >= MIN_IDENTIFYING_BITS &&
+				isIdentifyingTrace(
+					traces[traceIndex],
+					matchers[traceIndex].costAt(orderIndex),
+				);
+			if (isIdentifying) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	function describeReasons(orderIndex: number): TraceContribution[] {
