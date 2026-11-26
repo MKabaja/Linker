@@ -7,6 +7,7 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import { ocrResponseSchema } from '@/features/returns/model/ocr.schemas';
 import type { OcrResponse } from '@/features/returns/model/ocr.types';
 import type { RawRead, Rect } from '@/features/returns/model/traces.types';
 import { readsFromOcr } from '@/features/returns/utils/read-classifier';
@@ -203,7 +204,7 @@ function useOcrLoop({
 					diagnostics.noteOcrError();
 					return;
 				}
-				const ocr: OcrResponse = await response.json();
+				const ocr = ocrResponseSchema.parse(await response.json());
 				diagnostics.noteOcr(ocr, performance.now() - startedAt);
 				if (!signal.aborted) {
 					handleReads(readsFromOcr(toVideoCoordinates(ocr, frame)));

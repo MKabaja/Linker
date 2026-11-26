@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { searchResponseSchema } from '@/features/returns/model/order-search.schemas';
 import type {
 	SearchCandidate,
 	SearchResponse,
@@ -124,7 +125,7 @@ function useTraceSearch({
 				setProblem('unavailable');
 				return;
 			}
-			const searchResponse: SearchResponse = await response.json();
+			const searchResponse = searchResponseSchema.parse(await response.json());
 			if (isStoppedRef.current) {
 				return;
 			}
