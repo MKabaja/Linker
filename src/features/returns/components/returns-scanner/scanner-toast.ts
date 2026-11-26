@@ -75,13 +75,23 @@ function showDuplicateToast({
 	const parcel = describeMatchedParcel(input);
 	const title = `Zamówienie ${input.candidate.orderId}${parcel ? `: ${parcel}` : ''}`;
 	toast.warning(title, {
-		description: `Zwrot już przyjęty ${existingReturn.receivedAtLabel} przez ${existingReturn.receivedByName}`,
+		description: describeExistingReturn(existingReturn),
 		duration: TOAST_DURATION_MS,
 		style: {
 			color: 'var(--color-warning)',
 			borderColor: 'var(--color-warning)',
 		},
 	});
+}
+
+function describeExistingReturn(
+	existingReturn: DuplicateReturnWarning,
+): string {
+	const received = `Zwrot już przyjęty ${existingReturn.receivedAtLabel} przez ${existingReturn.receivedByName}`;
+
+	return existingReturn.deletedAtLabel
+		? `${received}, usunięty ${existingReturn.deletedAtLabel} przez ${existingReturn.deletedByName}`
+		: received;
 }
 
 export { describeMatchedParcel, showDuplicateToast, showMatchToast };

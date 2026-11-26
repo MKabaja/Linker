@@ -69,6 +69,8 @@ export function ScannerCandidatesSheet({
 										new Date(candidate.existingReturn.receivedAt),
 									)}{' '}
 									przez {candidate.existingReturn.receivedByName}
+									{candidate.existingReturn.deletedAt &&
+										`, usunięty ${formatWarsawDateTime(new Date(candidate.existingReturn.deletedAt))} przez ${candidate.existingReturn.deletedByName ?? '—'}`}
 								</span>
 							)}
 							<span className={candidateReasons}>
