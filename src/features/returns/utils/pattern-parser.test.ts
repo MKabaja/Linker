@@ -41,4 +41,13 @@ describe('parseNameMask', () => {
 		expect(parseNameMask('M*** Ka***')).toEqual(['m', 'ka']);
 		expect(parseNameMask('Ł** Śl****')).toEqual(['l', 'sl']);
 	});
+
+	it.each([
+		['ZI*** GÓ*** 1***', ['zi', 'go']],
+		['ZI*** GÓ*** l***', ['zi', 'go']],
+		['ZI*** GÓ*** I***', ['zi', 'go']],
+		['I*** Ka***', ['i', 'ka']],
+	])('numer domu z maski %s nie jest prefiksem', (mask, prefixes) => {
+		expect(parseNameMask(mask)).toEqual(prefixes);
+	});
 });

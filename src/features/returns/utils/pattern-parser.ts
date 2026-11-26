@@ -10,6 +10,8 @@ const MIN_KNOWN_PHONE_DIGITS = 2;
 const MAX_KNOWN_ANCHORED_DIGITS = 8;
 const STAR_IS_ONE_DIGIT = true;
 const MOSTLY_DIGITS_RATIO = 0.7;
+const NAME_WORDS = 2;
+const DIGIT_ONE_LOOKALIKES = new Set(['i', 'l']);
 
 const digitByLookalike = new Map([
 	['O', '0'],
@@ -80,12 +82,21 @@ function parsePhoneMask(text: string): PhoneMask {
 /**
  * Zamienia maskę imienia i nazwiska (`m*** ka***`) na prefiksy słów (`['m', 'ka']`).
  * Liczba gwiazdek jest ignorowana, polskie znaki są zdejmowane.
+ *
+ * @remarks
+ * Prefiksy są tylko literowe: słowo z cyfrą (numer domu `1***`) odpada, podobnie jak
+ * jednoliterowe `i`/`l` po imieniu i nazwisku (to samo `1***` przeczytane przez OCR jako litera).
  */
 function parseNameMask(text: string): string[] {
 	return foldPolishText(text)
 		.split(/[\s.,]+/)
+		.filter((word) => !/\d/.test(word))
 		.map((word) => word.match(/^[a-z]+/)?.[0] ?? '')
-		.filter(Boolean);
+		.filter(Boolean)
+		.filter(
+			(prefix, index) =>
+				index < NAME_WORDS || !DIGIT_ONE_LOOKALIKES.has(prefix),
+		);
 }
 
 /**

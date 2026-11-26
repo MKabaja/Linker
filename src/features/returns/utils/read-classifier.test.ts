@@ -84,6 +84,16 @@ describe('klasyfikacja odczytów', () => {
 		expect(detectCarrier('1012345678901U')).toBe('dpd');
 	});
 
+	it('cyfra przed literami nie zaczyna maski imienia (12a*** to nie prefiks a)', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([['rapid', 'ZI*** GÓ*** 12a***']]),
+		);
+
+		expect(
+			reads.map((read) => read.query.kind === 'name' && read.query.prefixes),
+		).toEqual([['zi', 'go']]);
+	});
+
 	it('ręczne wpisanie', () => {
 		const reads = readsFromManual('312345678, 7320***83');
 

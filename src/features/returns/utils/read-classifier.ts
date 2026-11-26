@@ -31,7 +31,7 @@ const MIN_DIGITS_IN_MIXED_WORD = 4;
 
 const LETTERS = 'a-ząćęłńóśźż';
 const NAME_MASK = new RegExp(
-	`[${LETTERS}]{1,4}\\*{2,}(?:[\\s.]+[${LETTERS}]{0,4}\\*{2,})*`,
+	`(?<![${LETTERS}\\d])[${LETTERS}]{1,4}\\*{2,}(?:[\\s.]+[${LETTERS}]{0,4}\\*{2,})*`,
 	'gi',
 );
 const PHONE_MASK = /(?:\+?48[\s-]?)?[\d*xX•](?:[\s-]?[\d*xX•]){6,10}/g;
