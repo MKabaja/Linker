@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/features/auth/server/services/current-user.service';
 import {
 	type CreateReturnInput,
@@ -38,13 +39,19 @@ async function createReturnAction(
 		return { status: 'invalid' };
 	}
 
-	return createReturn({
+	const result = await createReturn({
 		orderId: parsedInput.data.orderId,
 		userId: user.id,
 		matchedBy: parsedInput.data.matchedBy,
 		scannedLabel: parsedInput.data.scannedLabel ?? null,
 		now: new Date(),
 	});
+
+	if (result.status === 'created') {
+		revalidatePath('/returns');
+	}
+
+	return result;
 }
 
 async function updateReturnAction(
@@ -57,11 +64,18 @@ async function updateReturnAction(
 		return { status: 'invalid' };
 	}
 
-	return updateReturn({
+	const result = await updateReturn({
 		update: parsedInput.data,
 		userId: user.id,
 		now: new Date(),
 	});
+
+	if (result.status === 'updated') {
+		revalidatePath('/returns');
+		revalidatePath(`/returns/${parsedInput.data.returnId}`);
+	}
+
+	return result;
 }
 
 async function deleteReturnAction(
@@ -74,7 +88,13 @@ async function deleteReturnAction(
 		return { status: 'invalid' };
 	}
 
-	return deleteReturn(parsedInput.data.returnId);
+	const result = await deleteReturn(parsedInput.data.returnId);
+
+	if (result.status === 'deleted') {
+		revalidatePath('/returns');
+	}
+
+	return result;
 }
 
 async function saveScanLogAction(
