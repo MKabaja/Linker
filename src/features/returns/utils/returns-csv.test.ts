@@ -30,6 +30,7 @@ function buildReturn(overrides: Partial<ReturnRecord> = {}): ReturnRecord {
 		receivedBy: { id: 1, name: 'Ania' },
 		createdAt: new Date('2026-11-25T08:05:00Z'),
 		updatedAt: new Date('2026-11-25T08:05:00Z'),
+		deletion: null,
 		kind: 'full',
 		items: [buildItem()],
 		...overrides,

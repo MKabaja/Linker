@@ -8,18 +8,20 @@ import type {
 	DayReturns,
 	DeleteReturnResult,
 	OrderDetails,
+	RestoreReturnResult,
 	ReturnDetails,
 	ReturnRecord,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
 import { toDuplicateReturnWarning } from '@/features/returns/server/mappers/duplicate-return.mapper';
 import {
-	deleteReturnById,
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
+	restoreReturnWithEvent,
+	softDeleteReturnWithEvent,
 	updateReturnWithEvent,
 } from '@/features/returns/server/repositories/returns.repository';
 import { buildReturnsCsv } from '@/features/returns/utils/returns-csv';
@@ -35,11 +37,13 @@ type NewReturnRequest = {
 
 type ReturnUpdateRequest = { update: UpdateReturn; userId: number; now: Date };
 
+type ReturnStateChangeRequest = { returnId: number; userId: number; now: Date };
+
 /**
  * Tworzy zwrot z pozycji zamówienia, domyślnie z przyjętymi wszystkimi zamówionymi sztukami.
  *
  * @remarks
- * Gdy zwrot dla zamówienia już istnieje (także z importu), zwraca `duplicate` z istniejącym zwrotem
+ * Gdy zwrot dla zamówienia już istnieje (także z importu albo usunięty), zwraca `duplicate` z istniejącym zwrotem
  * i danymi do ostrzeżenia, bez drugiego wpisu; równoległe wywołania rozstrzyga ograniczenie unikalne na `order_id`.
  */
 async function createReturn({
@@ -85,29 +89,67 @@ async function createReturn({
 
 /**
  * Zmienia notatkę i przyjęte sztuki; każda zmiana dopisuje wpis do historii.
+ *
+ * @remarks Usuniętego zwrotu nie da się edytować: wynik `deleted`, bez zmian.
  */
 async function updateReturn({
 	update,
 	userId,
 	now,
 }: ReturnUpdateRequest): Promise<UpdateReturnResult> {
-	const isUpdated = await updateReturnWithEvent({
+	const outcome = await updateReturnWithEvent({
 		update,
 		userId,
 		updatedAt: now,
 	});
-	const returnRecord = isUpdated ? await findReturnById(update.returnId) : null;
+
+	if (outcome !== 'updated') {
+		return { status: outcome };
+	}
+
+	const returnRecord = await findReturnById(update.returnId);
 
 	return returnRecord
 		? { status: 'updated', returnRecord }
 		: { status: 'notFound' };
 }
 
-async function deleteReturn(returnId: number): Promise<DeleteReturnResult> {
-	const isDeleted = await deleteReturnById(returnId);
+/**
+ * Usuwa zwrot miękko: zostaje w bazie z osobą i datą usunięcia oraz wpisem `deleted` w historii.
+ * Zamówienie nadal ma zwrot, więc ponowne przyjęcie kończy się `duplicate`.
+ */
+async function deleteReturn({
+	returnId,
+	userId,
+	now,
+}: ReturnStateChangeRequest): Promise<DeleteReturnResult> {
+	const isDeleted = await softDeleteReturnWithEvent({
+		returnId,
+		userId,
+		deletedAt: now,
+	});
 	return isDeleted ? { status: 'deleted' } : { status: 'notFound' };
 }
 
+/**
+ * Przywraca usunięty zwrot i dopisuje wpis `restored`; `notFound`, gdy zwrotu nie ma albo nie jest usunięty.
+ */
+async function restoreReturn({
+	returnId,
+	userId,
+	now,
+}: ReturnStateChangeRequest): Promise<RestoreReturnResult> {
+	const isRestored = await restoreReturnWithEvent({
+		returnId,
+		userId,
+		restoredAt: now,
+	});
+	return isRestored ? { status: 'restored' } : { status: 'notFound' };
+}
+
+/**
+ * Zwraca zwrot z historią, także usunięty (wtedy `deletion` mówi kto i kiedy).
+ */
 async function getReturn(returnId: number): Promise<ReturnDetails | null> {
 	const returnRecord = await findReturnById(returnId);
 
@@ -176,5 +218,6 @@ export {
 	getReturn,
 	getReturnByOrderId,
 	getReturnsOfDay,
+	restoreReturn,
 	updateReturn,
 };

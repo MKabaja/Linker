@@ -1,12 +1,13 @@
 import { updateReturnAction } from '@/features/returns/actions';
 import type { UpdateReturnInput } from '@/features/returns/model/returns.schemas';
 
-type FailedStatus = 'notFound' | 'invalid';
+type FailedStatus = 'notFound' | 'deleted' | 'invalid';
 
 type MessageByFailedStatus = Record<FailedStatus, string>;
 
 const messageByFailedStatus: MessageByFailedStatus = {
 	notFound: 'Ten zwrot już nie istnieje.',
+	deleted: 'Ten zwrot został usunięty i nie można go edytować.',
 	invalid: 'Nie udało się zapisać: niepoprawne dane.',
 };
 

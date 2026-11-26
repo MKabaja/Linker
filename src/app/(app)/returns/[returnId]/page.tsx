@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { DeletedReturnBanner } from '@/features/returns/components/deleted-return-banner';
 import { DuplicateReturnAlert } from '@/features/returns/components/duplicate-return-alert';
 import { ReturnEditor } from '@/features/returns/components/return-editor';
 import { ReturnHeader } from '@/features/returns/components/return-header';
@@ -36,6 +37,7 @@ export default async function ReturnPage(
 	}
 
 	const orderDetails = await getOrderDetails(returnDetails.orderId, new Date());
+	const { deletion } = returnDetails;
 
 	return (
 		<section className="mx-auto flex w-full max-w-4xl flex-col gap-6 pt-4">
@@ -43,6 +45,19 @@ export default async function ReturnPage(
 				<DuplicateReturnAlert
 					receivedAtLabel={formatWarsawDateTime(returnDetails.createdAt)}
 					receivedByName={returnDetails.receivedBy.name}
+					deletion={
+						deletion && {
+							deletedAtLabel: formatWarsawDateTime(deletion.at),
+							deletedByName: deletion.byName,
+						}
+					}
+				/>
+			)}
+			{deletion && (
+				<DeletedReturnBanner
+					returnId={returnDetails.id}
+					deletedAtLabel={formatWarsawDateTime(deletion.at)}
+					deletedByName={deletion.byName}
 				/>
 			)}
 			<ReturnHeader
@@ -61,11 +76,13 @@ export default async function ReturnPage(
 				Skanuj następną
 			</Link>
 			<ReturnPackages orderDetails={orderDetails} />
-			<ReturnEditor
-				returnId={returnDetails.id}
-				note={returnDetails.note}
-				items={returnDetails.items}
-			/>
+			<fieldset disabled={deletion !== null} className="contents">
+				<ReturnEditor
+					returnId={returnDetails.id}
+					note={returnDetails.note}
+					items={returnDetails.items}
+				/>
+			</fieldset>
 			<ReturnHistory events={returnDetails.events} />
 		</section>
 	);

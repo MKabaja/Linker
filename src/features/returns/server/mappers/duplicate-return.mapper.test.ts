@@ -14,6 +14,7 @@ function buildReturnRecord(
 		createdAt: new Date('2026-11-25T22:30:00.000Z'),
 		updatedAt: new Date('2026-11-25T22:30:00.000Z'),
 		kind: 'partial',
+		deletion: null,
 		items: [],
 		...overrides,
 	};
@@ -29,7 +30,23 @@ describe('toDuplicateReturnWarning', () => {
 			receivedByName: 'Ania',
 			kind: 'partial',
 			kindLabel: 'Częściowy',
+			deletedAtLabel: null,
+			deletedByName: null,
 		});
+	});
+
+	it('shows when (in Warsaw time) and by whom a return was deleted', () => {
+		const warning = toDuplicateReturnWarning(
+			buildReturnRecord({
+				deletion: {
+					at: new Date('2026-11-26T08:15:00.000Z'),
+					byName: 'Basia',
+				},
+			}),
+		);
+
+		expect(warning.deletedAtLabel).toBe('26.11.2026, 09:15');
+		expect(warning.deletedByName).toBe('Basia');
 	});
 
 	it('labels a full return', () => {

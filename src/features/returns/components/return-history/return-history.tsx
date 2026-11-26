@@ -12,6 +12,8 @@ type LabelByEventKind = Record<ReturnEventKind, string>;
 const labelByEventKind: LabelByEventKind = {
 	created: 'Przyjęto zwrot',
 	updated: 'Zmieniono zwrot',
+	deleted: 'Usunięto zwrot',
+	restored: 'Przywrócono zwrot',
 };
 
 export function ReturnHistory({ events }: ReturnHistoryProps) {

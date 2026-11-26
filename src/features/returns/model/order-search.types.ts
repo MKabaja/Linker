@@ -10,6 +10,9 @@ type ExistingReturn = {
 	receivedAt: string;
 	/** Imię pracownika albo etykieta importu. */
 	receivedByName: string;
+	/** ISO 8601 w UTC; ustawione, gdy zwrot usunięto. */
+	deletedAt?: string | null;
+	deletedByName?: string | null;
 };
 
 type SearchCandidate = ScoredCandidate & {

@@ -1,5 +1,16 @@
 import 'server-only';
-import { and, asc, desc, eq, inArray, type SQL, sql } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	isNull,
+	type SQL,
+	sql,
+} from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/database/client';
 import { returnEvents } from '@/database/schema/return-events.schema';
 import { returnItems } from '@/database/schema/return-items.schema';
@@ -29,9 +40,17 @@ type NewEvent = {
 	createdAt: Date;
 };
 
+type SoftDeleteChange = { returnId: number; userId: number; deletedAt: Date };
+
+type RestoreChange = { returnId: number; userId: number; restoredAt: Date };
+
+type UpdateOutcome = 'updated' | 'deleted' | 'notFound';
+
 type ExistingReturnByOrderId = Map<number, ExistingReturn>;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+const deleter = alias(users, 'deleter');
 
 const returnColumns = {
 	id: returns.id,
@@ -40,6 +59,8 @@ const returnColumns = {
 	note: returns.note,
 	createdAt: returns.createdAt,
 	updatedAt: returns.updatedAt,
+	deletedAt: returns.deletedAt,
+	deletedByName: deleter.name,
 	receivedById: users.id,
 	receivedByName: users.name,
 };
@@ -63,6 +84,8 @@ type ReturnRow = {
 	note: string;
 	createdAt: Date;
 	updatedAt: Date;
+	deletedAt: Date | null;
+	deletedByName: string | null;
 	receivedById: number | null;
 	receivedByName: string | null;
 };
@@ -118,22 +141,26 @@ async function insertReturnIfAbsent(
  * Zmienia notatkę i pozycje zwrotu i dopisuje wpis `updated` z migawką stanu po zmianie.
  *
  * @remarks Pozycje spoza tego zwrotu są pomijane. Wiersz zwrotu jest blokowany do końca transakcji.
- * @returns `false`, gdy zwrotu nie ma.
+ * @returns `deleted`, gdy zwrot jest usunięty (bez zmian), `notFound`, gdy zwrotu nie ma.
  */
 async function updateReturnWithEvent({
 	update,
 	userId,
 	updatedAt,
-}: ReturnChange): Promise<boolean> {
+}: ReturnChange): Promise<UpdateOutcome> {
 	return db.transaction(async (transaction) => {
 		const [locked] = await transaction
-			.select({ id: returns.id })
+			.select({ id: returns.id, deletedAt: returns.deletedAt })
 			.from(returns)
 			.where(eq(returns.id, update.returnId))
 			.for('update');
 
 		if (!locked) {
-			return false;
+			return 'notFound';
+		}
+
+		if (locked.deletedAt) {
+			return 'deleted';
 		}
 
 		await transaction
@@ -163,17 +190,72 @@ async function updateReturnWithEvent({
 			createdAt: updatedAt,
 		});
 
+		return 'updated';
+	});
+}
+
+/**
+ * Oznacza zwrot jako usunięty i dopisuje wpis `deleted` z migawką stanu. Zwrot zostaje w bazie i nadal blokuje nowy zwrot dla zamówienia.
+ *
+ * @returns `false`, gdy zwrotu nie ma albo jest już usunięty.
+ */
+async function softDeleteReturnWithEvent({
+	returnId,
+	userId,
+	deletedAt,
+}: SoftDeleteChange): Promise<boolean> {
+	return db.transaction(async (transaction) => {
+		const [changed] = await transaction
+			.update(returns)
+			.set({ deletedAt, deletedBy: userId })
+			.where(and(eq(returns.id, returnId), isNull(returns.deletedAt)))
+			.returning({ id: returns.id });
+
+		if (!changed) {
+			return false;
+		}
+
+		await insertEvent(transaction, {
+			returnId,
+			kind: 'deleted',
+			userId,
+			createdAt: deletedAt,
+		});
+
 		return true;
 	});
 }
 
-async function deleteReturnById(returnId: number): Promise<boolean> {
-	const deleted = await db
-		.delete(returns)
-		.where(eq(returns.id, returnId))
-		.returning({ id: returns.id });
+/**
+ * Przywraca usunięty zwrot i dopisuje wpis `restored`.
+ *
+ * @returns `false`, gdy zwrotu nie ma albo nie jest usunięty.
+ */
+async function restoreReturnWithEvent({
+	returnId,
+	userId,
+	restoredAt,
+}: RestoreChange): Promise<boolean> {
+	return db.transaction(async (transaction) => {
+		const [changed] = await transaction
+			.update(returns)
+			.set({ deletedAt: null, deletedBy: null })
+			.where(and(eq(returns.id, returnId), isNotNull(returns.deletedAt)))
+			.returning({ id: returns.id });
 
-	return deleted.length > 0;
+		if (!changed) {
+			return false;
+		}
+
+		await insertEvent(transaction, {
+			returnId,
+			kind: 'restored',
+			userId,
+			createdAt: restoredAt,
+		});
+
+		return true;
+	});
 }
 
 async function findReturnById(returnId: number): Promise<ReturnRecord | null> {
@@ -189,7 +271,7 @@ async function findReturnByOrderId(
 }
 
 /**
- * Zwraca przyjęte zwroty dla podanych zamówień jednym zapytaniem.
+ * Zwraca zwroty (także usunięte) dla podanych zamówień jednym zapytaniem.
  *
  * @returns Mapa po `order_id`; zamówień bez zwrotu w niej nie ma.
  */
@@ -206,9 +288,12 @@ async function findExistingReturnsByOrderIds(
 			orderId: returns.orderId,
 			createdAt: returns.createdAt,
 			receivedByName: users.name,
+			deletedAt: returns.deletedAt,
+			deletedByName: deleter.name,
 		})
 		.from(returns)
 		.leftJoin(users, eq(users.id, returns.receivedBy))
+		.leftJoin(deleter, eq(deleter.id, returns.deletedBy))
 		.where(inArray(returns.orderId, orderIds));
 
 	return new Map(
@@ -218,19 +303,26 @@ async function findExistingReturnsByOrderIds(
 				returnId: row.returnId,
 				receivedAt: row.createdAt.toISOString(),
 				receivedByName: row.receivedByName ?? IMPORTED_RECEIVER_NAME,
+				deletedAt: row.deletedAt?.toISOString() ?? null,
+				deletedByName: row.deletedAt
+					? (row.deletedByName ?? IMPORTED_RECEIVER_NAME)
+					: null,
 			},
 		]),
 	);
 }
 
 /**
- * Zwraca zwroty przyjęte danego dnia kalendarzowego w Polsce, od najnowszego.
+ * Zwraca nieusunięte zwroty przyjęte danego dnia kalendarzowego w Polsce, od najnowszego.
  *
  * @param dateKey - Data `YYYY-MM-DD`.
  */
 function findReturnsCreatedOn(dateKey: string): Promise<ReturnRecord[]> {
 	return findReturnRecords(
-		sql`(${returns.createdAt} at time zone ${WARSAW_TIME_ZONE})::date = ${dateKey}::date`,
+		and(
+			isNull(returns.deletedAt),
+			sql`(${returns.createdAt} at time zone ${WARSAW_TIME_ZONE})::date = ${dateKey}::date`,
+		),
 	);
 }
 
@@ -255,11 +347,14 @@ async function findReturnEvents(returnId: number): Promise<ReturnEvent[]> {
 	}));
 }
 
-async function findReturnRecords(condition: SQL): Promise<ReturnRecord[]> {
+async function findReturnRecords(
+	condition: SQL | undefined,
+): Promise<ReturnRecord[]> {
 	const rows = await db
 		.select(returnColumns)
 		.from(returns)
 		.leftJoin(users, eq(users.id, returns.receivedBy))
+		.leftJoin(deleter, eq(deleter.id, returns.deletedBy))
 		.where(condition)
 		.orderBy(desc(returns.createdAt));
 
@@ -323,18 +418,25 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 		},
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
+		deletion: row.deletedAt
+			? {
+					at: row.deletedAt,
+					byName: row.deletedByName ?? IMPORTED_RECEIVER_NAME,
+				}
+			: null,
 		kind: getReturnKind(items),
 		items,
 	};
 }
 
 export {
-	deleteReturnById,
 	findExistingReturnsByOrderIds,
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
+	restoreReturnWithEvent,
+	softDeleteReturnWithEvent,
 	updateReturnWithEvent,
 };

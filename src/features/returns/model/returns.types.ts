@@ -31,7 +31,7 @@ type ReturnKind = 'full' | 'partial';
 
 type ReturnItemCondition = 'accepted' | 'damaged';
 
-type ReturnEventKind = 'created' | 'updated';
+type ReturnEventKind = 'created' | 'updated' | 'deleted' | 'restored';
 
 type ReturnedQuantities = { quantityOrdered: number; quantityReceived: number };
 
@@ -45,6 +45,9 @@ type ReturnItem = ReturnedQuantities & {
 	condition: ReturnItemCondition;
 };
 
+/** Kto i kiedy usunął zwrot; osoba to `IMPORTED_RECEIVER_NAME`, gdy autora nie ma. */
+type ReturnDeletion = { at: Date; byName: string };
+
 type ReturnRecord = {
 	id: number;
 	orderId: number;
@@ -54,6 +57,8 @@ type ReturnRecord = {
 	receivedBy: { id: number | null; name: string };
 	createdAt: Date;
 	updatedAt: Date;
+	/** `null`, gdy zwrot nie jest usunięty. */
+	deletion: ReturnDeletion | null;
 	kind: ReturnKind;
 	items: ReturnItem[];
 };
@@ -90,9 +95,12 @@ type CreateReturnResult =
 
 type UpdateReturnResult =
 	| { status: 'updated'; returnRecord: ReturnRecord }
+	| { status: 'deleted' }
 	| { status: 'notFound' };
 
 type DeleteReturnResult = { status: 'deleted' } | { status: 'notFound' };
+
+type RestoreReturnResult = { status: 'restored' } | { status: 'notFound' };
 
 type OrderDetailsItem = {
 	position: number;
@@ -147,6 +155,9 @@ type DuplicateReturnWarning = {
 	kind: ReturnKind;
 	/** `Pełny` albo `Częściowy`. */
 	kindLabel: string;
+	/** `DD.MM.RRRR, GG:MM`; `null`, gdy zwrot nie jest usunięty. */
+	deletedAtLabel: string | null;
+	deletedByName: string | null;
 };
 
 export type {
@@ -159,6 +170,8 @@ export type {
 	OrderDetailsItem,
 	OrderDetailsPackage,
 	OrderDetailsResult,
+	RestoreReturnResult,
+	ReturnDeletion,
 	ReturnDetails,
 	ReturnEvent,
 	ReturnEventKind,

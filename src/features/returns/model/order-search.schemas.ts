@@ -25,6 +25,8 @@ const searchCandidateSchema = z.object({
 			returnId: z.number(),
 			receivedAt: z.string(),
 			receivedByName: z.string(),
+			deletedAt: z.string().nullish(),
+			deletedByName: z.string().nullish(),
 		})
 		.nullable(),
 });

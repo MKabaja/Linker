@@ -44,7 +44,10 @@ export function ReturnDeleteButton({
 
 	return (
 		<div role="alertdialog" aria-label="Potwierdź usunięcie" className={root}>
-			<span className={question}>Na pewno usunąć ten zwrot?</span>
+			<span className={question}>
+				Na pewno usunąć ten zwrot? Zostanie w historii i będzie można go
+				przywrócić.
+			</span>
 			<Button
 				variant="destructive"
 				disabled={isDeleting}

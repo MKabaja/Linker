@@ -17,5 +17,9 @@ export function toDuplicateReturnWarning(
 		receivedByName: returnRecord.receivedBy.name,
 		kind: returnRecord.kind,
 		kindLabel: returnKindLabelByKind[returnRecord.kind],
+		deletedAtLabel: returnRecord.deletion
+			? formatWarsawDateTime(returnRecord.deletion.at)
+			: null,
+		deletedByName: returnRecord.deletion?.byName ?? null,
 	};
 }

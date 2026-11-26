@@ -13,6 +13,7 @@ import {
 import type {
 	CreateReturnResult,
 	DeleteReturnResult,
+	RestoreReturnResult,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
 import {
@@ -23,6 +24,7 @@ import type { SaveScanLogResult } from '@/features/returns/model/scan-log.types'
 import {
 	createReturn,
 	deleteReturn,
+	restoreReturn,
 	updateReturn,
 } from '@/features/returns/server/services/returns.service';
 import { saveScanLog } from '@/features/returns/server/services/scan-log.service';
@@ -81,17 +83,48 @@ async function updateReturnAction(
 async function deleteReturnAction(
 	input: ReturnIdInput,
 ): Promise<DeleteReturnResult | InvalidInput> {
-	await requireUser();
+	const user = await requireUser();
 	const parsedInput = returnIdSchema.safeParse(input);
 
 	if (!parsedInput.success) {
 		return { status: 'invalid' };
 	}
 
-	const result = await deleteReturn(parsedInput.data.returnId);
+	const { returnId } = parsedInput.data;
+	const result = await deleteReturn({
+		returnId,
+		userId: user.id,
+		now: new Date(),
+	});
 
 	if (result.status === 'deleted') {
 		revalidatePath('/returns');
+		revalidatePath(`/returns/${returnId}`);
+	}
+
+	return result;
+}
+
+async function restoreReturnAction(
+	input: ReturnIdInput,
+): Promise<RestoreReturnResult | InvalidInput> {
+	const user = await requireUser();
+	const parsedInput = returnIdSchema.safeParse(input);
+
+	if (!parsedInput.success) {
+		return { status: 'invalid' };
+	}
+
+	const { returnId } = parsedInput.data;
+	const result = await restoreReturn({
+		returnId,
+		userId: user.id,
+		now: new Date(),
+	});
+
+	if (result.status === 'restored') {
+		revalidatePath('/returns');
+		revalidatePath(`/returns/${returnId}`);
 	}
 
 	return result;
@@ -114,6 +147,7 @@ async function saveScanLogAction(
 export {
 	createReturnAction,
 	deleteReturnAction,
+	restoreReturnAction,
 	saveScanLogAction,
 	updateReturnAction,
 };
