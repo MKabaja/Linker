@@ -4,6 +4,8 @@ import type {
 	ShopMatchingConfig,
 } from '@/features/returns/model/returns.types';
 
+const MAX_INTEGER_ID = 2_147_483_647;
+
 type ReturnKindLabelByKind = Record<ReturnKind, string>;
 
 type ConditionLabelByCondition = Record<ReturnItemCondition, string>;
@@ -43,6 +45,7 @@ export {
 	BONUS_TRACE_ID,
 	conditionLabelByCondition,
 	defaultShopMatchingConfig,
+	MAX_INTEGER_ID,
 	RETURN_NOTE_MAX_LENGTH,
 	returnKindLabelByKind,
 	SEED_ORDER_SOURCE,

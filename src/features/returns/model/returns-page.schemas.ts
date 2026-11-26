@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { MAX_INTEGER_ID } from '@/features/returns/model/returns.constants';
 
 const returnPageParamsSchema = z.object({
-	returnId: z.coerce.number().int().positive(),
+	returnId: z.coerce.number().int().positive().max(MAX_INTEGER_ID),
 });
 
 const returnPageSearchParamsSchema = z.object({

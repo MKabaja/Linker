@@ -3,7 +3,10 @@ import {
 	SCANNED_LABEL_MAX_LENGTH,
 	SCANNER_MATCHED_BY,
 } from '@/features/returns/model/return-origin.constants';
-import { RETURN_NOTE_MAX_LENGTH } from '@/features/returns/model/returns.constants';
+import {
+	MAX_INTEGER_ID,
+	RETURN_NOTE_MAX_LENGTH,
+} from '@/features/returns/model/returns.constants';
 
 const MAX_TRACES = 60;
 const MAX_PATTERN_SLOTS = 64;
@@ -39,7 +42,7 @@ const searchOrdersRequestSchema = z.object({
 	traces: z.array(traceQuerySchema).max(MAX_TRACES),
 });
 
-const idSchema = z.coerce.number().int().positive();
+const idSchema = z.coerce.number().int().positive().max(MAX_INTEGER_ID);
 const conditionSchema = z.enum(['accepted', 'damaged']);
 
 const scannedLabelSchema = z
