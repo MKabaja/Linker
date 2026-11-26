@@ -15,6 +15,8 @@ export const returnItemRowStyles = {
 	stepper: 'flex items-center gap-2 self-end sm:self-auto',
 	stepButton: 'size-12 text-xl',
 	counter: 'min-w-20 text-center text-xl font-semibold text-main tabular-nums',
+	surplusCounter:
+		'min-w-20 text-center text-xl font-semibold text-warning tabular-nums',
 	ordered: 'text-dim',
 } satisfies Record<string, string>;
 

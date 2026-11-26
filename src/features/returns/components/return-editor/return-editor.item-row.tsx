@@ -9,6 +9,8 @@ type ReturnItemRowProps = {
 	onQuantityChange: (item: ReturnItem, quantityReceived: number) => void;
 };
 
+const MAX_RECEIVED_QUANTITY = 999;
+
 export function ReturnItemRow({
 	item,
 	isDisabled,
@@ -23,10 +25,12 @@ export function ReturnItemRow({
 		stepper,
 		stepButton,
 		counter,
+		surplusCounter,
 		ordered,
 	} = returnItemRowStyles;
 	const canDecrease = item.quantityReceived > 0;
-	const canIncrease = item.quantityReceived < item.quantityOrdered;
+	const canIncrease = item.quantityReceived < MAX_RECEIVED_QUANTITY;
+	const hasSurplus = item.quantityReceived > item.quantityOrdered;
 
 	return (
 		<li className={row}>
@@ -50,7 +54,7 @@ export function ReturnItemRow({
 				>
 					<Minus />
 				</Button>
-				<output className={counter}>
+				<output className={hasSurplus ? surplusCounter : counter}>
 					{item.quantityReceived}
 					<span className={ordered}> / {item.quantityOrdered}</span>
 				</output>
