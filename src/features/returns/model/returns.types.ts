@@ -5,7 +5,10 @@
 type ShopMatchingConfig = {
 	/** Kod pocztowy sklepu, same cyfry (np. `32432`). Pasuje też zapis z kreską w tekście. */
 	postcode: string;
-	/** Słowa z adresu i nazwy sklepu. Linia, która zawiera którekolwiek z nich jako całe słowo, nie daje tropów. */
+	/**
+	 * Słowa z adresu i nazwy sklepu. Linia, która zawiera którekolwiek z nich, nie daje tropów: słowa od 5 znaków
+	 * także sklejone z innymi lub rozstrzelone, krótsze tylko jako całe słowa.
+	 */
 	textMarkers: readonly string[];
 	/**
 	 * Końcówka telefonu sklepu. Telefon z tą końcówką nie jest tropem; maska bez innych znanych cyfr

@@ -10,11 +10,17 @@ import { countDiffs } from '@/features/returns/utils/pattern-cost';
 
 const POSTCODE_HEAD_LENGTH = 2;
 const MAX_SHOP_POSTCODE_DIFFS = 1;
+const MIN_GLUED_MARKER_LENGTH = 5;
+const MARKER_GAP = '[^a-z0-9]*';
 
 const shopTextPatternsByConfig = new WeakMap<ShopMatchingConfig, RegExp[]>();
 
 /**
  * Sprawdza, czy linia tekstu zawiera adres lub nazwę sklepu. Taka linia nie jest źródłem tropów.
+ *
+ * @remarks
+ * Znaczniki od 5 znaków pasują też wewnątrz słów i z odstępami między literami (`KozackaDrogeria.pl`,
+ * `K O Z A C K A`); krótsze (`pcim`, `720`) tylko jako całe słowa, żeby nie wycinać fragmentów numerów.
  */
 function isShopText(
 	text: string,
@@ -117,7 +123,11 @@ function postcodeTextPattern(postcode: string): RegExp {
 }
 
 function markerPattern(marker: string): RegExp {
-	return new RegExp(`\\b${escapeRegExp(foldPolishText(marker))}\\b`);
+	const folded = foldPolishText(marker).replace(/\s+/g, '');
+	if (folded.length < MIN_GLUED_MARKER_LENGTH) {
+		return new RegExp(`\\b${escapeRegExp(folded)}\\b`);
+	}
+	return new RegExp([...folded].map(escapeRegExp).join(MARKER_GAP));
 }
 
 function escapeRegExp(text: string): string {

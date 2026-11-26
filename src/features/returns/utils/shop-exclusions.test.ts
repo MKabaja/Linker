@@ -89,4 +89,36 @@ describe('wykluczenia sklepu', () => {
 			isShopTrace({ id: '', kind: 'name', prefixes: parseNameMask(mask) }),
 		).toBe(isShop);
 	});
+
+	it.each([
+		'KozackaDrogeria.pl  Chemia gospodarcza',
+		'DrogeriaKozacka',
+		'KOZACKA DROGERIA sp. z o.o.',
+		'ul. Kozacka-Drogeria',
+		'K O Z A C K A',
+		'PL-32432 Pcim',
+	])('niezamaskowana nazwa sklepu: %s', (text) => {
+		expect(isShopText(text)).toBe(true);
+	});
+
+	it.each([
+		'620999667201234567890166',
+		'6209 9966 7201 2345',
+		'Pcimowski Jan',
+		'Kozak Anna',
+	])('krótkie znaczniki nie wycinają fragmentów innych słów: %s', (text) => {
+		expect(isShopText(text)).toBe(false);
+	});
+
+	it('linia z nazwą sklepu i maską imienia nie daje tropu imienia', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([
+				['rapid', 'KozackaDrogeria.pl Ko*** Dr***'],
+				['rapid', 'KOZACKA DROGERIA AN*** NO***'],
+				['rapid', '620999667201234567890166'],
+			]),
+		);
+
+		expect(reads.map((read) => read.kind)).toEqual(['package']);
+	});
 });
