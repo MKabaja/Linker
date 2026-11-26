@@ -15,6 +15,7 @@ import {
 import type { SearchCandidate } from '@/features/returns/model/order-search.types';
 import type { CreateReturnInput } from '@/features/returns/model/returns.schemas';
 import type { CreateReturnResult } from '@/features/returns/model/returns.types';
+import type { ScanLogInput } from '@/features/returns/model/scan-log.schemas';
 import type { TraceEntry } from '@/features/returns/model/traces.types';
 import {
 	detectCarrier,
@@ -29,6 +30,8 @@ import { pickScannedLabel } from '@/features/returns/utils/scanned-label';
 import type { DetectedCode } from './barcode-reader';
 import { returnsScannerStyles } from './returns-scanner.styles';
 import { createScanDiagnostics } from './scan-diagnostics';
+import { beginScan, endScan, recordScanEvent } from './scan-event-recorder';
+import { buildScanFinishedEvent } from './scan-events';
 import { ScannerCandidatesSheet } from './scanner-candidates-sheet';
 import { ScannerControls } from './scanner-controls';
 import { playHitFeedback, unlockAudio } from './scanner-feedback';
@@ -66,7 +69,7 @@ export function ReturnsScanner() {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const isFinishingRef = useRef(false);
 	const [diagnostics] = useState(() => createScanDiagnostics(Date.now()));
-	const [scanSession] = useState(() => crypto.randomUUID());
+	const scanSession = diagnostics.scanId;
 	const [phase, setPhase] = useState<Phase>({ kind: 'scanning' });
 	const [panel, setPanel] = useState<Panel>('none');
 	const [nowMs, setNowMs] = useState(0);
@@ -83,6 +86,7 @@ export function ReturnsScanner() {
 	const isPaused = panel === 'manual';
 
 	const traceSearch = useTraceSearch({
+		scanId: scanSession,
 		onAutoMatch: (match) =>
 			void finishScan({
 				...match,
@@ -115,25 +119,47 @@ export function ReturnsScanner() {
 		if (nowMs - diagnostics.startedAtMs < MIN_ABORTED_SCAN_MS) {
 			return;
 		}
-		void saveScanLogAction(
-			diagnostics.toScanLog({
-				outcome: 'aborted',
-				nowMs,
-				entries: traceSearch.entries,
-				candidates: traceSearch.result?.candidates ?? [],
-			}),
-		).catch(() => undefined);
+		const scanLog = diagnostics.toScanLog({
+			outcome: 'aborted',
+			nowMs,
+			entries: traceSearch.entries,
+			candidates: traceSearch.result?.candidates ?? [],
+		});
+		recordScanFinished(scanLog);
+		void saveScanLogAction(scanLog).catch(() => undefined);
 	});
+
+	function recordScanFinished(scanLog: ScanLogInput) {
+		recordScanEvent(
+			scanSession,
+			buildScanFinishedEvent({
+				scanLog,
+				view: camera.view,
+				zoom: camera.zoom?.value,
+				frame: camera.frameSize,
+			}),
+		);
+	}
 
 	useEffect(() => {
 		document.addEventListener('pointerdown', unlockAudio, { once: true });
 		const clock = setInterval(() => setNowMs(Date.now()), CLOCK_TICK_MS);
+		beginScan(scanSession);
+		recordScanEvent(scanSession, {
+			type: 'scan.started',
+			viewport: {
+				width: window.innerWidth,
+				height: window.innerHeight,
+				pixelRatio: window.devicePixelRatio,
+			},
+		});
 		return () => {
 			document.removeEventListener('pointerdown', unlockAudio);
 			clearInterval(clock);
 			logAbortedScan();
+			endScan(scanSession);
 		};
-	}, []);
+	}, [scanSession]);
 
 	function handleCodes(codes: DetectedCode[]) {
 		const reads = codes.flatMap(({ value, bbox }) => {
@@ -162,15 +188,25 @@ export function ReturnsScanner() {
 		camera.close();
 		setPanel('none');
 		setPhase({ kind: 'saving', orderId: candidate.orderId });
-		void saveScanLogAction(
-			diagnostics.toScanLog({
-				outcome: matchedBy,
-				nowMs: Date.now(),
-				chosenOrderId: candidate.orderId,
-				entries,
-				candidates,
-			}),
-		).catch(() => undefined);
+		const scanLog = diagnostics.toScanLog({
+			outcome: matchedBy,
+			nowMs: Date.now(),
+			chosenOrderId: candidate.orderId,
+			entries,
+			candidates,
+		});
+		const candidateRank = candidates.findIndex(
+			({ orderId }) => orderId === candidate.orderId,
+		);
+		recordScanEvent(scanSession, {
+			type: 'scan.decision',
+			decision: matchedBy,
+			orderId: candidate.orderId,
+			candidateRank: candidateRank === -1 ? undefined : candidateRank,
+			bits: candidate.bits,
+		});
+		recordScanFinished(scanLog);
+		void saveScanLogAction(scanLog).catch(() => undefined);
 
 		const result = await saveReturn({
 			orderId: candidate.orderId,
@@ -179,11 +215,18 @@ export function ReturnsScanner() {
 		});
 
 		if (result.status === 'created') {
+			endScan(scanSession);
 			showMatchToast({ entries, candidate });
 			router.push(`/returns/${result.returnRecord.id}`);
 			return;
 		}
 		if (result.status === 'duplicate') {
+			recordScanEvent(scanSession, {
+				type: 'scan.decision',
+				decision: 'duplicate',
+				orderId: candidate.orderId,
+			});
+			endScan(scanSession);
 			showDuplicateToast({
 				entries,
 				candidate,

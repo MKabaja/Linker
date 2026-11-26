@@ -11,6 +11,12 @@ import type {
 	TraceEntry,
 } from '@/features/returns/model/traces.types';
 import { createTraceCollector } from '@/features/returns/utils/trace-collector';
+import { recordScanEvent } from './scan-event-recorder';
+import {
+	buildReadEvents,
+	buildTraceStateEvents,
+	type TraceStateByTraceId,
+} from './scan-events';
 
 const SEARCH_URL = '/api/returns/search';
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -25,6 +31,8 @@ type AutoMatch = {
 };
 
 type UseTraceSearchOptions = {
+	/** Identyfikator skanu: nagłówek zapytań i dziennik zdarzeń. */
+	scanId: string;
 	onAutoMatch: (match: AutoMatch) => void;
 };
 
@@ -47,6 +55,7 @@ type UseTraceSearchResult = {
  * Błędy sieci i serwera są stanem (`problem`), nie wyjątkiem; żądanie ma limit 10 s.
  */
 function useTraceSearch({
+	scanId,
 	onAutoMatch,
 }: UseTraceSearchOptions): UseTraceSearchResult {
 	const [collector] = useState(createTraceCollector);
@@ -58,6 +67,8 @@ function useTraceSearch({
 	const isStoppedRef = useRef(false);
 	const latestResultRef = useRef<SearchResponse | null>(null);
 	const abortRef = useRef(new AbortController());
+	const seenReadsRef = useRef(new Set<string>());
+	const loggedTraceStatesRef = useRef<TraceStateByTraceId>(new Map());
 	const handleAutoMatch = useEffectEvent(onAutoMatch);
 
 	useEffect(() => {
@@ -70,7 +81,11 @@ function useTraceSearch({
 		if (reads.length === 0 || isStoppedRef.current) {
 			return;
 		}
+		for (const event of buildReadEvents(reads, seenReadsRef.current)) {
+			recordScanEvent(scanId, event);
+		}
 		const changed = collector.addReads(reads);
+		recordTraceStates(changed);
 		setEntries(collector.entries());
 		if (changed.length > 0) {
 			requestSearch();
@@ -83,6 +98,15 @@ function useTraceSearch({
 			await busyRef.current;
 		}
 		return latestResultRef.current;
+	}
+
+	function recordTraceStates(changedEntries: TraceEntry[]) {
+		for (const event of buildTraceStateEvents(
+			changedEntries,
+			loggedTraceStatesRef.current,
+		)) {
+			recordScanEvent(scanId, event);
+		}
 	}
 
 	function resume() {
@@ -111,6 +135,7 @@ function useTraceSearch({
 		try {
 			const response = await fetch(SEARCH_URL, {
 				method: 'POST',
+				headers: { 'X-Scan-Session': scanId },
 				body: JSON.stringify({ traces: sent }),
 				signal: AbortSignal.any([
 					abortRef.current.signal,
@@ -134,6 +159,7 @@ function useTraceSearch({
 			setProblem(null);
 			setResult(searchResponse);
 			setEntries(collector.entries());
+			recordTraceStates(collector.entries());
 			const [best] = searchResponse.candidates;
 			if (searchResponse.decision === 'auto' && best) {
 				handleAutoMatch({

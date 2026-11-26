@@ -13,6 +13,7 @@ const MAX_DISPLAY_LENGTH = 80;
 type EngineStats = { count: number; totalMs: number };
 
 type ScanDiagnostics = {
+	scanId: string;
 	startedAtMs: number;
 	noteBarcodeCall: (milliseconds: number) => void;
 	noteCarrier: (carrier: string | null) => void;
@@ -109,6 +110,7 @@ function createScanDiagnostics(startedAtMs: number): ScanDiagnostics {
 	}
 
 	return {
+		scanId,
 		startedAtMs,
 		noteBarcodeCall(milliseconds) {
 			barcodeCalls++;
