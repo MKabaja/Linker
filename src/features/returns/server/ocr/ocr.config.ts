@@ -1,8 +1,18 @@
 import 'server-only';
 import path from 'node:path';
+import { z } from 'zod';
 
-const RAPID_OCR_SERVICE_URL =
-	process.env.OCR_SERVICE_URL ?? 'http://127.0.0.1:3201';
+const DEFAULT_RAPID_OCR_SERVICE_URL = 'http://127.0.0.1:3201';
+
+const ocrEnvSchema = z.object({
+	OCR_SERVICE_URL: z
+		.string()
+		.trim()
+		.optional()
+		.transform((url) => url || DEFAULT_RAPID_OCR_SERVICE_URL),
+});
+
+const RAPID_OCR_SERVICE_URL = ocrEnvSchema.parse(process.env).OCR_SERVICE_URL;
 const RAPID_OCR_TIMEOUT_MS = 8_000;
 const RAPID_OCR_RETRY_AFTER_MS = 15_000;
 
