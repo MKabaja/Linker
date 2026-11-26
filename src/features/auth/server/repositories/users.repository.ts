@@ -1,5 +1,5 @@
 import 'server-only';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '@/database/client';
 import { users } from '@/database/schema/users.schema';
 import type { UserRole } from '@/features/auth/model/auth.schemas';
@@ -13,10 +13,11 @@ type NewUserRow = {
 
 type InsertedUser = { id: number };
 
-type FailedLogin = {
+type LoginAttemptReservation = {
 	userId: number;
-	maxFailedAttempts: number;
+	maxAttempts: number;
 	lockedUntil: Date;
+	now: Date;
 };
 
 /**
@@ -47,24 +48,39 @@ async function findUserByEmail(email: string) {
 }
 
 /**
- * Zwiększa licznik nieudanych logowań w jednym zapytaniu (bez wyścigu przy równoległych próbach).
+ * Rezerwuje próbę logowania jednym atomowym `UPDATE`, przed sprawdzeniem hasła.
  *
- * @remarks Po osiągnięciu `maxFailedAttempts` ustawia `lockedUntil` i zeruje licznik.
+ * @remarks
+ * - Zwiększa licznik tylko wtedy, gdy konto nie jest zablokowane, więc równoległe żądania
+ *   nie przekroczą `maxAttempts` prób w oknie blokady.
+ * - Próba, która osiąga `maxAttempts`, ustawia `lockedUntil`; licznik zostaje na `maxAttempts`.
+ * - Po upływie blokady licznik startuje od 1, a stara blokada jest czyszczona.
+ *
+ * @returns `false`, gdy konto jest zablokowane (albo nie istnieje).
  */
-async function recordFailedLogin({
+async function reserveLoginAttempt({
 	userId,
-	maxFailedAttempts,
+	maxAttempts,
 	lockedUntil,
-}: FailedLogin) {
-	const isLimitReached = sql`${users.failedLoginCount} + 1 >= ${maxFailedAttempts}`;
+	now,
+}: LoginAttemptReservation): Promise<boolean> {
+	const attemptsBefore = sql`(case when ${users.lockedUntil} is not null then 0 else ${users.failedLoginCount} end)`;
 
-	await db
+	const reservedRows = await db
 		.update(users)
 		.set({
-			failedLoginCount: sql`case when ${isLimitReached} then 0 else ${users.failedLoginCount} + 1 end`,
-			lockedUntil: sql`case when ${isLimitReached} then ${lockedUntil.toISOString()}::timestamptz else ${users.lockedUntil} end`,
+			failedLoginCount: sql`${attemptsBefore} + 1`,
+			lockedUntil: sql`case when ${attemptsBefore} + 1 >= ${maxAttempts} then ${lockedUntil.toISOString()}::timestamptz else null end`,
 		})
-		.where(eq(users.id, userId));
+		.where(
+			and(
+				eq(users.id, userId),
+				or(isNull(users.lockedUntil), lte(users.lockedUntil, now)),
+			),
+		)
+		.returning({ id: users.id });
+
+	return reservedRows.length > 0;
 }
 
 async function resetFailedLogins(userId: number) {
@@ -74,4 +90,4 @@ async function resetFailedLogins(userId: number) {
 		.where(eq(users.id, userId));
 }
 
-export { findUserByEmail, insertUser, recordFailedLogin, resetFailedLogins };
+export { findUserByEmail, insertUser, reserveLoginAttempt, resetFailedLogins };

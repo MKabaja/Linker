@@ -11,7 +11,7 @@ import type {
 } from '@/features/auth/model/auth.types';
 import {
 	findUserByEmail,
-	recordFailedLogin,
+	reserveLoginAttempt,
 	resetFailedLogins,
 } from '@/features/auth/server/repositories/users.repository';
 import { createSession } from './sessions.service';
@@ -28,7 +28,9 @@ const dummyPasswordHash = hash('dummy-password-for-timing');
  * @remarks
  * - Nieznany e-mail, złe hasło i konto dezaktywowane dają ten sam wynik `invalidCredentials`.
  * - Dla nieznanego e-maila hasło jest weryfikowane z atrapą, żeby czas odpowiedzi nie zdradzał kont.
- * - Po 10 złych hasłach konto jest zablokowane na 15 minut (`locked`), także dla dobrego hasła.
+ * - Próba jest rezerwowana atomowo przed sprawdzeniem hasła; 10. próba w oknie blokuje konto
+ *   na 15 minut, także dla dobrego hasła, a zablokowane konto też dostaje `invalidCredentials`.
+ * - Dla zablokowanego konta hasło jest weryfikowane z atrapą (ten sam czas odpowiedzi).
  */
 async function logInWithPassword(
 	credentials: LogInCredentials,
@@ -41,35 +43,28 @@ async function logInWithPassword(
 		return { status: 'failed', reason: 'invalidCredentials' };
 	}
 
-	if (isLockedOut(user.lockedUntil, now)) {
-		return { status: 'failed', reason: 'locked' };
+	const isAttemptReserved = await reserveLoginAttempt({
+		userId: user.id,
+		maxAttempts: MAX_FAILED_LOGIN_ATTEMPTS,
+		lockedUntil: new Date(now.getTime() + LOGIN_LOCKOUT_MILLISECONDS),
+		now,
+	});
+
+	if (!isAttemptReserved) {
+		await verify(await dummyPasswordHash, credentials.password);
+		return { status: 'failed', reason: 'invalidCredentials' };
 	}
 
 	const isPasswordValid = await verify(user.passwordHash, credentials.password);
 
-	if (!isPasswordValid) {
-		await recordFailedLogin({
-			userId: user.id,
-			maxFailedAttempts: MAX_FAILED_LOGIN_ATTEMPTS,
-			lockedUntil: new Date(now.getTime() + LOGIN_LOCKOUT_MILLISECONDS),
-		});
+	if (!isPasswordValid || user.deactivatedAt) {
 		return { status: 'failed', reason: 'invalidCredentials' };
 	}
 
-	if (user.deactivatedAt) {
-		return { status: 'failed', reason: 'invalidCredentials' };
-	}
-
-	if (user.failedLoginCount > 0 || user.lockedUntil) {
-		await resetFailedLogins(user.id);
-	}
+	await resetFailedLogins(user.id);
 
 	const session = await createSession(user.id, now);
 	return { status: 'loggedIn', session };
-}
-
-function isLockedOut(lockedUntil: Date | null, now: Date): boolean {
-	return lockedUntil !== null && lockedUntil.getTime() > now.getTime();
 }
 
 export { logInWithPassword };
