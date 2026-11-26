@@ -67,16 +67,17 @@ function decide(top: RankedOrder[], threshold: number): ScoreDecision {
  * albo telefon z co najmniej 6 znanymi cyframi. Imię, kod pocztowy i krótki telefon nie.
  *
  * @remarks
- * Numer paczki z jednego odczytu OCR identyfikuje tylko przy koszcie do jednej typowej pomyłki OCR (`0.3`).
+ * `evidenceCost` to koszt z `OrderMatcher.evidenceCostAt`. Numer paczki z jednego odczytu OCR identyfikuje
+ * tylko przy koszcie do jednej typowej pomyłki OCR (`0.3`) na pozycjach informacyjnych, bez skalowania długich numerów.
  */
-function isIdentifyingTrace(trace: TraceQuery, cost: number): boolean {
+function isIdentifyingTrace(trace: TraceQuery, evidenceCost: number): boolean {
 	if (trace.kind === 'name' || trace.kind === 'postcode') {
 		return false;
 	}
 	if (trace.kind === 'phone') {
 		return countKnownPhoneDigits(trace) >= MIN_IDENTIFYING_PHONE_DIGITS;
 	}
-	return !trace.isSingleOcrRead || cost <= MAX_SINGLE_OCR_READ_COST;
+	return !trace.isSingleOcrRead || evidenceCost <= MAX_SINGLE_OCR_READ_COST;
 }
 
 /**

@@ -192,7 +192,7 @@ export function scoreOrders(
 				kindScores.bits[cell] >= MIN_IDENTIFYING_BITS &&
 				isIdentifyingTrace(
 					traces[traceIndex],
-					matchers[traceIndex].costAt(orderIndex),
+					matchers[traceIndex].evidenceCostAt(orderIndex),
 				);
 			if (isIdentifying) {
 				return true;

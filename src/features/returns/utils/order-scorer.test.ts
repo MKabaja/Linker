@@ -30,6 +30,12 @@ function phoneTrace(id: string, mask: string): TraceQuery {
 	return { id, kind: 'phone', ...parsePhoneMask(mask) };
 }
 
+function withDigits(text: string, digitByPosition: Record<number, string>) {
+	return [...text]
+		.map((char, index) => digitByPosition[index] ?? char)
+		.join('');
+}
+
 function nameTrace(id: string, mask: string): TraceQuery {
 	return { id, kind: 'name', prefixes: parseNameMask(mask) };
 }
@@ -219,6 +225,97 @@ describe('scoreOrders', () => {
 
 			expect(result.decision).toBe('auto');
 			expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		});
+
+		it('z dwiema typowymi pomyłkami w ogonie czeka na drugi głos (bez skalowania długich numerów)', () => {
+			const misread = withDigits(number, { 13: '8', 16: '5' });
+
+			const single = scoreSingleRead(misread, true);
+			const confirmed = scoreSingleRead(misread, false);
+
+			expect(single.candidates[0].orderId).toBe(TARGET_ID);
+			expect(single.decision).toBe('candidates');
+			expect(confirmed.decision).toBe('auto');
+		});
+
+		it('zła cyfra na początku (5209… zamiast 6209…) nie jest dowodem: auto przy zgodnym ogonie', () => {
+			const misread = withDigits(number, { 0: '5', 22: '5' });
+
+			const result = scoreSingleRead(misread, true);
+
+			expect(result.decision).toBe('auto');
+			expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		});
+	});
+
+	describe('odczyt 5209…5981 z jednego odczytu OCR przy dwóch zamówieniach z końcem …5981', () => {
+		const current = `${INPOST_PREFIX}61234567895981`;
+		const misread = withDigits(current, { 0: '5' });
+		const olderId = TARGET_ID + 1;
+
+		function scoreWithOlder(olderNumber: string) {
+			const orders = [
+				...withTarget({ orderId: TARGET_ID, packageNumbers: [current] }),
+				makeOrder({
+					orderId: olderId,
+					packageNumbers: [olderNumber],
+					dateConfirmed: 1,
+				}),
+			];
+			return scoreOrders(
+				[{ ...packageTrace('p', misread), isSingleOcrRead: true }],
+				orders,
+				SCORING_OPTIONS,
+			);
+		}
+
+		it('starsze zamówienie ze złą głową i ogonem z 2 pomyłkami nie wygrywa', () => {
+			const result = scoreWithOlder(withDigits(misread, { 13: '8', 16: '5' }));
+
+			expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		});
+
+		it('bez właściwego numeru w indeksie zła głowa z 2 pomyłkami w ogonie daje kandydatów', () => {
+			const orders = [
+				...BASE_ORDERS,
+				makeOrder({
+					orderId: olderId,
+					packageNumbers: [withDigits(misread, { 13: '8', 16: '5' })],
+					dateConfirmed: 1,
+				}),
+			];
+
+			const result = scoreOrders(
+				[{ ...packageTrace('p', misread), isSingleOcrRead: true }],
+				orders,
+				SCORING_OPTIONS,
+			);
+
+			expect(result.candidates[0].orderId).toBe(olderId);
+			expect(result.decision).toBe('candidates');
+		});
+
+		it('ogon niejednoznaczny (po 1 innej cyfrze do obu numerów) daje kandydatów', () => {
+			const ambiguousRead = withDigits(current, { 0: '5', 20: '0' });
+			const orders = [
+				...withTarget({ orderId: TARGET_ID, packageNumbers: [current] }),
+				makeOrder({
+					orderId: olderId,
+					packageNumbers: [withDigits(misread, { 20: '0', 21: '0' })],
+					dateConfirmed: 1,
+				}),
+			];
+
+			const result = scoreOrders(
+				[{ ...packageTrace('p', ambiguousRead), isSingleOcrRead: true }],
+				orders,
+				SCORING_OPTIONS,
+			);
+
+			expect(result.decision).not.toBe('auto');
+			expect(
+				result.candidates.slice(0, 2).map((candidate) => candidate.orderId),
+			).toContain(TARGET_ID);
 		});
 	});
 

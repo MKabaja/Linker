@@ -18,6 +18,13 @@ import {
 	repairPrefix,
 } from '@/features/returns/utils/package-prefix';
 import {
+	collectPackageProfiles,
+	findPackageProfile,
+	informationalCost,
+	type PackageProfileByHead,
+	snapToProfile,
+} from '@/features/returns/utils/package-profile';
+import {
 	compilePattern,
 	matchCompiled,
 	matchPackageCompiled,
@@ -41,6 +48,7 @@ type OrderIndexView = {
 	externalIds: string[];
 	postcodes: string[];
 	frequentPrefixes: string[];
+	packageProfiles: PackageProfileByHead;
 };
 
 /**
@@ -51,7 +59,14 @@ type OrderMatcher = {
 	costAt: (orderIndex: number) => number;
 	/** Wartość z zamówienia, która dała najlepszy koszt (do opisu powodu); `''` dla imienia. */
 	matchedValueAt: (orderIndex: number) => string;
+	/**
+	 * Koszt jako dowód tożsamości: dla numeru paczki bez skalowania długich numerów i tylko na pozycjach
+	 * informacyjnych profilu (pozycje strukturalne nie odróżniają numerów). Dla pozostałych tropów równy `costAt`.
+	 */
+	evidenceCostAt: (orderIndex: number) => number;
 };
+
+type CostMatcher = Omit<OrderMatcher, 'evidenceCostAt'>;
 
 type PackageVariant = (value: string, maxCost: number) => number;
 
@@ -71,6 +86,7 @@ function getOrderIndexView(orders: IndexedOrder[]): OrderIndexView {
 		externalIds: orders.map((order) => normalizeCode(order.externalOrderId)),
 		postcodes: orders.map((order) => order.postcode),
 		frequentPrefixes: collectFrequentPrefixes(orders),
+		packageProfiles: collectPackageProfiles(orders),
 	};
 	viewByOrders.set(orders, view);
 	return view;
@@ -83,7 +99,7 @@ function createOrderMatcher(
 	if (trace.kind === 'name') {
 		const { prefixes } = trace;
 		const { orders } = view;
-		return {
+		return withCostAsEvidence({
 			costAt: (index) =>
 				matchName(
 					prefixes,
@@ -93,21 +109,25 @@ function createOrderMatcher(
 					? 0
 					: Number.POSITIVE_INFINITY,
 			matchedValueAt: () => '',
-		};
+		});
 	}
 	if (trace.kind === 'phone') {
-		return createPhoneMatcher(trace, view);
+		return withCostAsEvidence(createPhoneMatcher(trace, view));
 	}
 	if (trace.kind === 'package') {
 		return createPackageMatcher(trace.pattern, view);
 	}
-	return createNumberMatcher(trace, view);
+	return withCostAsEvidence(createNumberMatcher(trace, view));
+}
+
+function withCostAsEvidence(matcher: CostMatcher): OrderMatcher {
+	return { ...matcher, evidenceCostAt: matcher.costAt };
 }
 
 function createPhoneMatcher(
 	trace: PhoneTraceQuery,
 	{ orders }: OrderIndexView,
-): OrderMatcher {
+): CostMatcher {
 	const phone = compilePhone(trace);
 	return {
 		costAt: (index) => {
@@ -124,7 +144,7 @@ function createPhoneMatcher(
 function createNumberMatcher(
 	trace: NumberTraceQuery,
 	view: OrderIndexView,
-): OrderMatcher {
+): CostMatcher {
 	const compiled = compilePattern(trace.pattern);
 	const length = trace.pattern.length;
 	const values =
@@ -158,7 +178,10 @@ function createPackageMatcher(
 	const repairedPatterns = view.frequentPrefixes
 		.map((prefix) => repairPrefix(pattern, prefix, PREFIXED_NUMBER_LENGTH))
 		.filter((repaired): repaired is Pattern => repaired !== null);
-	const variants = [pattern, ...repairedPatterns].map(createPackageVariant);
+	const variantPatterns = [pattern, ...repairedPatterns].map((variant) =>
+		snapToProfile(variant, view.packageProfiles),
+	);
+	const variants = variantPatterns.map(createPackageVariant);
 
 	function valueCost(value: string, maxCost: number): number {
 		let cost = Number.POSITIVE_INFINITY;
@@ -168,27 +191,47 @@ function createPackageMatcher(
 		return cost;
 	}
 
-	return {
-		costAt: (index) => {
-			let cost = Number.POSITIVE_INFINITY;
-			for (const value of view.orders[index].packageNumbers) {
-				cost = Math.min(cost, valueCost(value, Math.min(cost, rawMaxCost)));
+	function costAt(index: number): number {
+		let cost = Number.POSITIVE_INFINITY;
+		for (const value of view.orders[index].packageNumbers) {
+			cost = Math.min(cost, valueCost(value, Math.min(cost, rawMaxCost)));
+		}
+		return cost / costScale;
+	}
+
+	function matchedValueAt(index: number): string {
+		let cost = Number.POSITIVE_INFINITY;
+		let matchedValue = '';
+		for (const value of view.orders[index].packageNumbers) {
+			const current = valueCost(value, Math.min(cost, rawMaxCost));
+			if (current < cost) {
+				cost = current;
+				matchedValue = value;
 			}
-			return cost / costScale;
-		},
-		matchedValueAt: (index) => {
-			let cost = Number.POSITIVE_INFINITY;
-			let matchedValue = '';
-			for (const value of view.orders[index].packageNumbers) {
-				const current = valueCost(value, Math.min(cost, rawMaxCost));
-				if (current < cost) {
-					cost = current;
-					matchedValue = value;
-				}
+		}
+		return matchedValue;
+	}
+
+	function evidenceCostAt(index: number): number {
+		const rawCost = costAt(index) * costScale;
+		const value = matchedValueAt(index);
+		const profile = findPackageProfile(view.packageProfiles, value);
+		if (!profile) {
+			return rawCost;
+		}
+		let cost = rawCost;
+		for (const variantPattern of variantPatterns) {
+			if (variantPattern.length === value.length) {
+				cost = Math.min(
+					cost,
+					informationalCost(variantPattern, value, profile),
+				);
 			}
-			return matchedValue;
-		},
-	};
+		}
+		return cost;
+	}
+
+	return { costAt, matchedValueAt, evidenceCostAt };
 }
 
 function createPackageVariant(pattern: Pattern): PackageVariant {
