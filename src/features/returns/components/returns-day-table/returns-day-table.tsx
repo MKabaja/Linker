@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BaseLinkerOrderLink } from '@/features/returns/components/baselinker-order-link';
 import { ReturnKindChip } from '@/features/returns/components/return-kind-chip';
 import type { ReturnRecord } from '@/features/returns/model/returns.types';
 import { formatWarsawTime } from '@/shared/lib/warsaw-time';
@@ -13,6 +14,7 @@ const columnLabels = [
 	'Rodzaj',
 	'Sztuki',
 	'Notatka',
+	'Szczegóły',
 ];
 
 export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
@@ -25,7 +27,7 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 		bodyRow,
 		bodyCell,
 		timeCell,
-		orderLink,
+		detailsLink,
 		quantityCell,
 		noteCell,
 		importMark,
@@ -56,12 +58,7 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 								{formatWarsawTime(returnRecord.createdAt)}
 							</td>
 							<td className={bodyCell}>
-								<Link
-									href={`/returns/${returnRecord.id}`}
-									className={orderLink}
-								>
-									{returnRecord.orderId}
-								</Link>
+								<BaseLinkerOrderLink orderId={returnRecord.orderId} />
 							</td>
 							<td className={bodyCell}>{returnRecord.source}</td>
 							<td className={bodyCell}>
@@ -75,6 +72,18 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 									<span className={importMark}>import</span>
 								)}{' '}
 								{returnRecord.note}
+							</td>
+							<td className={bodyCell}>
+								<Link
+									href={`/returns/${returnRecord.id}`}
+									className={detailsLink}
+								>
+									Szczegóły
+									<span className="sr-only">
+										{' '}
+										zwrotu zamówienia {returnRecord.orderId}
+									</span>
+								</Link>
 							</td>
 						</tr>
 					))}

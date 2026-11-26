@@ -6,11 +6,11 @@ export const returnsDayTableStyles = {
 	headerCell:
 		'px-4 py-3 text-left text-[0.6875rem] font-semibold tracking-wider text-dim uppercase',
 	bodyRow:
-		'relative border-t border-line transition-colors first:border-t-0 hover:bg-hover',
+		'border-t border-line transition-colors first:border-t-0 hover:bg-hover',
 	bodyCell: 'px-4 py-2.5 text-off',
 	timeCell: 'whitespace-nowrap tabular-nums',
-	orderLink:
-		'font-mono font-semibold text-main after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-brand',
+	detailsLink:
+		'font-semibold text-brand underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-brand',
 	quantityCell: 'whitespace-nowrap tabular-nums',
 	noteCell: 'w-full max-w-md truncate text-dim',
 	importMark:

@@ -23,6 +23,9 @@ const BONUS_TRACE_ID = 'bonus';
 /** `order_source` syntetycznych zamówień z `npm run returns:seed`; po nim `--clear` je rozpoznaje i usuwa. */
 const SEED_ORDER_SOURCE = 'seed';
 
+const BASELINKER_PANEL_ORDER_URL =
+	'https://panel-d.baselinker.com/orders.php#order:';
+
 const RETURN_NOTE_MAX_LENGTH = 2000;
 
 const returnKindLabelByKind: ReturnKindLabelByKind = {
@@ -36,6 +39,7 @@ const conditionLabelByCondition: ConditionLabelByCondition = {
 };
 
 export {
+	BASELINKER_PANEL_ORDER_URL,
 	BONUS_TRACE_ID,
 	conditionLabelByCondition,
 	defaultShopMatchingConfig,

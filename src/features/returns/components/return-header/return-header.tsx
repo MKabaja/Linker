@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BaseLinkerOrderLink } from '@/features/returns/components/baselinker-order-link';
 import { returnHeaderStyles } from './return-header.styles';
 
 type ReturnHeaderProps = {
@@ -18,7 +19,9 @@ export function ReturnHeader({
 
 	return (
 		<header className={header}>
-			<h1 className={title}>Zwrot zamówienia {orderId}</h1>
+			<h1 className={title}>
+				Zwrot zamówienia <BaseLinkerOrderLink orderId={orderId} />
+			</h1>
 			<dl className={meta}>
 				<HeaderField label="Źródło">{source}</HeaderField>
 				<HeaderField label="Status">{statusLabel}</HeaderField>
