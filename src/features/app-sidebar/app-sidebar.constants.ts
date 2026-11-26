@@ -1,5 +1,11 @@
 import type { LucideIcon } from 'lucide-react';
-import { ClipboardList, Package, Settings, ShoppingCart } from 'lucide-react';
+import {
+	ClipboardList,
+	Package,
+	PackageOpen,
+	Settings,
+	ShoppingCart,
+} from 'lucide-react';
 import type { Route } from 'next';
 
 type NavigationLink = {
@@ -11,6 +17,7 @@ type NavigationLink = {
 export const NAVIGATION_LINKS: NavigationLink[] = [
 	{ href: '/orders', label: 'Zamówienia', icon: ClipboardList },
 	{ href: '/products', label: 'Produkty z Primavery', icon: Package },
+	{ href: '/returns', label: 'Zwroty', icon: PackageOpen },
 	{ href: '/shopping-list', label: 'Lista zakupów', icon: ShoppingCart },
 ];
 
