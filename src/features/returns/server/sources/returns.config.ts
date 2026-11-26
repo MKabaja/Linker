@@ -7,6 +7,8 @@ type ReturnsConfig = {
 	syncSecret: string | null;
 };
 
+const MIN_SYNC_SECRET_LENGTH = 32;
+
 const flag = z
 	.string()
 	.optional()
@@ -18,11 +20,14 @@ const returnsEnvSchema = z.object({
 		.string()
 		.trim()
 		.optional()
-		.transform((secret) => secret || null),
+		.transform((secret) => secret || null)
+		.pipe(z.string().min(MIN_SYNC_SECRET_LENGTH).nullable()),
 });
 
 /**
  * Czyta flagi modułu zwrotów. Flaga jest włączona tylko dla wartości `true`.
+ *
+ * @remarks Rzuca wyjątek, gdy `SYNC_SECRET` jest ustawiony, ale ma mniej niż 32 znaki; pusty oznacza brak sekretu.
  */
 export function getReturnsConfig(): ReturnsConfig {
 	const env = returnsEnvSchema.parse(process.env);
