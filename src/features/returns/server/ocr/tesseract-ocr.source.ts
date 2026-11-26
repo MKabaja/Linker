@@ -13,6 +13,7 @@ import {
 import type { OcrLine, OcrWord } from '@/features/returns/model/ocr.types';
 import type { Rect } from '@/features/returns/model/traces.types';
 import {
+	TESSERACT_JOB_TIMEOUT_MS,
 	TESSERACT_LANG_PATH,
 	TESSERACT_POOL_SIZE,
 	TESSERACT_WORKER_PATH,
@@ -53,6 +54,7 @@ const tesseractStore = globalThis as typeof globalThis & {
  * @remarks
  * Pierwsze wywołanie tworzy pulę 2 workerów (kilka sekund). Dane `eng` są czytane lokalnie z paczki `@tesseract.js-data/eng`, nigdy z CDN.
  * Nieudane utworzenie puli rzuca wyjątek, a kolejne wywołanie próbuje od nowa.
+ * Zadanie trwające ponad 15 s kończy się wyjątkiem, a pula jest zamykana i odtwarzana przy następnym wywołaniu.
  */
 async function fetchTesseractOcr(
 	engine: TesseractEngineName,
@@ -66,19 +68,37 @@ async function fetchTesseractOcr(
 		...(options.region && { rectangle: toRectangle(options.region) }),
 		...(options.orientation === 180 && { rotateRadians: Math.PI }),
 	};
-	const { data } = await scheduler.addJob(
-		'recognize',
-		image,
-		recognizeOptions,
-		{
+	const { data } = await runWithTimeout(
+		scheduler,
+		scheduler.addJob('recognize', image, recognizeOptions, {
 			text: false,
 			blocks: true,
-		},
+		}),
 	);
 	return {
 		...collectText(data, engine),
 		durationMilliseconds: Math.round(performance.now() - startedAt),
 	};
+}
+
+async function runWithTimeout<Result>(
+	scheduler: Scheduler,
+	job: Promise<Result>,
+): Promise<Result> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const timeout = new Promise<never>((_resolve, reject) => {
+		timer = setTimeout(() => {
+			tesseractStore.linkerTesseractPool = undefined;
+			scheduler.terminate().catch(() => undefined);
+			reject(new Error('Przekroczono limit czasu tesseract.js.'));
+		}, TESSERACT_JOB_TIMEOUT_MS);
+	});
+	try {
+		return await Promise.race([job, timeout]);
+	} finally {
+		clearTimeout(timer);
+		job.catch(() => undefined);
+	}
 }
 
 function getTesseractPool(): Promise<Scheduler> {
