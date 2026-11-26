@@ -29,8 +29,9 @@ function createBarcodeReader(): BarcodeReader {
 		if (!video.videoWidth) {
 			return [];
 		}
+		let bitmap: ImageBitmap | null = null;
 		try {
-			const bitmap = await createImageBitmap(video);
+			bitmap = await createImageBitmap(video);
 			const codes = await client.call(
 				{ type: 'detect', bitmap },
 				{
@@ -42,6 +43,7 @@ function createBarcodeReader(): BarcodeReader {
 			isReady = true;
 			return codes;
 		} catch {
+			bitmap?.close();
 			isReady = false;
 			return [];
 		}

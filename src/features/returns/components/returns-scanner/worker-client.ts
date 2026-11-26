@@ -25,10 +25,12 @@ type WorkerClient = {
 /**
  * Klient wątku roboczego z limitem czasu na każde wywołanie. Zawieszony albo zepsuty wątek jest
  * zamykany, a oczekujące wywołania kończą się błędem; następne wywołanie startuje nowy wątek.
+ * Po `dispose` każde wywołanie jest odrzucane od razu i nie tworzy wątku.
  * Odpowiedź przechodzi przez `isValue`, więc wywołujący dostaje typ sprawdzony w czasie działania.
  */
 function createWorkerClient(spawn: () => Worker): WorkerClient {
 	let worker: Worker | null = null;
+	let isDisposed = false;
 	let nextId = 1;
 	const pendingById = new Map<number, PendingCall>();
 
@@ -70,6 +72,9 @@ function createWorkerClient(spawn: () => Worker): WorkerClient {
 		message: Record<string, unknown>,
 		{ timeoutMs, isValue, transfer = [] }: CallOptions<Value>,
 	): Promise<Value> {
+		if (isDisposed) {
+			return Promise.reject(new Error('Wątek roboczy zamknięty.'));
+		}
 		worker ??= startWorker();
 		const id = nextId++;
 		return new Promise<unknown>((resolve, reject) => {
@@ -89,6 +94,7 @@ function createWorkerClient(spawn: () => Worker): WorkerClient {
 	}
 
 	function dispose(): void {
+		isDisposed = true;
 		restart('Wątek roboczy zamknięty.');
 	}
 

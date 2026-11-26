@@ -64,10 +64,19 @@ function createFramePipeline(): FramePipeline {
 			resizeHeight: height,
 			resizeQuality: 'medium',
 		});
-		return client.call(
-			{ type: 'gate', bitmap },
-			{ timeoutMs: TASK_TIMEOUT_MS, isValue: isGateResult, transfer: [bitmap] },
-		);
+		return client
+			.call(
+				{ type: 'gate', bitmap },
+				{
+					timeoutMs: TASK_TIMEOUT_MS,
+					isValue: isGateResult,
+					transfer: [bitmap],
+				},
+			)
+			.catch((error: unknown) => {
+				bitmap.close();
+				throw error;
+			});
 	}
 
 	async function capture(video: HTMLVideoElement, region?: Rect) {
@@ -96,10 +105,15 @@ function createFramePipeline(): FramePipeline {
 				resizeQuality: 'high',
 			},
 		);
-		const blob = await client.call(
-			{ type: 'encode', bitmap },
-			{ timeoutMs: TASK_TIMEOUT_MS, isValue: isBlob, transfer: [bitmap] },
-		);
+		const blob = await client
+			.call(
+				{ type: 'encode', bitmap },
+				{ timeoutMs: TASK_TIMEOUT_MS, isValue: isBlob, transfer: [bitmap] },
+			)
+			.catch((error: unknown) => {
+				bitmap.close();
+				throw error;
+			});
 		return {
 			blob,
 			scale,
