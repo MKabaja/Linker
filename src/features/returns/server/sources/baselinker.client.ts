@@ -15,6 +15,12 @@ import {
 	getOrderStatusListResponseSchema,
 	getOrdersResponseSchema,
 } from './baselinker.schemas';
+import {
+	type CallPriority,
+	countInteractiveStreak,
+	decideNextCall,
+	type SchedulerState,
+} from './call-scheduler';
 
 const READ_ONLY_METHOD_PATTERN = /^get[A-Z]\w*$/;
 
@@ -31,12 +37,28 @@ type OrdersQuery =
 	| { order_id: number; get_unconfirmed_orders: true }
 	| { filter_external_order_id: string; get_unconfirmed_orders: true };
 
-type CallQueue = { tail: Promise<void>; lastCallAt: number };
+type CallOptions = { priority?: CallPriority };
+
+type EnqueueOptions = {
+	pauseMilliseconds: number;
+	priority: CallPriority;
+};
+
+type QueuedTask = () => Promise<void>;
+
+type CallQueue = {
+	interactive: QueuedTask[];
+	background: QueuedTask[];
+	interactiveStreak: number;
+	lastCallAt: number;
+	isPumping: boolean;
+};
 
 type ReadOnlyCall<T> = {
 	method: ReadOnlyMethod;
 	parameters: BaseLinkerParameters;
 	schema: ZodType<T>;
+	priority: CallPriority;
 };
 
 type SendRequest = {
@@ -47,21 +69,31 @@ type SendRequest = {
 
 const callQueue = getProcessSingleton<CallQueue>(
 	'returns.baselinker-queue',
-	() => ({ tail: Promise.resolve(), lastCallAt: 0 }),
+	() => ({
+		interactive: [],
+		background: [],
+		interactiveStreak: 0,
+		lastCallAt: 0,
+		isPumping: false,
+	}),
 );
 
 /**
  * Pobiera stronę zamówień (najwyżej 100) z `getOrders`.
  *
- * @remarks Wszystkie funkcje tego modułu idą przez jedną kolejkę procesu z pauzą `BASELINKER_PAUSE_MS`; bez tokenu zwracają `disabled`.
+ * @remarks
+ * Wszystkie funkcje tego modułu idą przez jedną kolejkę procesu z pauzą `BASELINKER_PAUSE_MS` między każdymi dwoma wywołaniami; bez tokenu zwracają `disabled`.
+ * `options.priority` (domyślnie `interactive`) wybiera pierwszeństwo w kolejce; synchronizacja podaje `background`, więc wywołania użytkownika jej nie czekają (reguła w `decideNextCall`).
  */
 async function fetchBaseLinkerOrders(
 	query: OrdersQuery,
+	options: CallOptions = {},
 ): Promise<BaseLinkerResult<BaseLinkerOrder[]>> {
 	const result = await callReadOnlyMethod({
 		method: 'getOrders',
 		parameters: query,
 		schema: getOrdersResponseSchema,
+		priority: options.priority ?? 'interactive',
 	});
 
 	return result.status === 'ok'
@@ -71,11 +103,13 @@ async function fetchBaseLinkerOrders(
 
 async function fetchBaseLinkerOrderPackages(
 	orderId: number,
+	options: CallOptions = {},
 ): Promise<BaseLinkerResult<BaseLinkerPackage[]>> {
 	const result = await callReadOnlyMethod({
 		method: 'getOrderPackages',
 		parameters: { order_id: orderId },
 		schema: getOrderPackagesResponseSchema,
+		priority: options.priority ?? 'interactive',
 	});
 
 	return result.status === 'ok'
@@ -83,13 +117,14 @@ async function fetchBaseLinkerOrderPackages(
 		: result;
 }
 
-async function fetchBaseLinkerOrderStatuses(): Promise<
-	BaseLinkerResult<BaseLinkerOrderStatus[]>
-> {
+async function fetchBaseLinkerOrderStatuses(
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerOrderStatus[]>> {
 	const result = await callReadOnlyMethod({
 		method: 'getOrderStatusList',
 		parameters: {},
 		schema: getOrderStatusListResponseSchema,
+		priority: options.priority ?? 'interactive',
 	});
 
 	return result.status === 'ok'
@@ -101,6 +136,7 @@ function callReadOnlyMethod<T>({
 	method,
 	parameters,
 	schema,
+	priority,
 }: ReadOnlyCall<T>): Promise<BaseLinkerResult<T>> {
 	if (!READ_ONLY_METHOD_PATTERN.test(method)) {
 		return Promise.resolve({
@@ -116,7 +152,7 @@ function callReadOnlyMethod<T>({
 		return Promise.resolve({ status: 'disabled' });
 	}
 
-	return enqueue(pauseMilliseconds, async () => {
+	return enqueue({ pauseMilliseconds, priority }, async () => {
 		const response = await send({ token, method, parameters });
 
 		if (response.status !== 'ok') {
@@ -136,27 +172,69 @@ function callReadOnlyMethod<T>({
 }
 
 function enqueue<T>(
-	pauseMilliseconds: number,
+	{ pauseMilliseconds, priority }: EnqueueOptions,
 	task: () => Promise<T>,
 ): Promise<T> {
-	const run = callQueue.tail.then(async () => {
-		const waitMilliseconds =
-			callQueue.lastCallAt + pauseMilliseconds - Date.now();
+	return new Promise<T>((resolve, reject) => {
+		callQueue[priority].push(async () => {
+			try {
+				resolve(await task());
+			} catch (error) {
+				reject(error);
+			}
+		});
 
-		if (waitMilliseconds > 0) {
-			await new Promise((resolve) => setTimeout(resolve, waitMilliseconds));
-		}
-
-		callQueue.lastCallAt = Date.now();
-		return task();
+		void pumpQueue(pauseMilliseconds);
 	});
+}
 
-	callQueue.tail = run.then(
-		() => undefined,
-		() => undefined,
-	);
+async function pumpQueue(pauseMilliseconds: number): Promise<void> {
+	if (callQueue.isPumping) {
+		return;
+	}
 
-	return run;
+	callQueue.isPumping = true;
+
+	try {
+		while (true) {
+			const decision = decideNextCall({
+				state: toSchedulerState(callQueue),
+				now: Date.now(),
+				pauseMilliseconds,
+			});
+
+			if (decision.action === 'idle') {
+				return;
+			}
+
+			if (decision.action === 'wait') {
+				await new Promise((resolve) =>
+					setTimeout(resolve, decision.milliseconds),
+				);
+				continue;
+			}
+
+			const runTask = callQueue[decision.priority].shift();
+
+			callQueue.interactiveStreak = countInteractiveStreak(
+				callQueue.interactiveStreak,
+				decision.priority,
+			);
+			callQueue.lastCallAt = Date.now();
+			await runTask?.();
+		}
+	} finally {
+		callQueue.isPumping = false;
+	}
+}
+
+function toSchedulerState(queue: CallQueue): SchedulerState {
+	return {
+		interactiveWaiting: queue.interactive.length,
+		backgroundWaiting: queue.background.length,
+		interactiveStreak: queue.interactiveStreak,
+		lastCallAt: queue.lastCallAt,
+	};
 }
 
 async function send({
@@ -224,6 +302,7 @@ function toNetworkFailure(error: unknown): BaseLinkerFailure {
 export {
 	type BaseLinkerFailure,
 	type BaseLinkerResult,
+	type CallOptions,
 	fetchBaseLinkerOrderPackages,
 	fetchBaseLinkerOrderStatuses,
 	fetchBaseLinkerOrders,

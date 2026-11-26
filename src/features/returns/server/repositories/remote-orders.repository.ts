@@ -34,16 +34,21 @@ const statusNamesCache = getProcessSingleton<StatusNamesCache>(
 
 /**
  * Pobiera stronę (najwyżej 100) potwierdzonych zamówień od `dateConfirmedFrom` włącznie.
+ *
+ * @remarks Wywołanie w tle (synchronizacja), więc ustępuje wywołaniom interaktywnym.
  */
 async function findRemoteOrdersConfirmedFrom(
 	dateConfirmedFrom: Date,
 ): Promise<RemoteResult<OrderIndexEntry[]>> {
-	const result = await fetchBaseLinkerOrders({
-		date_confirmed_from: Math.floor(
-			dateConfirmedFrom.getTime() / MILLISECONDS_PER_SECOND,
-		),
-		get_unconfirmed_orders: false,
-	});
+	const result = await fetchBaseLinkerOrders(
+		{
+			date_confirmed_from: Math.floor(
+				dateConfirmedFrom.getTime() / MILLISECONDS_PER_SECOND,
+			),
+			get_unconfirmed_orders: false,
+		},
+		{ priority: 'background' },
+	);
 
 	return result.status === 'ok'
 		? { status: 'ok', data: result.data.map(mapBaseLinkerOrder) }
@@ -74,7 +79,9 @@ function findRemoteOrderByExternalId(
 async function findRemoteOrderPackages(
 	orderId: number,
 ): Promise<RemoteResult<IndexedPackage[]>> {
-	const result = await fetchBaseLinkerOrderPackages(orderId);
+	const result = await fetchBaseLinkerOrderPackages(orderId, {
+		priority: 'background',
+	});
 
 	return result.status === 'ok'
 		? { status: 'ok', data: mapBaseLinkerPackages(result.data) }
