@@ -5,7 +5,6 @@ type ReturnsConfig = {
 	isSyncEnabled: boolean;
 	/** `null`, gdy `SYNC_SECRET` nie jest ustawiony: każde wywołanie synchronizacji jest odrzucane. */
 	syncSecret: string | null;
-	isDebugLogEnabled: boolean;
 };
 
 const flag = z
@@ -15,7 +14,6 @@ const flag = z
 
 const returnsEnvSchema = z.object({
 	RETURNS_SYNC_ENABLED: flag,
-	RETURNS_DEBUG_LOG: flag,
 	SYNC_SECRET: z
 		.string()
 		.trim()
@@ -32,6 +30,5 @@ export function getReturnsConfig(): ReturnsConfig {
 	return {
 		isSyncEnabled: env.RETURNS_SYNC_ENABLED,
 		syncSecret: env.SYNC_SECRET,
-		isDebugLogEnabled: env.RETURNS_DEBUG_LOG,
 	};
 }

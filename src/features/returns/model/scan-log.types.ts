@@ -32,10 +32,7 @@ type ScanStats = {
 
 type SaveScanLogResult = { status: 'saved' } | { status: 'invalid' };
 
-type DebugLogResult = 'logged' | 'disabled';
-
 export type {
-	DebugLogResult,
 	DurationPercentiles,
 	FailureReasonCount,
 	SaveScanLogResult,
