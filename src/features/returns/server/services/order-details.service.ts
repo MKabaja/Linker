@@ -13,16 +13,30 @@ import {
 	findOrderStatusNames,
 	findRemoteOrderById,
 } from '@/features/returns/server/repositories/remote-orders.repository';
+import { getProcessSingleton } from '@/shared/lib/process-singleton';
+
+const REMOTE_ENTRY_TTL_MILLISECONDS = 10 * 60_000;
+
+type RemoteEntryCache = Map<
+	number,
+	{ entry: OrderIndexEntry; expiresAt: number }
+>;
 
 type EntryLookup =
 	| { status: 'found'; entry: OrderIndexEntry }
 	| Exclude<OrderDetailsResult, { status: 'found' }>;
+
+const remoteEntryCache = getProcessSingleton<RemoteEntryCache>(
+	'returns.remote-order-entries',
+	() => new Map(),
+);
 
 /**
  * Zwraca zamówienie do ekranu zwrotu: dane z indeksu, pozycje i wszystkie znane przesyłki.
  *
  * @remarks
  * Zamówienia spoza indeksu szuka w BaseLinkerze i dopisuje do indeksu; bez tokenu daje wtedy `notFound`.
+ * Znalezione tak zamówienie jest pamiętane w procesie przez 10 minut, bo retencja usuwa je z indeksu, a każde wejście inaczej wołałoby BaseLinker.
  * Nazwa statusu pochodzi z `getOrderStatusList` (pamiętana w procesie), a bez tokenu jest nią identyfikator.
  */
 export async function getOrderDetails(
@@ -51,6 +65,12 @@ async function findOrderEntry(
 		return { status: 'found', entry: indexedEntry };
 	}
 
+	const cachedEntry = findCachedRemoteEntry(orderId, now);
+
+	if (cachedEntry) {
+		return { status: 'found', entry: cachedEntry };
+	}
+
 	const remote = await findRemoteOrderById(orderId);
 
 	if (remote.status === 'error') {
@@ -61,9 +81,31 @@ async function findOrderEntry(
 		return { status: 'notFound' };
 	}
 
+	remoteEntryCache.set(orderId, {
+		entry: remote.data,
+		expiresAt: now.getTime() + REMOTE_ENTRY_TTL_MILLISECONDS,
+	});
 	await upsertIndexedOrders({ entries: [remote.data], syncedAt: now });
 	invalidateIndexedOrders();
 	return { status: 'found', entry: remote.data };
+}
+
+function findCachedRemoteEntry(
+	orderId: number,
+	now: Date,
+): OrderIndexEntry | null {
+	const cached = remoteEntryCache.get(orderId);
+
+	if (!cached) {
+		return null;
+	}
+
+	if (now.getTime() >= cached.expiresAt) {
+		remoteEntryCache.delete(orderId);
+		return null;
+	}
+
+	return cached.entry;
 }
 
 function toOrderDetails(
