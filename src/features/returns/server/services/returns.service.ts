@@ -1,4 +1,6 @@
 import 'server-only';
+import type { NewReturnItem } from '@/features/returns/model/new-return.types';
+import type { ScannerMatchedBy } from '@/features/returns/model/return-origin.constants';
 import type { UpdateReturn } from '@/features/returns/model/returns.schemas';
 import type {
 	CreateReturnResult,
@@ -10,6 +12,7 @@ import type {
 	ReturnRecord,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
+import { toDuplicateReturnWarning } from '@/features/returns/server/mappers/duplicate-return.mapper';
 import {
 	deleteReturnById,
 	findReturnById,
@@ -17,13 +20,18 @@ import {
 	findReturnEvents,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
-	type NewReturnItem,
 	updateReturnWithEvent,
 } from '@/features/returns/server/repositories/returns.repository';
 import { buildReturnsCsv } from '@/features/returns/utils/returns-csv';
 import { getOrderDetails } from './order-details.service';
 
-type NewReturnRequest = { orderId: number; userId: number; now: Date };
+type NewReturnRequest = {
+	orderId: number;
+	userId: number;
+	matchedBy: ScannerMatchedBy;
+	scannedLabel: string | null;
+	now: Date;
+};
 
 type ReturnUpdateRequest = { update: UpdateReturn; userId: number; now: Date };
 
@@ -31,18 +39,20 @@ type ReturnUpdateRequest = { update: UpdateReturn; userId: number; now: Date };
  * Tworzy zwrot z pozycji zamówienia, domyślnie z przyjętymi wszystkimi zamówionymi sztukami.
  *
  * @remarks
- * Gdy zwrot dla zamówienia już istnieje, zwraca `duplicate` z istniejącym zwrotem, bez drugiego wpisu;
- * równoległe wywołania rozstrzyga ograniczenie unikalne na `order_id`.
+ * Gdy zwrot dla zamówienia już istnieje (także z importu), zwraca `duplicate` z istniejącym zwrotem
+ * i danymi do ostrzeżenia, bez drugiego wpisu; równoległe wywołania rozstrzyga ograniczenie unikalne na `order_id`.
  */
 async function createReturn({
 	orderId,
 	userId,
+	matchedBy,
+	scannedLabel,
 	now,
 }: NewReturnRequest): Promise<CreateReturnResult> {
 	const existing = await findReturnByOrderId(orderId);
 
 	if (existing) {
-		return { status: 'duplicate', returnRecord: existing };
+		return toDuplicateResult(existing);
 	}
 
 	const details = await getOrderDetails(orderId, now);
@@ -54,9 +64,13 @@ async function createReturn({
 	const returnId = await insertReturnIfAbsent({
 		orderId,
 		source: details.order.source,
+		note: '',
 		receivedBy: userId,
+		matchedBy,
+		scannedLabel,
 		items: toReturnItems(details.order),
 		createdAt: now,
+		updatedAt: now,
 	});
 	const returnRecord = await findReturnByOrderId(orderId);
 
@@ -64,10 +78,9 @@ async function createReturn({
 		return { status: 'error', message: 'Nie udało się zapisać zwrotu.' };
 	}
 
-	return {
-		status: returnId === null ? 'duplicate' : 'created',
-		returnRecord,
-	};
+	return returnId === null
+		? toDuplicateResult(returnRecord)
+		: { status: 'created', returnRecord };
 }
 
 /**
@@ -133,6 +146,14 @@ async function exportReturnsOfDay(date: string): Promise<CsvFile> {
 	const { returns } = await getReturnsOfDay(date);
 
 	return { fileName: `zwroty-${date}.csv`, content: buildReturnsCsv(returns) };
+}
+
+function toDuplicateResult(returnRecord: ReturnRecord): CreateReturnResult {
+	return {
+		status: 'duplicate',
+		returnRecord,
+		existingReturn: toDuplicateReturnWarning(returnRecord),
+	};
 }
 
 function toReturnItems(order: OrderDetails): NewReturnItem[] {

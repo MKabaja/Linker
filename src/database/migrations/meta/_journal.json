@@ -36,6 +36,13 @@
       "when": 1795605457170,
       "tag": "20261125111737_create_scan_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795671147861,
+      "tag": "20261126053227_record_return_match",
+      "breakpoints": true
     }
   ]
 }

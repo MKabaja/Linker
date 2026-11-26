@@ -5,6 +5,8 @@ import { returnEvents } from '@/database/schema/return-events.schema';
 import { returnItems } from '@/database/schema/return-items.schema';
 import { returns } from '@/database/schema/returns.schema';
 import { users } from '@/database/schema/users.schema';
+import type { NewReturn } from '@/features/returns/model/new-return.types';
+import { IMPORTED_RECEIVER_NAME } from '@/features/returns/model/return-origin.constants';
 import type { UpdateReturn } from '@/features/returns/model/returns.schemas';
 import { returnSnapshotSchema } from '@/features/returns/model/returns.schemas';
 import type {
@@ -17,19 +19,15 @@ import type {
 import { getReturnKind } from '@/features/returns/utils/return-kind';
 import { WARSAW_TIME_ZONE } from '@/shared/lib/warsaw-time';
 
-type NewReturnItem = Omit<ReturnItem, 'id'> & { position: number };
+type ReturnChange = { update: UpdateReturn; userId: number; updatedAt: Date };
 
-type NewReturn = {
-	orderId: number;
-	source: string;
-	receivedBy: number;
-	items: NewReturnItem[];
+type NewEvent = {
+	returnId: number;
+	kind: ReturnEventKind;
+	userId: number | null;
 	createdAt: Date;
 };
 
-type ReturnChange = { update: UpdateReturn; userId: number; updatedAt: Date };
-
-type NewEvent = { returnId: number; kind: ReturnEventKind; userId: number };
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -63,8 +61,8 @@ type ReturnRow = {
 	note: string;
 	createdAt: Date;
 	updatedAt: Date;
-	receivedById: number;
-	receivedByName: string;
+	receivedById: number | null;
+	receivedByName: string | null;
 };
 
 /**
@@ -81,9 +79,12 @@ async function insertReturnIfAbsent(
 			.values({
 				orderId: newReturn.orderId,
 				orderSource: newReturn.source,
+				note: newReturn.note,
 				receivedBy: newReturn.receivedBy,
+				matchedBy: newReturn.matchedBy,
+				scannedLabel: newReturn.scannedLabel,
 				createdAt: newReturn.createdAt,
-				updatedAt: newReturn.createdAt,
+				updatedAt: newReturn.updatedAt,
 			})
 			.onConflictDoNothing({ target: returns.orderId })
 			.returning({ id: returns.id });
@@ -104,6 +105,7 @@ async function insertReturnIfAbsent(
 			returnId: inserted.id,
 			kind: 'created',
 			userId: newReturn.receivedBy,
+			createdAt: newReturn.createdAt,
 		});
 
 		return inserted.id;
@@ -156,6 +158,7 @@ async function updateReturnWithEvent({
 			returnId: update.returnId,
 			kind: 'updated',
 			userId,
+			createdAt: updatedAt,
 		});
 
 		return true;
@@ -204,12 +207,13 @@ async function findReturnEvents(returnId: number): Promise<ReturnEvent[]> {
 			snapshot: returnEvents.snapshot,
 		})
 		.from(returnEvents)
-		.innerJoin(users, eq(users.id, returnEvents.userId))
+		.leftJoin(users, eq(users.id, returnEvents.userId))
 		.where(eq(returnEvents.returnId, returnId))
 		.orderBy(asc(returnEvents.id));
 
 	return rows.map((row) => ({
 		...row,
+		userName: row.userName ?? IMPORTED_RECEIVER_NAME,
 		snapshot: returnSnapshotSchema.parse(row.snapshot),
 	}));
 }
@@ -218,7 +222,7 @@ async function findReturnRecords(condition: SQL): Promise<ReturnRecord[]> {
 	const rows = await db
 		.select(returnColumns)
 		.from(returns)
-		.innerJoin(users, eq(users.id, returns.receivedBy))
+		.leftJoin(users, eq(users.id, returns.receivedBy))
 		.where(condition)
 		.orderBy(desc(returns.createdAt));
 
@@ -249,7 +253,7 @@ async function findReturnRecords(condition: SQL): Promise<ReturnRecord[]> {
 
 async function insertEvent(
 	transaction: Transaction,
-	{ returnId, kind, userId }: NewEvent,
+	{ returnId, kind, userId, createdAt }: NewEvent,
 ): Promise<void> {
 	const [returnRow] = await transaction
 		.select({ note: returns.note })
@@ -267,7 +271,7 @@ async function insertEvent(
 
 	await transaction
 		.insert(returnEvents)
-		.values({ returnId, kind, userId, snapshot });
+		.values({ returnId, kind, userId, snapshot, createdAt });
 }
 
 function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
@@ -276,7 +280,10 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 		orderId: row.orderId,
 		source: row.source,
 		note: row.note,
-		receivedBy: { id: row.receivedById, name: row.receivedByName },
+		receivedBy: {
+			id: row.receivedById,
+			name: row.receivedByName ?? IMPORTED_RECEIVER_NAME,
+		},
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		kind: getReturnKind(items),
@@ -291,7 +298,5 @@ export {
 	findReturnEvents,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
-	type NewReturn,
-	type NewReturnItem,
 	updateReturnWithEvent,
 };

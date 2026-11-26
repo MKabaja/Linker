@@ -47,7 +47,8 @@ type ReturnRecord = {
 	orderId: number;
 	source: string;
 	note: string;
-	receivedBy: { id: number; name: string };
+	/** `id` jest `null` dla zwrotu z importu; `name` jest wtedy etykietą importu. */
+	receivedBy: { id: number | null; name: string };
 	createdAt: Date;
 	updatedAt: Date;
 	kind: ReturnKind;
@@ -76,7 +77,11 @@ type DayReturns = {
 
 type CreateReturnResult =
 	| { status: 'created'; returnRecord: ReturnRecord }
-	| { status: 'duplicate'; returnRecord: ReturnRecord }
+	| {
+			status: 'duplicate';
+			returnRecord: ReturnRecord;
+			existingReturn: DuplicateReturnWarning;
+	  }
 	| { status: 'notFound' }
 	| { status: 'error'; message: string };
 
@@ -124,11 +129,29 @@ type OrderDetailsResult =
 
 type CsvFile = { fileName: string; content: string };
 
+/** Czym znaleziono zamówienie przy przyjęciu zwrotu; `imported` to zwrot przeniesiony z demo. */
+type ReturnMatchedBy = 'auto' | 'manual-pick' | 'manual-entry' | 'imported';
+
+/** Dane do ostrzeżenia, że zwrot dla zamówienia już przyjęto. */
+type DuplicateReturnWarning = {
+	returnId: number;
+	orderId: number;
+	receivedAt: Date;
+	/** `DD.MM.RRRR, GG:MM` w strefie Europe/Warsaw. */
+	receivedAtLabel: string;
+	/** Imię pracownika albo etykieta importu. */
+	receivedByName: string;
+	kind: ReturnKind;
+	/** `Pełny` albo `Częściowy`. */
+	kindLabel: string;
+};
+
 export type {
 	CreateReturnResult,
 	CsvFile,
 	DayReturns,
 	DeleteReturnResult,
+	DuplicateReturnWarning,
 	OrderDetails,
 	OrderDetailsItem,
 	OrderDetailsPackage,
@@ -140,6 +163,7 @@ export type {
 	ReturnItem,
 	ReturnItemCondition,
 	ReturnKind,
+	ReturnMatchedBy,
 	ReturnRecord,
 	ReturnSnapshot,
 	ShopMatchingConfig,

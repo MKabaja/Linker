@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+	SCANNED_LABEL_MAX_LENGTH,
+	SCANNER_MATCHED_BY,
+} from '@/features/returns/model/return-origin.constants';
 import { RETURN_NOTE_MAX_LENGTH } from '@/features/returns/model/returns.constants';
 
 const MAX_TRACES = 60;
@@ -14,6 +18,7 @@ const traceQuerySchema = z.discriminatedUnion('kind', [
 		id: traceIdSchema,
 		kind: z.enum(['package', 'orderId', 'externalId', 'postcode']),
 		pattern: patternSchema,
+		isSingleOcrRead: z.boolean().optional(),
 	}),
 	z.object({
 		id: traceIdSchema,
@@ -37,7 +42,22 @@ const searchOrdersRequestSchema = z.object({
 const idSchema = z.coerce.number().int().positive();
 const conditionSchema = z.enum(['accepted', 'damaged']);
 
-const createReturnSchema = z.object({ orderId: idSchema });
+const scannedLabelSchema = z
+	.string()
+	.transform((label) => label.replace(/\s+/g, '').toUpperCase())
+	.pipe(
+		z
+			.string()
+			.min(1)
+			.max(SCANNED_LABEL_MAX_LENGTH)
+			.regex(/^[A-Z0-9-]+$/),
+	);
+
+const createReturnSchema = z.object({
+	orderId: idSchema,
+	matchedBy: z.enum(SCANNER_MATCHED_BY).default('manual-entry'),
+	scannedLabel: scannedLabelSchema.optional(),
+});
 
 const updateReturnSchema = z.object({
 	returnId: idSchema,

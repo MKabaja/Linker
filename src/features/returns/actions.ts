@@ -41,6 +41,8 @@ async function createReturnAction(
 	return createReturn({
 		orderId: parsedInput.data.orderId,
 		userId: user.id,
+		matchedBy: parsedInput.data.matchedBy,
+		scannedLabel: parsedInput.data.scannedLabel ?? null,
 		now: new Date(),
 	});
 }

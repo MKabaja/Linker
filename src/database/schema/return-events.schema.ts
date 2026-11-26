@@ -20,9 +20,7 @@ const returnEvents = pgTable(
 			.references(() => returns.id, { onDelete: 'cascade' }),
 		kind: returnEventKindEnum().notNull(),
 		snapshot: jsonb().notNull(),
-		userId: integer()
-			.notNull()
-			.references(() => users.id, { onDelete: 'restrict' }),
+		userId: integer().references(() => users.id, { onDelete: 'restrict' }),
 		createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => [index('return_events_return_id_idx').on(table.returnId)],
