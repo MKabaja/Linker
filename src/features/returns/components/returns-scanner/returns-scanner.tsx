@@ -1,8 +1,10 @@
 'use client';
 
+import { cn } from 'cn';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useIsCoarsePointer } from '@/shared/hooks/use-is-coarse-pointer';
 import { useBarcodeLoop } from './use-barcode-loop';
 import { useCamera } from './use-camera';
 import { useOcrLoop } from './use-ocr-loop';
@@ -17,7 +19,9 @@ import type { CreateReturnInput } from '@/features/returns/model/returns.schemas
 import type { CreateReturnResult } from '@/features/returns/model/returns.types';
 import type { ScanLogInput } from '@/features/returns/model/scan-log.schemas';
 import type { TraceEntry } from '@/features/returns/model/traces.types';
+import { decideCameraStart } from '@/features/returns/utils/camera-start';
 import {
+	type Carrier,
 	detectCarrier,
 	isInpostReturnNumber,
 } from '@/features/returns/utils/carrier';
@@ -37,6 +41,7 @@ import { ScannerControls } from './scanner-controls';
 import { playHitFeedback, unlockAudio } from './scanner-feedback';
 import { ScannerManualEntrySheet } from './scanner-manual-entry-sheet';
 import { ScannerOverlay } from './scanner-overlay';
+import { ScannerStartScreen } from './scanner-start-screen';
 import { showDuplicateToast, showMatchToast } from './scanner-toast';
 import { ScannerTraceList } from './scanner-trace-list';
 
@@ -72,13 +77,18 @@ export function ReturnsScanner() {
 	const scanSession = diagnostics.scanId;
 	const [phase, setPhase] = useState<Phase>({ kind: 'scanning' });
 	const [panel, setPanel] = useState<Panel>('none');
+	const [detectedCarrier, setDetectedCarrier] = useState<Carrier | null>(null);
 	const [nowMs, setNowMs] = useState(0);
 	const [isOcrUnauthorized, setIsOcrUnauthorized] = useState(false);
+	const [isStartRequested, setIsStartRequested] = useState(false);
+	const isCoarsePointer = useIsCoarsePointer();
+	const cameraStart = decideCameraStart({ isCoarsePointer, isStartRequested });
+	const isCameraAllowed = cameraStart === 'allowed';
 
 	const isScanning = phase.kind === 'scanning';
 	const camera = useCamera({
 		videoRef,
-		isEnabled: isScanning,
+		isEnabled: isScanning && isCameraAllowed,
 		onRestart: diagnostics.noteCameraRestart,
 		onCameraLabel: diagnostics.noteCameraLabel,
 	});
@@ -109,7 +119,7 @@ export function ReturnsScanner() {
 		onCodes: handleCodes,
 		onDetectionTime: diagnostics.noteBarcodeCall,
 	});
-	useWakeLock(isScanning);
+	useWakeLock(isScanning && isCameraAllowed);
 
 	const logAbortedScan = useEffectEvent(() => {
 		if (isFinishingRef.current) {
@@ -163,7 +173,11 @@ export function ReturnsScanner() {
 
 	function handleCodes(codes: DetectedCode[]) {
 		const reads = codes.flatMap(({ value, bbox }) => {
-			diagnostics.noteCarrier(detectCarrier(value));
+			const carrier = detectCarrier(value);
+			diagnostics.noteCarrier(carrier);
+			if (carrier) {
+				setDetectedCarrier(carrier);
+			}
 			if (isInpostReturnNumber(normalizeCode(value))) {
 				ocrLoop.noteReturnLabel(bbox);
 			}
@@ -287,15 +301,12 @@ export function ReturnsScanner() {
 			camera.status.kind === 'error' ? camera.status.message : null,
 		problem: isOcrUnauthorized ? 'unauthorized' : traceSearch.problem,
 	});
-	const {
-		root,
-		video,
-		centerNotice,
-		glassButton,
-		glassButtonBrand,
-		hint,
-		glassPanel,
-	} = returnsScannerStyles;
+	const { root, video, centerNotice, glassButton, glassButtonAccent } =
+		returnsScannerStyles;
+
+	if (cameraStart === 'unknown') {
+		return <div className={root} />;
+	}
 
 	return (
 		<div className={root}>
@@ -308,60 +319,65 @@ export function ReturnsScanner() {
 				nowMs={nowMs}
 			/>
 
-			<ScannerControls
-				camera={camera}
-				statusText={describeStatus(
-					phase,
-					camera.status.kind,
-					traceSearch.entries,
-				)}
-				isLive={isLoopRunning}
-				onOpenManualEntry={() => setPanel('manual')}
-			>
-				{ocrLoop.hasReturnLabel && isScanning && (
-					<p className={`${glassPanel} ${hint}`}>
-						Etykieta zwrotna InPost. Numer paczki jest w linii „Zwrot do nadawcy
-						do paczki” pod kwadratowym kodem: zbliż aparat do tej linii.
-					</p>
-				)}
-				{candidates.length > 0 && isScanning && (
-					<button
-						type="button"
-						className={`${glassButton} ${glassButtonBrand}`}
-						onClick={() => setPanel('candidates')}
-					>
-						Kandydaci: {candidates.length}
-					</button>
-				)}
-				<ScannerTraceList
-					entries={traceSearch.entries}
-					result={traceSearch.result}
+			{cameraStart === 'waiting' && (
+				<ScannerStartScreen
+					onStart={() => setIsStartRequested(true)}
+					onOpenManualEntry={() => setPanel('manual')}
 				/>
-			</ScannerControls>
+			)}
+			{isCameraAllowed && (
+				<>
+					<ScannerControls
+						camera={camera}
+						statusText={describeStatus(
+							phase,
+							camera.status.kind,
+							traceSearch.entries,
+						)}
+						isLive={isLoopRunning}
+						carrier={isScanning ? detectedCarrier : null}
+						onOpenManualEntry={() => setPanel('manual')}
+					>
+						{candidates.length > 0 && isScanning && (
+							<button
+								type="button"
+								className={cn(glassButton, glassButtonAccent)}
+								onClick={() => setPanel('candidates')}
+							>
+								Kandydaci: {candidates.length}
+							</button>
+						)}
+						<ScannerTraceList
+							entries={traceSearch.entries}
+							result={traceSearch.result}
+						/>
+					</ScannerControls>
 
-			{notice && (
-				<div className={centerNotice} role="alert">
-					<p>{notice.message}</p>
-					{notice.action === 'retry' && (
-						<button
-							type="button"
-							className={`${glassButton} ${glassButtonBrand}`}
-							onClick={
-								phase.kind === 'failed' ? retryAfterFailure : camera.retry
-							}
-						>
-							Spróbuj ponownie
-						</button>
+					{notice && (
+						<div className={centerNotice} role="alert">
+							<p>{notice.message}</p>
+							{notice.action === 'retry' && (
+								<button
+									type="button"
+									className={cn(glassButton, glassButtonAccent)}
+									onClick={
+										phase.kind === 'failed' ? retryAfterFailure : camera.retry
+									}
+								>
+									Spróbuj ponownie
+								</button>
+							)}
+							{notice.action === 'login' && (
+								<Link
+									href="/login"
+									className={cn(glassButton, glassButtonAccent)}
+								>
+									Zaloguj się
+								</Link>
+							)}
+						</div>
 					)}
-					{notice.action === 'login' && (
-						<Link
-							href="/login"
-							className={`${glassButton} ${glassButtonBrand}`}
-						>
-							Zaloguj się
-						</Link>
-					)}
-				</div>
+				</>
 			)}
 
 			<ScannerManualEntrySheet

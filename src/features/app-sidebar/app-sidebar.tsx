@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleUser } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoutButton } from '@/features/auth/components/logout-button';
@@ -10,6 +10,7 @@ import {
 	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
+	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
@@ -18,15 +19,21 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from '@/shared/components/sidebar';
+import type { CurrentUser } from '@/features/auth/model/auth.types';
 import { AppLogo } from './app-logo';
 import {
-	GUEST_LABEL,
-	NAVIGATION_LINKS,
+	NAVIGATION_GROUPS,
+	type NavigationLink,
+	ROLE_LABEL_BY_ROLE,
 	SETTINGS_LINK,
 } from './app-sidebar.constants';
 import { appSidebarStyles } from './app-sidebar.styles';
 
-export function AppSidebar() {
+type SidebarUser = Pick<CurrentUser, 'name' | 'role'>;
+
+type AppSidebarProps = { user: SidebarUser };
+
+export function AppSidebar({ user }: AppSidebarProps) {
 	const pathname = usePathname();
 	const { state, isMobile, toggleSidebar, setOpenMobile } = useSidebar();
 	const isCollapsed = state === 'collapsed' && !isMobile;
@@ -38,40 +45,50 @@ export function AppSidebar() {
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarHeader className={appSidebarStyles.header}>
-				<AppLogo
+				<button
+					type="button"
+					className={appSidebarStyles.logoButton}
 					onClick={toggleSidebar}
 					disabled={!isLogoActive}
 					aria-label={isLogoActive ? logoLabel : undefined}
-				/>
+				>
+					<AppLogo />
+				</button>
 				{!isMobile && <SidebarTrigger className={appSidebarStyles.trigger} />}
 			</SidebarHeader>
 
-			<SidebarSeparator />
-
 			<SidebarContent className={appSidebarStyles.content}>
-				<SidebarGroup>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{NAVIGATION_LINKS.map(({ href, label, icon: Icon }) => (
-								<SidebarMenuItem key={href}>
-									<SidebarMenuButton
-										render={<Link href={href} onClick={closeMobileSidebar} />}
-										isActive={pathname.startsWith(href)}
-										tooltip={label}
-									>
-										<Icon />
-										<span className={appSidebarStyles.linkLabel}>{label}</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
+				{NAVIGATION_GROUPS.map(({ label: groupLabel, links }) => (
+					<SidebarGroup key={groupLabel}>
+						<SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{links.map((link) => (
+									<SidebarMenuItem key={link.href}>
+										<SidebarMenuButton
+											render={
+												<Link
+													href={resolveNavigationHref(link, isMobile)}
+													onClick={closeMobileSidebar}
+												/>
+											}
+											isActive={pathname.startsWith(link.href)}
+											tooltip={link.label}
+										>
+											<link.icon />
+											<span className={appSidebarStyles.linkLabel}>
+												{link.label}
+											</span>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+				))}
 			</SidebarContent>
 
-			<SidebarSeparator />
-
-			<SidebarFooter>
+			<SidebarFooter className={appSidebarStyles.footer}>
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
@@ -88,16 +105,29 @@ export function AppSidebar() {
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
-						<SidebarMenuButton render={<div />} tooltip={GUEST_LABEL}>
-							<CircleUser />
-							<span className={appSidebarStyles.linkLabel}>{GUEST_LABEL}</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
 						<LogoutButton />
 					</SidebarMenuItem>
 				</SidebarMenu>
+				<SidebarSeparator className="mx-0" />
+				<div className={appSidebarStyles.user}>
+					<span className={appSidebarStyles.userAvatar} aria-hidden>
+						{user.name.charAt(0).toUpperCase()}
+					</span>
+					<span className={appSidebarStyles.userText}>
+						<span className={appSidebarStyles.userName}>{user.name}</span>
+						<span className={appSidebarStyles.userRole}>
+							{ROLE_LABEL_BY_ROLE[user.role]}
+						</span>
+					</span>
+				</div>
 			</SidebarFooter>
 		</Sidebar>
 	);
+}
+
+function resolveNavigationHref(
+	{ href, mobileHref }: NavigationLink,
+	isMobile: boolean,
+): Route {
+	return isMobile && mobileHref ? mobileHref : href;
 }

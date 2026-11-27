@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BaseLinkerOrderLink } from '@/features/returns/components/baselinker-order-link';
+import { CopyableOrderValue } from '@/features/returns/components/copyable-order-value';
 import { ReturnKindChip } from '@/features/returns/components/return-kind-chip';
 import type { ReturnRecord } from '@/features/returns/model/returns.types';
 import { formatWarsawTime } from '@/shared/lib/warsaw-time';
@@ -10,6 +11,8 @@ type ReturnsDayTableProps = { returns: ReturnRecord[] };
 const columnLabels = [
 	'Godzina',
 	'Zamówienie',
+	'WMS',
+	'ZO',
 	'Źródło',
 	'Rodzaj',
 	'Sztuki',
@@ -27,6 +30,7 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 		bodyRow,
 		bodyCell,
 		timeCell,
+		codeCell,
 		detailsLink,
 		quantityCell,
 		noteCell,
@@ -60,6 +64,19 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 							<td className={bodyCell}>
 								<BaseLinkerOrderLink orderId={returnRecord.orderId} />
 							</td>
+							<td className={`${bodyCell} ${codeCell}`}>
+								<CopyableOrderValue
+									label="kod WMS"
+									value={returnRecord.wmsCode}
+									variant="mono"
+								/>
+							</td>
+							<td className={`${bodyCell} ${codeCell}`}>
+								<CopyableOrderValue
+									label="numer ZO"
+									value={returnRecord.waproOrderNumber}
+								/>
+							</td>
 							<td className={bodyCell}>{returnRecord.source}</td>
 							<td className={bodyCell}>
 								<ReturnKindChip kind={returnRecord.kind} />
@@ -69,7 +86,7 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 							</td>
 							<td className={`${bodyCell} ${noteCell}`}>
 								{returnRecord.receivedBy.id === null && (
-									<span className={importMark}>import</span>
+									<span className={importMark}>Import</span>
 								)}{' '}
 								{returnRecord.note}
 							</td>

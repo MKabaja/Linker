@@ -5,18 +5,17 @@ export const productsTableStyles = {
 	tableElement: 'w-full border-collapse text-sm',
 	caption: 'sr-only',
 	head: 'border-b border-line',
-	headerCell:
-		'px-4 py-3 text-left text-[0.6875rem] font-semibold tracking-wider text-dim uppercase',
+	headerCell: 'px-4 py-3 text-left text-sm font-normal text-dim',
 	loadedBody: 'motion-safe:animate-in motion-safe:fade-in-60',
 	bodyRow:
 		'border-t border-line transition-colors first:border-t-0 hover:bg-hover',
-	bodyCell: 'px-4 py-2.5 text-off',
+	bodyCell: 'px-4 py-3.5 text-off',
 } satisfies Record<string, string>;
 
 export const productsTableColumnStyles: ClassNameByColumnId = {
 	thumbnail: 'w-12',
-	ean: 'font-mono whitespace-nowrap',
-	name: 'w-full text-main',
+	ean: 'font-mono text-xs whitespace-nowrap',
+	name: 'w-full font-medium text-main',
 	price: 'text-right whitespace-nowrap tabular-nums',
 	quantity: 'text-right tabular-nums',
 	vat: 'text-right tabular-nums',

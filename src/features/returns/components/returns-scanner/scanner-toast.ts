@@ -2,25 +2,15 @@ import { toast } from 'sonner';
 import type { SearchCandidate } from '@/features/returns/model/order-search.types';
 import type { DuplicateReturnWarning } from '@/features/returns/model/returns.types';
 import type { TraceEntry } from '@/features/returns/model/traces.types';
-import { detectCarrier } from '@/features/returns/utils/carrier';
+import {
+	carrierLabelByCarrier,
+	detectCarrier,
+} from '@/features/returns/utils/carrier';
 import { pickScannedLabel } from '@/features/returns/utils/scanned-label';
 import { shortenNumber } from '@/features/returns/utils/trace-format';
 
 const TOAST_DURATION_MS = 8_000;
 const UNKNOWN_CARRIER_LABEL = 'Paczka';
-
-type CarrierLabelByCarrier = Record<string, string>;
-
-const carrierLabelByCarrier: CarrierLabelByCarrier = {
-	inpost: 'InPost',
-	'inpost-zwrot': 'InPost zwrot',
-	dpd: 'DPD',
-	dhl: 'DHL',
-	'poczta-polska': 'Poczta Polska',
-	'dhl-lub-gls': 'DHL lub GLS',
-	gls: 'GLS',
-	orlen: 'Orlen Paczka',
-};
 
 type MatchedParcelInput = {
 	entries: TraceEntry[];
@@ -45,7 +35,7 @@ function describeMatchedParcel({
 	}
 	const carrier = detectCarrier(label);
 	const carrierLabel = carrier
-		? (carrierLabelByCarrier[carrier] ?? UNKNOWN_CARRIER_LABEL)
+		? carrierLabelByCarrier[carrier]
 		: UNKNOWN_CARRIER_LABEL;
 	return `${carrierLabel} ${shortenNumber(label)}`;
 }

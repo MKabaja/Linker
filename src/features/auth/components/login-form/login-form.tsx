@@ -45,7 +45,7 @@ export function LoginForm() {
 					{state.message}
 				</p>
 			)}
-			<Button type="submit" size="lg" disabled={isPending}>
+			<Button type="submit" variant="accent" size="lg" disabled={isPending}>
 				{isPending ? 'Logowanie…' : 'Zaloguj się'}
 			</Button>
 		</form>

@@ -9,3 +9,7 @@
 @utility focus-ring {
 	@apply outline-2 outline-offset-2 outline-brand;
 }
+
+@utility section-label {
+	@apply text-sm text-dim;
+}

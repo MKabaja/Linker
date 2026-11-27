@@ -1,10 +1,10 @@
 import { createColumnHelper, tableFeatures } from '@tanstack/react-table';
+import { CopyValueButton } from '@/shared/components/copy-value-button';
 import type { PrimaveraProduct } from '@/features/products/model/products.types';
 import {
 	formatPriceAmount,
 	formatPriceWithCurrency,
 } from '@/features/products/utils/format-price';
-import { CopyValueButton } from '../copy-value-button';
 import { ProductThumbnail } from '../product-thumbnail';
 
 export const productsTableFeatures = tableFeatures({});

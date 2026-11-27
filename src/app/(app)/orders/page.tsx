@@ -1,3 +1,4 @@
+import { PageHeader } from '@/shared/components/page-header';
 import { requireUser } from '@/features/auth/server/services/current-user.service';
 
 export default async function OrdersPage() {
@@ -5,7 +6,7 @@ export default async function OrdersPage() {
 
 	return (
 		<section>
-			<h1 className="text-2xl font-bold">Zamówienia</h1>
+			<PageHeader title="Zamówienia" />
 		</section>
 	);
 }

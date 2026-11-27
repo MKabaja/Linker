@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { LoginForm } from '@/features/auth/components/login-form';
+import { LoginCard } from '@/features/auth/components/login-card';
 import { getCurrentUser } from '@/features/auth/server/services/current-user.service';
 
 export const metadata: Metadata = {
@@ -15,9 +15,8 @@ export default async function LoginPage() {
 	}
 
 	return (
-		<section className="mx-auto flex w-full max-w-sm flex-col gap-6 px-4 py-16">
-			<h1 className="text-2xl font-bold">Logowanie</h1>
-			<LoginForm />
-		</section>
+		<main className="grid min-h-svh place-items-center bg-app p-4">
+			<LoginCard />
+		</main>
 	);
 }

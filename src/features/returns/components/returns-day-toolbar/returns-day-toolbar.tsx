@@ -18,18 +18,21 @@ export function ReturnsDayToolbar({ date, orderIds }: ReturnsDayToolbarProps) {
 				<a
 					href={`/api/returns/export?date=${date}`}
 					download
-					className={buttonVariants({ variant: 'outline', size: 'lg' })}
+					className={buttonVariants({ variant: 'default' })}
 				>
 					<Download />
 					Eksport CSV
 				</a>
 				<Link
 					href="/returns/stats"
-					className={buttonVariants({ variant: 'ghost', size: 'lg' })}
+					className={buttonVariants({ variant: 'ghost' })}
 				>
 					Statystyki
 				</Link>
-				<Link href="/returns/scan" className={buttonVariants({ size: 'lg' })}>
+				<Link
+					href="/returns/scan"
+					className={buttonVariants({ variant: 'accent' })}
+				>
 					<ScanLine />
 					Skanuj
 				</Link>

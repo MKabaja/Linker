@@ -1,3 +1,4 @@
+import { cn } from 'cn';
 import { StatTile } from '@/shared/components/stat-tile';
 import type { ScanOutcome } from '@/features/returns/model/scan-log.schemas';
 import type { ScanStats } from '@/features/returns/model/scan-log.types';
@@ -101,7 +102,7 @@ function StatsTable({ caption, rows }: StatsTableProps) {
 						<tr key={label} className={bodyRow}>
 							<th
 								scope="row"
-								className={`${headerCell} ${bodyCell} font-normal`}
+								className={cn(headerCell, bodyCell, 'font-normal')}
 							>
 								{label}
 							</th>

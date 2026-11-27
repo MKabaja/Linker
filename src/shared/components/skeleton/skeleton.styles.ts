@@ -1,1 +1,1 @@
-export const skeletonStyles = 'animate-pulse bg-muted';
+export const skeletonStyles = 'animate-pulse rounded-control bg-active';

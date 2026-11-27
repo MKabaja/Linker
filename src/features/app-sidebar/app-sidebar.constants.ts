@@ -1,24 +1,39 @@
 import type { LucideIcon } from 'lucide-react';
-import {
-	ClipboardList,
-	Package,
-	PackageOpen,
-	Settings,
-	ShoppingCart,
-} from 'lucide-react';
+import { ClipboardList, Package, PackageOpen, Settings } from 'lucide-react';
 import type { Route } from 'next';
+import type { UserRole } from '@/features/auth/model/auth.schemas';
 
-type NavigationLink = {
+export type NavigationLink = {
 	href: Route;
+	mobileHref?: Route;
 	label: string;
 	icon: LucideIcon;
 };
 
-export const NAVIGATION_LINKS: NavigationLink[] = [
-	{ href: '/orders', label: 'Zamówienia', icon: ClipboardList },
-	{ href: '/products', label: 'Produkty z Primavery', icon: Package },
-	{ href: '/returns', label: 'Zwroty', icon: PackageOpen },
-	{ href: '/shopping-list', label: 'Lista zakupów', icon: ShoppingCart },
+type NavigationGroup = {
+	label: string;
+	links: NavigationLink[];
+};
+
+export const NAVIGATION_GROUPS: NavigationGroup[] = [
+	{
+		label: 'Sprzedaż',
+		links: [
+			{ href: '/orders', label: 'Zamówienia', icon: ClipboardList },
+			{
+				href: '/returns',
+				mobileHref: '/returns/scan',
+				label: 'Zwroty',
+				icon: PackageOpen,
+			},
+		],
+	},
+	{
+		label: 'Magazyn',
+		links: [
+			{ href: '/products', label: 'Produkty z Primavery', icon: Package },
+		],
+	},
 ];
 
 export const SETTINGS_LINK: NavigationLink = {
@@ -27,4 +42,7 @@ export const SETTINGS_LINK: NavigationLink = {
 	icon: Settings,
 };
 
-export const GUEST_LABEL = 'Gość';
+export const ROLE_LABEL_BY_ROLE: Record<UserRole, string> = {
+	admin: 'Administrator',
+	employee: 'Pracownik',
+};

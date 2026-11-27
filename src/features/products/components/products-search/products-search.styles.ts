@@ -1,4 +1,4 @@
 export const productsSearchStyles = {
-	search: 'mb-4 max-w-md',
+	search: 'w-full sm:w-72',
 	label: 'sr-only',
 } satisfies Record<string, string>;

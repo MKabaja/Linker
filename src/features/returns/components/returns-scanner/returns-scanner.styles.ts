@@ -1,4 +1,7 @@
-const glass = 'border border-white/20 bg-white/10 text-main backdrop-blur-md';
+import { cva } from 'class-variance-authority';
+
+const glass =
+	'rounded-control border border-white/20 bg-white/10 text-main backdrop-blur-md';
 
 export const returnsScannerStyles = {
 	root: 'fixed inset-0 z-40 overflow-hidden bg-black text-main select-none',
@@ -11,16 +14,22 @@ export const returnsScannerStyles = {
 	zoomGroup: 'absolute top-1/2 right-3 flex -translate-y-1/2 flex-col gap-2',
 	glassButton: `${glass} inline-flex min-h-12 min-w-12 items-center justify-center gap-2 px-4 text-sm font-medium transition-colors outline-none hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-brand active:bg-white/25 aria-pressed:border-brand aria-pressed:bg-brand/50 disabled:opacity-40`,
 	glassButtonStacked: 'flex-col gap-0.5 py-1.5 text-xs',
-	glassButtonBrand:
-		'border-brand bg-brand/70 text-on-brand hover:bg-brand/80 active:bg-brand-active',
+	glassButtonAccent:
+		'border-accent bg-accent text-white hover:bg-accent-hover active:bg-accent-hover',
 	glassPanel: `${glass} p-3`,
-	statusPill: `${glass} inline-flex min-h-12 items-center gap-2 px-4 text-sm`,
-	statusDot: 'size-2 bg-success',
+	statusPill: `${glass} inline-flex min-h-12 min-w-40 items-center justify-between gap-3 px-4 text-sm`,
+	statusText: 'inline-flex items-center gap-2',
+	visuallyHidden: 'sr-only',
+	statusDot: 'size-2 rounded-full bg-success',
 	centerNotice: `${glass} absolute inset-x-4 top-1/3 flex flex-col items-center gap-3 p-4 text-center`,
 	traceList: 'flex flex-col gap-1 text-sm',
 	traceItem: 'flex items-center justify-between gap-3',
 	traceText: 'truncate',
-	hint: 'text-sm text-off',
+	startScreen:
+		'absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black p-6 text-center',
+	startTitle: 'text-lg font-semibold text-main',
+	startHint: 'max-w-md text-sm text-off',
+	startActions: 'flex flex-wrap items-center justify-center gap-2',
 	overlay: 'pointer-events-none absolute inset-0',
 	box: 'absolute border-2 transition-[left,top,width,height] duration-200',
 	reticle:
@@ -39,16 +48,34 @@ export const scannerSheetStyles = {
 		'max-h-[85dvh] overflow-y-auto border-white/20 bg-card/90 text-main backdrop-blur-md',
 	list: 'flex flex-col gap-2 px-4 pb-4',
 	candidate:
-		'flex w-full flex-col gap-1 border border-line-strong bg-field p-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-brand',
+		'flex w-full flex-col gap-1 rounded-card border border-line-strong bg-field p-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-brand',
 	candidateHeader: 'flex items-baseline justify-between gap-3',
 	candidateId: 'text-lg font-bold',
 	candidateBits: 'text-sm text-dim',
 	candidateReasons: 'text-sm text-off',
 	existingReturn:
-		'border-2 border-danger bg-danger/15 px-2 py-1 text-sm font-bold text-danger',
+		'rounded-md border-2 border-danger bg-danger/15 px-2 py-1 text-sm font-bold text-danger',
 	form: 'flex flex-col gap-3 px-4 pb-4',
 	input: 'h-12 bg-field text-base',
 	note: 'text-sm text-off',
 	submit:
-		'inline-flex min-h-12 items-center justify-center bg-brand px-4 text-sm font-medium text-on-brand outline-none hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50',
+		'inline-flex min-h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-medium text-white outline-none hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50',
 } satisfies Record<string, string>;
+
+export const carrierBadgeVariants = cva(
+	'rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap',
+	{
+		variants: {
+			carrier: {
+				inpost: 'bg-[#ffcd00] text-black',
+				'inpost-zwrot': 'bg-[#ffcd00] text-black',
+				dpd: 'bg-[#dc0032] text-white',
+				dhl: 'bg-[#ffcc00] text-[#d40511]',
+				'poczta-polska': 'bg-[#e30613] text-white',
+				'dhl-lub-gls': 'bg-white/20 text-main',
+				gls: 'bg-[#061ab1] text-[#ffd100]',
+				orlen: 'bg-[#e4002b] text-white',
+			},
+		},
+	},
+);

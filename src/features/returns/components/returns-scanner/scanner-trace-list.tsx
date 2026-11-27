@@ -1,3 +1,4 @@
+import { cn } from 'cn';
 import type { SearchResponse } from '@/features/returns/model/order-search.types';
 import type { TraceEntry } from '@/features/returns/model/traces.types';
 import { returnsScannerStyles } from './returns-scanner.styles';
@@ -20,7 +21,7 @@ export function ScannerTraceList({ entries, result }: ScannerTraceListProps) {
 	}
 
 	return (
-		<ul className={`${glassPanel} ${traceList}`} aria-label="Odczytane tropy">
+		<ul className={cn(glassPanel, traceList)} aria-label="Odczytane tropy">
 			{latest.map((entry) => (
 				<li key={entry.id} className={traceItem}>
 					<span className={traceText}>{entry.display}</span>

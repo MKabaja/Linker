@@ -1,11 +1,12 @@
-import type { ComponentProps } from 'react';
 import { appSidebarStyles } from './app-sidebar.styles';
 
-export function AppLogo(props: ComponentProps<'button'>) {
+export function AppLogo() {
+	const { logo, logoMark, logoLabel } = appSidebarStyles;
+
 	return (
-		<button type="button" className={appSidebarStyles.logo} {...props}>
-			<span className={appSidebarStyles.logoMark}>L</span>
-			<span className={appSidebarStyles.logoRest}>INKER</span>
-		</button>
+		<span className={logo}>
+			<span className={logoMark}>L</span>
+			<span className={logoLabel}>Linker</span>
+		</span>
 	);
 }

@@ -1,9 +1,9 @@
 export const returnEditorStyles = {
 	root: 'flex flex-col gap-4',
 	summary: 'flex flex-wrap items-center justify-between gap-3',
-	heading: 'text-[0.6875rem] font-semibold tracking-wider text-dim uppercase',
-	list: 'flex flex-col border border-line bg-card',
-	error: 'border border-danger p-3 text-sm text-danger',
+	heading: 'section-label',
+	list: 'card flex flex-col overflow-hidden',
+	error: 'rounded-card border border-danger/40 p-3 text-sm text-danger',
 } satisfies Record<string, string>;
 
 export const returnItemRowStyles = {
@@ -13,7 +13,7 @@ export const returnItemRowStyles = {
 	description: 'flex min-w-0 flex-col gap-1',
 	name: 'font-medium text-main',
 	codes: 'flex flex-wrap gap-x-4 font-mono text-xs text-dim',
-	damaged: 'text-xs font-semibold tracking-wider text-warning uppercase',
+	damaged: 'text-xs font-medium text-warning',
 	stepper: 'flex items-center gap-2 self-end sm:self-auto',
 	stepButton: 'size-12 text-xl',
 	counter: 'min-w-20 text-center text-xl font-semibold text-main tabular-nums',
@@ -24,7 +24,7 @@ export const returnItemRowStyles = {
 
 export const returnNoteFormStyles = {
 	form: 'flex flex-col gap-2',
-	label: 'text-[0.6875rem] font-semibold tracking-wider text-dim uppercase',
+	label: 'section-label',
 	textarea: 'min-h-24 w-full resize-y',
 	footer: 'flex flex-wrap items-center gap-3',
 	status: 'text-sm text-dim',

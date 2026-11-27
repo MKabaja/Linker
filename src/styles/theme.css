@@ -1,33 +1,40 @@
 @theme {
-	--color-app: #141416;
-	--color-surface: #19191c;
-	--color-card: #1c1c1f;
-	--color-field: #222225;
-	--color-hover: #252529;
+	--color-app: #08090b;
+	--color-surface: #0f1013;
+	--color-card: #141519;
+	--color-field: #0c0d10;
+	--color-hover: #1d1e23;
+	--color-active: #26272d;
 
-	--color-main: #f4f4f5;
-	--color-off: #d4d4d8;
-	--color-dim: #8b8b93;
+	--color-main: #ededf0;
+	--color-off: #c5c7ce;
+	--color-dim: #8b8e98;
+	--color-faint: #5c5f68;
 
-	--color-line: #2e2e33;
-	--color-line-strong: #3f3f46;
+	--color-line: #22242a;
+	--color-line-strong: #30323a;
 
-	--color-brand: #8b4ff0;
-	--color-brand-hover: #8044ec;
-	--color-brand-active: #7536e0;
-	--color-brand-orange: #faa535;
-	--color-on-brand: #ffffff;
+	--color-brand: #7b8cf6;
+	--color-brand-hover: #8d9cf8;
+	--color-brand-active: #6a7bef;
+	--color-brand-orange: #f08a5d;
+	--color-on-brand: #0b0c10;
 
-	--color-success: #4ade80;
-	--color-warning: #fbbf24;
-	--color-danger: #ff6b7a;
-	--color-info: #60a5fa;
+	--color-accent: #d4643f;
+	--color-accent-hover: #e0704a;
+
+	--color-success: #5fd39a;
+	--color-warning: #f0b45a;
+	--color-danger: #f0715f;
+	--color-info: var(--color-brand);
 
 	--font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 	--font-mono:
 		var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, monospace;
 
-	--radius-card: 0;
-	--radius-control: 0;
+	--radius-frame: 1.25rem;
+	--radius-panel: 0.875rem;
+	--radius-card: 0.75rem;
+	--radius-control: 0.5rem;
 }

@@ -1,3 +1,4 @@
+import { cn } from 'cn';
 import {
 	Flashlight,
 	FlashlightOff,
@@ -10,13 +11,21 @@ import {
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { UseCameraResult } from './use-camera';
+import {
+	type Carrier,
+	carrierLabelByCarrier,
+} from '@/features/returns/utils/carrier';
 import { viewLabelByView } from './camera-stream';
-import { returnsScannerStyles } from './returns-scanner.styles';
+import {
+	carrierBadgeVariants,
+	returnsScannerStyles,
+} from './returns-scanner.styles';
 
 type ScannerControlsProps = {
 	camera: UseCameraResult;
 	statusText: string;
 	isLive: boolean;
+	carrier: Carrier | null;
 	onOpenManualEntry: () => void;
 	children: ReactNode;
 };
@@ -28,6 +37,7 @@ export function ScannerControls({
 	camera,
 	statusText,
 	isLive,
+	carrier,
 	onOpenManualEntry,
 	children,
 }: ScannerControlsProps) {
@@ -35,6 +45,8 @@ export function ScannerControls({
 		topBar,
 		statusPill,
 		statusDot,
+		statusText: statusTextStyle,
+		visuallyHidden,
 		glassButton,
 		glassButtonStacked,
 		zoomGroup,
@@ -42,7 +54,7 @@ export function ScannerControls({
 		bottomBar,
 	} = returnsScannerStyles;
 	const { zoom } = camera;
-	const stackedButton = `${glassButton} ${glassButtonStacked}`;
+	const stackedButton = cn(glassButton, glassButtonStacked);
 
 	return (
 		<>
@@ -55,8 +67,16 @@ export function ScannerControls({
 					<X aria-hidden />
 				</Link>
 				<p className={statusPill} role="status">
-					{isLive && <span className={statusDot} aria-hidden />}
-					{statusText}
+					<span className={statusTextStyle}>
+						{isLive && <span className={statusDot} aria-hidden />}
+						{statusText}
+					</span>
+					{carrier && (
+						<span className={carrierBadgeVariants({ carrier })}>
+							<span className={visuallyHidden}>Przewoźnik: </span>
+							{carrierLabelByCarrier[carrier]}
+						</span>
+					)}
 				</p>
 				<span className="size-12" aria-hidden />
 			</div>

@@ -1,4 +1,4 @@
-import { CopyValueButton } from '@/features/products/components/copy-value-button';
+import { CopyValueButton } from '@/shared/components/copy-value-button';
 import type { OrderDetailsResult } from '@/features/returns/model/returns.types';
 import { returnPackagesStyles } from './return-packages.styles';
 
