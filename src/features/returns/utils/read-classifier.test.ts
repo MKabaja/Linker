@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { RawRead } from '@/features/returns/model/traces.types';
 import { detectCarrier } from '@/features/returns/utils/carrier';
+import { LABEL_CODES } from '@/features/returns/utils/fixtures.test-helper';
 import { createOcrResponse } from '@/features/returns/utils/ocr.test-helper';
 import { patternToString } from '@/features/returns/utils/pattern-parser';
 import {
@@ -128,4 +130,73 @@ describe('klasyfikacja odczytów', () => {
 		expect(reads.map((read) => read.kind)).toEqual(['orderId', 'phone']);
 		expect(reads.every((read) => read.source === 'manual')).toBe(true);
 	});
+});
+
+function describeReads(reads: RawRead[]): string[] {
+	return reads.map((read) =>
+		read.query.kind === 'name'
+			? `name:${read.query.prefixes.join(' ')}`
+			: read.query.kind === 'phone'
+				? `phone:${patternToString(read.query.pattern ?? [])}`
+				: `${read.query.kind}:${patternToString(read.query.pattern)}`,
+	);
+}
+
+describe('etykiety z 27.11.2026', () => {
+	it.each([
+		['ZDN do LP: A0065KB9D7, Chem', 'package:A0065KB9D7'],
+		['Kod A0065KB9D7', 'package:A0065KB9D7'],
+		['ZDN do LP: A0066RM3O6. Chem', 'package:A0066RM3[0O]6'],
+		['LP: A0O66RM306', 'package:A0066RM3[0O]6'],
+		['AOO66RM3O6', 'package:A0066RM3[0O]6'],
+	])('numer Allegro One z tekstu %s', (text, expected) => {
+		const reads = readsFromOcr(createOcrResponse([['rapid', text]]));
+
+		expect(describeReads(reads)).toEqual([expected]);
+	});
+
+	it('pełny kod DPD z kodu kreskowego daje sam numer paczki', () => {
+		const read = readFromBarcode(LABEL_CODES.dpdFull[0], BOX);
+
+		expect(read && describeReads([read])).toEqual([
+			`package:${LABEL_CODES.dpdParcel[0]}`,
+		]);
+	});
+
+	it('pełny kod DPD przeczytany przez OCR też daje sam numer paczki', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([['rapid', '10324321055932027487U101616']]),
+		);
+
+		expect(describeReads(reads)).toEqual([
+			`package:${LABEL_CODES.dpdParcel[1]}`,
+		]);
+	});
+
+	it.each([
+		LABEL_CODES.inpostAllegroReturn,
+		LABEL_CODES.inpost[0],
+		LABEL_CODES.orlen,
+		LABEL_CODES.dhl[0],
+		LABEL_CODES.dhl[1],
+	])('kod %s jest tropem paczki', (code) => {
+		expect(readFromBarcode(code, BOX)?.kind).toBe('package');
+	});
+
+	it('kod zwrotu Allegro z tekstu to trop returnReference', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([['rapid', LABEL_CODES.returnReferenceText]]),
+		);
+
+		expect(describeReads(reads)).toEqual(['returnReference:NZ5J/2026']);
+	});
+
+	it.each(['Faktura 1234/2026', 'nz5j/2026'])(
+		'%s nie jest kodem zwrotu',
+		(text) => {
+			const reads = readsFromOcr(createOcrResponse([['rapid', text]]));
+
+			expect(reads.some((read) => read.kind === 'returnReference')).toBe(false);
+		},
+	);
 });

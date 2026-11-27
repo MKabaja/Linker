@@ -32,6 +32,9 @@ const digitByLookalikeInNumbers = new Map([
 	['G', '6'],
 ]);
 const HOLE_CHARS = new Set(['?', '_', '*', '·', '•']);
+const ALLEGRO_PARCEL_HEAD = 'A00';
+const ALLEGRO_PARCEL_READ = /^A[0ODQ]{2}[A-Z0-9]{7}$/;
+const ZERO_OR_O_SLOT = '0O';
 const NUMBER_SEPARATORS = /[\s\-.,:/]/g;
 
 type PhoneMask = Pick<PhoneTraceQuery, 'pattern' | 'anchored'>;
@@ -57,6 +60,26 @@ function parseNumberRead(text: string): Pattern {
 		}
 	}
 	return pattern;
+}
+
+/**
+ * Zamienia odczyt numeru paczki Allegro One (`A00` + 7 znaków, np. `A0066RM3O6`) na wzorzec.
+ *
+ * @remarks
+ * Początek zawsze staje się `A00` (OCR czyta go też jako `AOO`, `A0D`). W pozostałych 7 znakach `0` i `O`
+ * są nierozróżnialne, więc stają się alternatywą `[0O]`; inne litery i cyfry zostają bez zmian.
+ *
+ * @returns Wzorzec 10 pozycji albo `null`, gdy odczyt nie ma kształtu numeru Allegro One.
+ */
+function parseAllegroParcelRead(text: string): Pattern | null {
+	const compact = text.toUpperCase().replace(NUMBER_SEPARATORS, '');
+	if (!ALLEGRO_PARCEL_READ.test(compact)) {
+		return null;
+	}
+	const tail = [...compact.slice(ALLEGRO_PARCEL_HEAD.length)].map((char) =>
+		ZERO_OR_O_SLOT.includes(char) ? ZERO_OR_O_SLOT : char,
+	);
+	return [...ALLEGRO_PARCEL_HEAD, ...tail];
 }
 
 /**
@@ -178,6 +201,7 @@ function slotToString(slot: PatternSlot): string {
 
 export {
 	type PhoneMask,
+	parseAllegroParcelRead,
 	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,

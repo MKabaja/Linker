@@ -8,17 +8,21 @@ import {
 	getBaseLinkerConfig,
 } from './baselinker.config';
 import {
+	type BaseLinkerJournalLog,
 	type BaseLinkerOrder,
 	type BaseLinkerOrderCustomer,
+	type BaseLinkerOrderReturn,
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
 	type BaseLinkerPickPackEntry,
 	type BaseLinkerShipment,
 	type BaseLinkerStatusEvent,
 	getCourierPackagesStatusHistoryResponseSchema,
+	getJournalListResponseSchema,
 	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,
 	getOrderPickPackHistoryResponseSchema,
+	getOrderReturnsResponseSchema,
 	getOrderShipmentsResponseSchema,
 	getOrderStatusListResponseSchema,
 	getOrdersResponseSchema,
@@ -31,6 +35,7 @@ import {
 } from './call-scheduler';
 
 const READ_ONLY_METHOD_PATTERN = /^get[A-Z]\w*$/;
+const PACKAGE_LOG_TYPES = [9, 10];
 
 type ReadOnlyMethod = `get${string}`;
 
@@ -49,6 +54,8 @@ type OrdersQuery =
 	| { date_confirmed_from: number; get_unconfirmed_orders: false }
 	| { order_id: number; get_unconfirmed_orders: true }
 	| { filter_external_order_id: string; get_unconfirmed_orders: true };
+
+type OrderReturnsQuery = { date_from: number } | { id_from: number };
 
 type CallOptions = { priority?: CallPriority };
 
@@ -214,6 +221,48 @@ async function fetchBaseLinkerOrderPackages(
 
 	return result.status === 'ok'
 		? { status: 'ok', data: result.data.packages }
+		: result;
+}
+
+/**
+ * Pobiera wpisy dziennika BaseLinkera o tworzeniu (9) i usuwaniu (10) paczek, od `lastLogId` włącznie (najwyżej 1000, rosnąco).
+ *
+ * @remarks BaseLinker trzyma dziennik tylko 3 dni, a `lastLogId` musi być dodatnie.
+ */
+async function fetchBaseLinkerPackageJournal(
+	lastLogId: number,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerJournalLog[]>> {
+	const result = await callReadOnlyMethod({
+		method: 'getJournalList',
+		parameters: { last_log_id: lastLogId, logs_types: PACKAGE_LOG_TYPES },
+		schema: getJournalListResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.logs }
+		: result;
+}
+
+/**
+ * Pobiera stronę (najwyżej 100) zwrotów z modułu zwrotów BaseLinkera (`getOrderReturns`).
+ *
+ * @remarks Zwroty zawierają dane osobowe, więc wynik nie trafia do logów.
+ */
+async function fetchBaseLinkerOrderReturns(
+	query: OrderReturnsQuery,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerOrderReturn[]>> {
+	const result = await callReadOnlyMethod({
+		method: 'getOrderReturns',
+		parameters: query,
+		schema: getOrderReturnsResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.returns }
 		: result;
 }
 
@@ -406,10 +455,13 @@ export {
 	fetchBaseLinkerOrderCustomer,
 	fetchBaseLinkerOrderPackages,
 	fetchBaseLinkerOrderPickPackHistory,
+	fetchBaseLinkerOrderReturns,
 	fetchBaseLinkerOrderShipments,
 	fetchBaseLinkerOrderStatuses,
 	fetchBaseLinkerOrders,
+	fetchBaseLinkerPackageJournal,
 	fetchBaseLinkerPackagesStatusHistory,
+	type OrderReturnsQuery,
 	type OrdersQuery,
 	type StatusEventsByPackageId,
 };

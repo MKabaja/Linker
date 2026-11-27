@@ -1,5 +1,6 @@
 import {
 	bigint,
+	boolean,
 	index,
 	integer,
 	pgTable,
@@ -18,6 +19,7 @@ export const indexedPackages = pgTable(
 		packageNumber: varchar({ length: 100 }).default('').notNull(),
 		innerNumber: varchar({ length: 100 }).default('').notNull(),
 		courierCode: varchar({ length: 50 }).default('').notNull(),
+		isReturn: boolean().default(false).notNull(),
 	},
 	(table) => [
 		unique('indexed_packages_order_package_unique').on(

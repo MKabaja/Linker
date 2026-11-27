@@ -29,6 +29,7 @@ import {
 	matchCompiled,
 	matchPackageCompiled,
 } from '@/features/returns/utils/pattern-cost';
+import { parseReturnReference } from '@/features/returns/utils/return-reference';
 
 const MAX_MATCH_COST = 1.0;
 const LONG_NUMBER_DIGITS = 16;
@@ -70,6 +71,14 @@ type CostMatcher = Omit<OrderMatcher, 'evidenceCostAt'>;
 
 type PackageVariant = (value: string, maxCost: number) => number;
 
+/** Zamówienie dla kodu zwrotu Allegro (`NZ5J/2026`), znalezione poza indeksem. */
+type OrderIdByReturnReference = ReadonlyMap<string, number>;
+
+type MatcherContext = {
+	view: OrderIndexView;
+	orderIdByReturnReference: OrderIdByReturnReference;
+};
+
 const viewByOrders = new WeakMap<IndexedOrder[], OrderIndexView>();
 
 /**
@@ -92,10 +101,19 @@ function getOrderIndexView(orders: IndexedOrder[]): OrderIndexView {
 	return view;
 }
 
+/**
+ * Buduje dopasowanie tropu do zamówień. Kod zwrotu pasuje dokładnie (koszt `0`) tylko do zamówienia
+ * z `orderIdByReturnReference`; bez wpisu w mapie nie pasuje do niczego.
+ */
 function createOrderMatcher(
 	trace: TraceQuery,
-	view: OrderIndexView,
+	{ view, orderIdByReturnReference }: MatcherContext,
 ): OrderMatcher {
+	if (trace.kind === 'returnReference') {
+		return withCostAsEvidence(
+			createReturnReferenceMatcher(trace, view, orderIdByReturnReference),
+		);
+	}
 	if (trace.kind === 'name') {
 		const { prefixes } = trace;
 		const { orders } = view;
@@ -138,6 +156,22 @@ function createPhoneMatcher(
 			return matchPhoneCompiled(phone, phoneDigits, MAX_MATCH_COST);
 		},
 		matchedValueAt: (index) => orders[index].phoneDigits,
+	};
+}
+
+function createReturnReferenceMatcher(
+	trace: NumberTraceQuery,
+	{ orders }: OrderIndexView,
+	orderIdByReturnReference: OrderIdByReturnReference,
+): CostMatcher {
+	const reference = parseReturnReference(trace.pattern.join('')) ?? '';
+	const orderId = orderIdByReturnReference.get(reference);
+	return {
+		costAt: (index) =>
+			orderId !== undefined && orders[index].orderId === orderId
+				? 0
+				: Number.POSITIVE_INFINITY,
+		matchedValueAt: () => reference,
 	};
 }
 
@@ -272,6 +306,8 @@ export {
 	createOrderMatcher,
 	getOrderIndexView,
 	MAX_MATCH_COST,
+	type MatcherContext,
+	type OrderIdByReturnReference,
 	type OrderIndexView,
 	type OrderMatcher,
 };

@@ -1,5 +1,13 @@
+import {
+	AnimatePresence,
+	motion,
+	type Transition,
+	useReducedMotion,
+} from 'motion/react';
 import { useElementSize } from '@/shared/hooks/use-element-size';
+import type { TapTarget } from './use-tap-target';
 import type { Rect, TraceEntry } from '@/features/returns/model/traces.types';
+import { isTapTargetActive } from '@/features/returns/utils/scan-plan';
 import {
 	mapRectToCover,
 	type Size,
@@ -13,24 +21,31 @@ const BOX_TTL_MS = 1_500;
 const BOX_PADDING_RATIO = 0.012;
 const IDLE_RETICLE_WIDTH_RATIO = 0.62;
 const IDLE_RETICLE_HEIGHT_RATIO = 0.42;
+const TAP_MARKER_ENTER = { opacity: 0, scale: 1.8 };
+const TAP_MARKER_VISIBLE = { opacity: 1, scale: 1 };
+const TAP_MARKER_EXIT = { opacity: 0, scale: 0.8 };
+const TAP_MARKER_TRANSITION: Transition = { duration: 0.25, ease: 'easeOut' };
 
 type ScannerOverlayProps = {
 	entries: TraceEntry[];
 	frameSize: Size;
 	nowMs: number;
+	target: TapTarget | null;
 };
 
 /**
- * Celownik i ramki odczytów na podglądzie. Ramki z układu klatki są przeliczane na układ ekranu
- * przy `object-fit: cover`; znikają, gdy trop nie był widziany od 1,5 s.
+ * Celownik, ramki odczytów i znacznik tapniętego celu na podglądzie. Ramki z układu klatki są przeliczane na układ ekranu
+ * przy `object-fit: cover`; znikają, gdy trop nie był widziany od 1,5 s. Znacznik celu znika razem z celem.
  */
 export function ScannerOverlay({
 	entries,
 	frameSize,
 	nowMs,
+	target,
 }: ScannerOverlayProps) {
 	const { ref, size } = useElementSize<HTMLDivElement>();
-	const { overlay, box, reticle } = returnsScannerStyles;
+	const shouldReduceMotion = useReducedMotion();
+	const { overlay, box, reticle, tapMarker } = returnsScannerStyles;
 
 	const visibleBoxes = entries.flatMap((entry) => {
 		if (!entry.bbox || nowMs - entry.seenAt >= BOX_TTL_MS) {
@@ -54,6 +69,14 @@ export function ScannerOverlay({
 		width: size.width * IDLE_RETICLE_WIDTH_RATIO,
 		height: size.height * IDLE_RETICLE_HEIGHT_RATIO,
 	};
+	const targetRect =
+		target && isTapTargetActive(target.tappedAtMs, nowMs)
+			? mapRectToCover({
+					rect: { ...target.point, width: 0, height: 0 },
+					frame: frameSize,
+					container: size,
+				})
+			: null;
 
 	return (
 		<div ref={ref} className={overlay} aria-hidden>
@@ -70,6 +93,19 @@ export function ScannerOverlay({
 				className={`${reticle} ${active ? boxStyleByTraceState[active.entry.state] : 'border-white/40'}`}
 				style={toStyle(active?.rect ?? idleRect)}
 			/>
+			<AnimatePresence>
+				{target && targetRect && (
+					<motion.div
+						key={target.tappedAtMs}
+						className={tapMarker}
+						style={{ left: targetRect.x, top: targetRect.y }}
+						initial={shouldReduceMotion ? false : TAP_MARKER_ENTER}
+						animate={TAP_MARKER_VISIBLE}
+						exit={shouldReduceMotion ? undefined : TAP_MARKER_EXIT}
+						transition={TAP_MARKER_TRANSITION}
+					/>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 }

@@ -4,14 +4,17 @@ import type {
 	TraceQuery,
 } from '@/features/returns/model/traces.types';
 import {
+	ALLEGRO_ONE_ORDER_ID,
 	generateOrders,
 	INPOST_PREFIX,
+	makeAllegroOneOrders,
 	makeOrder,
 	type OrderOverrides,
 	SCORING_OPTIONS,
 } from '@/features/returns/utils/fixtures.test-helper';
 import { scoreOrders } from '@/features/returns/utils/order-scorer';
 import {
+	parseAllegroParcelRead,
 	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,
@@ -355,5 +358,94 @@ describe('scoreOrders', () => {
 		const averageMilliseconds = (performance.now() - start) / PERFORMANCE_RUNS;
 
 		expect(averageMilliseconds).toBeLessThan(MAX_AVERAGE_MILLISECONDS);
+	});
+});
+
+describe('scoreOrders: numery Allegro One (ZDN)', () => {
+	const orders = [...BASE_ORDERS, ...makeAllegroOneOrders()];
+
+	function allegroTrace(text: string): NumberTraceQuery {
+		return {
+			id: 'a',
+			kind: 'package',
+			pattern: parseAllegroParcelRead(text) ?? [],
+			isSingleOcrRead: true,
+		};
+	}
+
+	it.each([
+		['A0065KB9D7', ALLEGRO_ONE_ORDER_ID + 3],
+		['A0066RM3O6', ALLEGRO_ONE_ORDER_ID],
+		['A0O66RM306', ALLEGRO_ONE_ORDER_ID],
+		['AOO66RM3O6', ALLEGRO_ONE_ORDER_ID],
+	])('pojedynczy odczyt OCR %s trafia auto', (text, orderId) => {
+		const result = scoreOrders([allegroTrace(text)], orders, SCORING_OPTIONS);
+
+		expect(result.decision).toBe('auto');
+		expect(result.candidates[0].orderId).toBe(orderId);
+	});
+
+	it('odczyt z jedną pomyłką litery i cyfry (B/8) trafia auto', () => {
+		const result = scoreOrders(
+			[allegroTrace('A0065K8YU5'.replace('8', 'B'))],
+			orders,
+			SCORING_OPTIONS,
+		);
+
+		expect(result.decision).toBe('auto');
+		expect(result.candidates[0].orderId).toBe(ALLEGRO_ONE_ORDER_ID + 2);
+	});
+
+	it.each(['A00668THM9', 'A00668THMS', 'A00868THMS'])(
+		'zbyt błędny odczyt %s nie trafia auto',
+		(text) => {
+			const result = scoreOrders([allegroTrace(text)], orders, SCORING_OPTIONS);
+
+			expect(result.decision).not.toBe('auto');
+		},
+	);
+
+	it('inny kod z tej samej etykiety (A006A485G0) nie daje kandydata', () => {
+		const result = scoreOrders(
+			[allegroTrace('A006A485G0')],
+			orders,
+			SCORING_OPTIONS,
+		);
+
+		expect(result.decision).toBe('none');
+	});
+});
+
+describe('scoreOrders: kod zwrotu Allegro', () => {
+	const reference = 'NZ5J/2026';
+	const trace: NumberTraceQuery = {
+		id: 'r',
+		kind: 'returnReference',
+		pattern: [...reference],
+	};
+
+	it('kod zwrotu z mapy trafia auto w zamówienie z indeksu', () => {
+		const orders = withTarget({ orderId: TARGET_ID });
+
+		const result = scoreOrders([trace], orders, {
+			...SCORING_OPTIONS,
+			orderIdByReturnReference: new Map([[reference, TARGET_ID]]),
+		});
+
+		expect(result.decision).toBe('auto');
+		expect(result.candidates[0].orderId).toBe(TARGET_ID);
+		expect(result.candidates[0].reasons[0].label).toBe(
+			`kod zwrotu ${reference}`,
+		);
+	});
+
+	it('bez mapy kod zwrotu nic nie daje', () => {
+		const result = scoreOrders(
+			[trace],
+			withTarget({ orderId: TARGET_ID }),
+			SCORING_OPTIONS,
+		);
+
+		expect(result.decision).toBe('none');
 	});
 });

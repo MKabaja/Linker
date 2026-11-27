@@ -5,7 +5,9 @@ import { requireUser } from '@/features/auth/server/services/current-user.servic
 import {
 	type CreateReturnInput,
 	createReturnSchema,
+	type ReturnCorrectionInput,
 	type ReturnIdInput,
+	returnCorrectionSchema,
 	returnIdSchema,
 	type UpdateReturnInput,
 	updateReturnSchema,
@@ -14,6 +16,7 @@ import type {
 	CreateReturnResult,
 	DeleteReturnResult,
 	RestoreReturnResult,
+	SetReturnCorrectionResult,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
 import {
@@ -22,6 +25,16 @@ import {
 } from '@/features/returns/model/scan-log.schemas';
 import type { SaveScanLogResult } from '@/features/returns/model/scan-log.types';
 import {
+	type TypedNumberRequest,
+	typedNumberRequestSchema,
+} from '@/features/returns/model/typed-number.schemas';
+import type {
+	PendingReturnView,
+	TypedNumberSearchResult,
+} from '@/features/returns/model/typed-number.types';
+import { getPendingReturns } from '@/features/returns/server/services/pending-returns.service';
+import {
+	changeReturnCorrection,
 	createReturn,
 	deleteReturn,
 	getReturnRecord,
@@ -29,6 +42,7 @@ import {
 	updateReturn,
 } from '@/features/returns/server/services/returns.service';
 import { saveScanLog } from '@/features/returns/server/services/scan-log.service';
+import { searchTypedNumber } from '@/features/returns/server/services/typed-number-search.service';
 import {
 	isEventLogEnabled,
 	logReturnsEvent,
@@ -176,6 +190,38 @@ async function restoreReturnAction(
 	return result;
 }
 
+async function setReturnCorrectionAction(
+	input: ReturnCorrectionInput,
+): Promise<SetReturnCorrectionResult | InvalidInput> {
+	const user = await requireUser();
+	const parsedInput = returnCorrectionSchema.safeParse(input);
+
+	if (!parsedInput.success) {
+		return { status: 'invalid' };
+	}
+
+	const { returnId, isIssued } = parsedInput.data;
+	const result = await changeReturnCorrection({
+		returnId,
+		isIssued,
+		userId: user.id,
+		now: new Date(),
+	});
+
+	if (result.status === 'updated') {
+		logReturnsEvent({
+			...toUserLogContext(user),
+			type: 'return.correction',
+			returnId,
+			isIssued,
+		});
+		revalidatePath('/returns');
+		revalidatePath(`/returns/${returnId}`);
+	}
+
+	return result;
+}
+
 async function saveScanLogAction(
 	input: ScanLogInput,
 ): Promise<SaveScanLogResult> {
@@ -190,10 +236,37 @@ async function saveScanLogAction(
 	return { status: 'saved' };
 }
 
+async function searchTypedNumberAction(
+	input: TypedNumberRequest,
+): Promise<TypedNumberSearchResult> {
+	await requireUser();
+	const parsedInput = typedNumberRequestSchema.safeParse(input);
+
+	if (!parsedInput.success) {
+		return { status: 'invalid' };
+	}
+
+	return {
+		status: 'ok',
+		candidates: await searchTypedNumber({
+			...parsedInput.data,
+			now: new Date(),
+		}),
+	};
+}
+
+async function listPendingReturnsAction(): Promise<PendingReturnView[]> {
+	await requireUser();
+	return getPendingReturns(new Date());
+}
+
 export {
 	createReturnAction,
 	deleteReturnAction,
+	listPendingReturnsAction,
 	restoreReturnAction,
 	saveScanLogAction,
+	searchTypedNumberAction,
+	setReturnCorrectionAction,
 	updateReturnAction,
 };

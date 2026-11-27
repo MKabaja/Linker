@@ -12,17 +12,21 @@ import type {
 	ReturnDetails,
 	ReturnNeighbors,
 	ReturnRecord,
+	SetReturnCorrectionResult,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
+import { defaultReturnsListFilters } from '@/features/returns/model/returns-list.constants';
+import type { ReturnsListScope } from '@/features/returns/model/returns-list.types';
 import { toDuplicateReturnWarning } from '@/features/returns/server/mappers/duplicate-return.mapper';
 import {
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
 	findReturnNeighbors,
-	findReturnsCreatedOn,
+	findReturnsInScope,
 	insertReturnIfAbsent,
 	restoreReturnWithEvent,
+	setReturnCorrection,
 	softDeleteReturnWithEvent,
 	updateReturnWithEvent,
 } from '@/features/returns/server/repositories/returns.repository';
@@ -40,6 +44,10 @@ type NewReturnRequest = {
 type ReturnUpdateRequest = { update: UpdateReturn; userId: number; now: Date };
 
 type ReturnStateChangeRequest = { returnId: number; userId: number; now: Date };
+
+type ReturnCorrectionRequest = ReturnStateChangeRequest & { isIssued: boolean };
+
+type DayScope = ReturnsListScope & { date: string };
 
 /**
  * Tworzy zwrot z pozycji zamówienia, domyślnie z przyjętymi wszystkimi zamówionymi sztukami.
@@ -150,6 +158,20 @@ async function restoreReturn({
 }
 
 /**
+ * Zaznacza albo odznacza wystawienie korekty; osoba i czas zapisują się tylko przy zaznaczeniu.
+ *
+ * @remarks Usuniętego zwrotu nie da się zmienić: wynik `deleted`, bez zmian.
+ */
+function changeReturnCorrection({
+	returnId,
+	userId,
+	now,
+	isIssued,
+}: ReturnCorrectionRequest): Promise<SetReturnCorrectionResult> {
+	return setReturnCorrection({ returnId, userId, issuedAt: now, isIssued });
+}
+
+/**
  * Zwraca zwrot z historią, także usunięty (wtedy `deletion` mówi kto i kiedy).
  */
 async function getReturn(returnId: number): Promise<ReturnDetails | null> {
@@ -163,10 +185,14 @@ async function getReturn(returnId: number): Promise<ReturnDetails | null> {
 }
 
 /**
- * Zwraca sąsiednie zwroty w kolejności przyjęcia, z pominięciem usuniętych; `null` oznacza koniec listy.
+ * Zwraca sąsiednie zwroty w kolejności listy o podanym zakresie (dzień, sortowanie, filtr korekty), z pominięciem usuniętych;
+ * `previousReturnId` to wiersz nad bieżącym, `nextReturnId` pod nim, a `null` oznacza koniec listy.
  */
-function getReturnNeighbors(returnId: number): Promise<ReturnNeighbors> {
-	return findReturnNeighbors(returnId);
+function getReturnNeighbors(
+	returnId: number,
+	scope: ReturnsListScope,
+): Promise<ReturnNeighbors> {
+	return findReturnNeighbors(returnId, scope);
 }
 
 function getReturnRecord(returnId: number): Promise<ReturnRecord | null> {
@@ -178,12 +204,13 @@ function getReturnByOrderId(orderId: number): Promise<ReturnRecord | null> {
 }
 
 /**
- * Zwraca zwroty przyjęte danego dnia (strefa Europe/Warsaw) z liczbą pełnych i częściowych.
+ * Zwraca zwroty przyjęte danego dnia (strefa Europe/Warsaw) w wybranej kolejności, z liczbą pełnych i częściowych.
  *
- * @param date - Data `YYYY-MM-DD`.
+ * @remarks Podsumowanie liczy zwroty po filtrze korekty, czyli te, które są na liście.
  */
-async function getReturnsOfDay(date: string): Promise<DayReturns> {
-	const dayReturns = await findReturnsCreatedOn(date);
+async function getReturnsOfDay(scope: DayScope): Promise<DayReturns> {
+	const { date } = scope;
+	const dayReturns = await findReturnsInScope(scope);
 	const full = dayReturns.filter(({ kind }) => kind === 'full').length;
 
 	return {
@@ -198,7 +225,10 @@ async function getReturnsOfDay(date: string): Promise<DayReturns> {
 }
 
 async function exportReturnsOfDay(date: string): Promise<CsvFile> {
-	const { returns } = await getReturnsOfDay(date);
+	const { returns } = await getReturnsOfDay({
+		...defaultReturnsListFilters,
+		date,
+	});
 
 	return { fileName: `zwroty-${date}.csv`, content: buildReturnsCsv(returns) };
 }
@@ -225,6 +255,7 @@ function toReturnItems(order: OrderDetails): NewReturnItem[] {
 }
 
 export {
+	changeReturnCorrection,
 	createReturn,
 	deleteReturn,
 	exportReturnsOfDay,

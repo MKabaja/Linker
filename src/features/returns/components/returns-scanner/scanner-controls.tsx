@@ -1,13 +1,5 @@
 import { cn } from 'cn';
-import {
-	Flashlight,
-	FlashlightOff,
-	Keyboard,
-	SwitchCamera,
-	X,
-	ZoomIn,
-	ZoomOut,
-} from 'lucide-react';
+import { Keyboard, SwitchCamera, X, ZoomIn, ZoomOut } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { UseCameraResult } from './use-camera';
@@ -31,7 +23,7 @@ type ScannerControlsProps = {
 };
 
 /**
- * Przyciski nałożone na podgląd: zamknięcie i status u góry, zoom z boku, widok, latarka i „Wpisz” na dole.
+ * Przyciski nałożone na podgląd: zamknięcie i status u góry, zoom z boku, widok i „Wpisz” na dole.
  */
 export function ScannerControls({
 	camera,
@@ -118,26 +110,7 @@ export function ScannerControls({
 							<span>Widok</span>
 							<span className="text-off">{viewLabelByView[camera.view]}</span>
 						</button>
-					) : (
-						<span aria-hidden />
-					)}
-					{camera.hasTorch ? (
-						<button
-							type="button"
-							className={stackedButton}
-							onClick={camera.toggleTorch}
-							aria-pressed={camera.isTorchOn}
-						>
-							{camera.isTorchOn ? (
-								<Flashlight aria-hidden />
-							) : (
-								<FlashlightOff aria-hidden />
-							)}
-							<span>Latarka</span>
-						</button>
-					) : (
-						<span aria-hidden />
-					)}
+					) : null}
 					<button
 						type="button"
 						className={stackedButton}

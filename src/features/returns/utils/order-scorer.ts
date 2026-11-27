@@ -18,6 +18,7 @@ import {
 	createOrderMatcher,
 	getOrderIndexView,
 	MAX_MATCH_COST,
+	type MatcherContext,
 	type OrderMatcher,
 } from '@/features/returns/utils/order-matchers';
 import {
@@ -42,6 +43,7 @@ const kindSlotByKind: KindSlotByKind = {
 	phone: 3,
 	name: 4,
 	postcode: 5,
+	returnReference: 6,
 };
 const KIND_COUNT = Object.keys(kindSlotByKind).length;
 
@@ -60,6 +62,7 @@ type KindScores = { bits: Float64Array; traceIndex: Int32Array };
  * - Premia za datę (2–40 dni) i status wysyłki tylko dla zamówień z jakimkolwiek tropem.
  * - `auto`, gdy najlepszy ma co najmniej `log2(N)` bitów i 3 bity przewagi; `candidates` od 40% progu (najwyżej 3).
  * - `auto` wymaga tropu identyfikującego (patrz {@link isIdentifyingTrace}); bez niego wynik to najwyżej `candidates`.
+ * - Kod zwrotu daje `log2(N)` bitów zamówieniu z `options.orderIdByReturnReference`, o ile jest ono w indeksie.
  *
  * Pusty indeks daje `none`. Kolejne wywołania z tą samą tablicą `orders` korzystają z przeliczonego widoku.
  */
@@ -88,7 +91,13 @@ export function scoreOrders(
 	};
 	const threshold = Math.log2(indexSize);
 	const view = getOrderIndexView(orders);
-	const matchers = traces.map((trace) => createOrderMatcher(trace, view));
+	const matcherContext: MatcherContext = {
+		view,
+		orderIdByReturnReference: options.orderIdByReturnReference ?? new Map(),
+	};
+	const matchers = traces.map((trace) =>
+		createOrderMatcher(trace, matcherContext),
+	);
 	const kindScores: KindScores = {
 		bits: new Float64Array(indexSize * KIND_COUNT),
 		traceIndex: new Int32Array(indexSize * KIND_COUNT).fill(-1),

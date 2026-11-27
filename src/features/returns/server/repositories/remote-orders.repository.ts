@@ -9,11 +9,13 @@ import type {
 	PickPackEvent,
 	TrackingEvent,
 } from '@/features/returns/model/order-live.types';
+import type { OrderReturnRecord } from '@/features/returns/model/order-returns.types';
 import {
 	mapBaseLinkerOrder,
 	mapBaseLinkerPackages,
 } from '@/features/returns/server/mappers/baselinker-order.mapper';
 import { mapBaseLinkerOrderCustomer } from '@/features/returns/server/mappers/order-customer.mapper';
+import { mapBaseLinkerOrderReturn } from '@/features/returns/server/mappers/order-return.mapper';
 import {
 	mapBaseLinkerPickPackEvents,
 	mapBaseLinkerTrackingEvents,
@@ -22,13 +24,17 @@ import {
 	fetchBaseLinkerOrderCustomer,
 	fetchBaseLinkerOrderPackages,
 	fetchBaseLinkerOrderPickPackHistory,
+	fetchBaseLinkerOrderReturns,
 	fetchBaseLinkerOrderShipments,
 	fetchBaseLinkerOrderStatuses,
 	fetchBaseLinkerOrders,
+	fetchBaseLinkerPackageJournal,
 	fetchBaseLinkerPackagesStatusHistory,
+	type OrderReturnsQuery,
 	type OrdersQuery,
 	type StatusEventsByPackageId,
 } from '@/features/returns/server/sources/baselinker.client';
+import type { BaseLinkerJournalLog } from '@/features/returns/server/sources/baselinker.schemas';
 import { getProcessSingleton } from '@/shared/lib/process-singleton';
 
 const STATUS_NAMES_TTL_MILLISECONDS = 60 * 60_000;
@@ -102,6 +108,34 @@ async function findRemoteOrderPackages(
 
 	return result.status === 'ok'
 		? { status: 'ok', data: mapBaseLinkerPackages(result.data) }
+		: result;
+}
+
+/**
+ * Pobiera wpisy dziennika o tworzeniu i usuwaniu paczek od `lastLogId` włącznie (najwyżej 1000).
+ *
+ * @remarks Wywołanie w tle (synchronizacja).
+ */
+function findRemotePackageJournal(
+	lastLogId: number,
+): Promise<RemoteResult<BaseLinkerJournalLog[]>> {
+	return fetchBaseLinkerPackageJournal(lastLogId, { priority: 'background' });
+}
+
+/**
+ * Pobiera stronę (najwyżej 100) zwrotów z modułu zwrotów BaseLinkera.
+ *
+ * @remarks Wywołanie w tle (synchronizacja).
+ */
+async function findRemoteOrderReturns(
+	query: OrderReturnsQuery,
+): Promise<RemoteResult<OrderReturnRecord[]>> {
+	const result = await fetchBaseLinkerOrderReturns(query, {
+		priority: 'background',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.map(mapBaseLinkerOrderReturn) }
 		: result;
 }
 
@@ -216,7 +250,9 @@ export {
 	findRemoteOrderById,
 	findRemoteOrderCustomer,
 	findRemoteOrderPackages,
+	findRemoteOrderReturns,
 	findRemoteOrdersConfirmedFrom,
+	findRemotePackageJournal,
 	findRemotePickPackEvents,
 	findRemoteShipping,
 	type StatusNameById,

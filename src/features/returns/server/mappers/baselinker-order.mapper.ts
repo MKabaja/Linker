@@ -18,6 +18,8 @@ import {
 } from '@/features/returns/utils/normalize-text';
 
 const MILLISECONDS_PER_SECOND = 1000;
+const RETURN_PACKAGE_TYPE = '1';
+const RETURN_INNER_NUMBER_PREFIX = 'return_';
 
 /**
  * Mapuje zamówienie z `getOrders` na wpis indeksu: zamówienie, pozycje i ostatnią przesyłkę
@@ -55,6 +57,7 @@ function mapBaseLinkerOrder(order: BaseLinkerOrder): OrderIndexEntry {
 				courier_package_nr: order.delivery_package_nr,
 				courier_inner_number: '',
 				courier_code: order.delivery_package_module,
+				package_type: '',
 			},
 		]),
 	};
@@ -81,6 +84,7 @@ function mapBaseLinkerPackages(
 			packageNumber: mapped.packageNumber,
 			innerNumber: mapped.innerNumber || known?.innerNumber || '',
 			courierCode: mapped.courierCode || known?.courierCode || '',
+			isReturn: mapped.isReturn || (known?.isReturn ?? false),
 		});
 	}
 
@@ -95,7 +99,18 @@ function mapPackage(baseLinkerPackage: BaseLinkerPackage): IndexedPackage {
 			normalizeCode(baseLinkerPackage.courier_package_nr) || innerNumber,
 		innerNumber,
 		courierCode: baseLinkerPackage.courier_code.trim(),
+		isReturn: isReturnPackage(baseLinkerPackage),
 	};
+}
+
+function isReturnPackage(baseLinkerPackage: BaseLinkerPackage): boolean {
+	return (
+		baseLinkerPackage.package_type.trim() === RETURN_PACKAGE_TYPE ||
+		baseLinkerPackage.courier_inner_number
+			.trim()
+			.toLowerCase()
+			.startsWith(RETURN_INNER_NUMBER_PREFIX)
+	);
 }
 
 function mapProduct(

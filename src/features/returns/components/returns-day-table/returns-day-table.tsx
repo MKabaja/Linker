@@ -1,12 +1,26 @@
+import { FileCheck2 } from 'lucide-react';
 import Link from 'next/link';
 import { BaseLinkerOrderLink } from '@/features/returns/components/baselinker-order-link';
 import { CopyableOrderValue } from '@/features/returns/components/copyable-order-value';
 import { ReturnKindChip } from '@/features/returns/components/return-kind-chip';
-import type { ReturnRecord } from '@/features/returns/model/returns.types';
-import { formatWarsawTime } from '@/shared/lib/warsaw-time';
+import { Reveal } from '@/shared/components/reveal';
+import type {
+	ReturnCorrection,
+	ReturnRecord,
+} from '@/features/returns/model/returns.types';
+import type { ReturnsListScope } from '@/features/returns/model/returns-list.types';
+import { toReturnsListSearch } from '@/features/returns/utils/returns-list-query';
+import {
+	formatWarsawDateTime,
+	formatWarsawTime,
+} from '@/shared/lib/warsaw-time';
 import { returnsDayTableStyles } from './returns-day-table.styles';
 
-type ReturnsDayTableProps = { returns: ReturnRecord[] };
+type ReturnsDayTableProps = {
+	returns: ReturnRecord[];
+	/** Zakres listy; trafia do linków szczegółów, żeby szczegół szedł w tej samej kolejności. */
+	listScope: ReturnsListScope;
+};
 
 const columnLabels = [
 	'Godzina',
@@ -15,12 +29,13 @@ const columnLabels = [
 	'ZO',
 	'Źródło',
 	'Rodzaj',
+	'Korekta',
 	'Sztuki',
 	'Notatka',
 	'Szczegóły',
 ];
 
-export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
+export function ReturnsDayTable({ returns, listScope }: ReturnsDayTableProps) {
 	const {
 		wrapper,
 		tableElement,
@@ -35,11 +50,20 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 		quantityCell,
 		noteCell,
 		importMark,
+		correctionCell,
+		correctionIssued,
+		correctionMissing,
 		empty,
 	} = returnsDayTableStyles;
 
 	if (returns.length === 0) {
-		return <p className={empty}>Brak zwrotów przyjętych tego dnia.</p>;
+		return (
+			<p className={empty}>
+				{listScope.correction === 'all'
+					? 'Brak zwrotów przyjętych tego dnia.'
+					: 'Brak zwrotów tego dnia dla wybranego filtra korekty.'}
+			</p>
+		);
 	}
 
 	return (
@@ -56,8 +80,13 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 					</tr>
 				</thead>
 				<tbody>
-					{returns.map((returnRecord) => (
-						<tr key={returnRecord.id} className={bodyRow}>
+					{returns.map((returnRecord, rowIndex) => (
+						<Reveal
+							as="tr"
+							order={rowIndex}
+							key={returnRecord.id}
+							className={bodyRow}
+						>
 							<td className={`${bodyCell} ${timeCell}`}>
 								{formatWarsawTime(returnRecord.createdAt)}
 							</td>
@@ -81,6 +110,27 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 							<td className={bodyCell}>
 								<ReturnKindChip kind={returnRecord.kind} />
 							</td>
+							<td className={`${bodyCell} ${correctionCell}`}>
+								{returnRecord.correction ? (
+									<span
+										role="img"
+										aria-label="Korekta wystawiona"
+										title={formatCorrectionTitle(returnRecord.correction)}
+										className={correctionIssued}
+									>
+										<FileCheck2 aria-hidden="true" className="size-4" />
+									</span>
+								) : (
+									<span
+										role="img"
+										aria-label="Brak korekty"
+										title="Brak korekty"
+										className={correctionMissing}
+									>
+										<FileCheck2 aria-hidden="true" className="size-4" />
+									</span>
+								)}
+							</td>
 							<td className={`${bodyCell} ${quantityCell}`}>
 								{formatQuantities(returnRecord)}
 							</td>
@@ -92,7 +142,7 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 							</td>
 							<td className={bodyCell}>
 								<Link
-									href={`/returns/${returnRecord.id}`}
+									href={`/returns/${returnRecord.id}${toReturnsListSearch(listScope)}`}
 									className={detailsLink}
 								>
 									Szczegóły
@@ -102,12 +152,18 @@ export function ReturnsDayTable({ returns }: ReturnsDayTableProps) {
 									</span>
 								</Link>
 							</td>
-						</tr>
+						</Reveal>
 					))}
 				</tbody>
 			</table>
 		</div>
 	);
+}
+
+function formatCorrectionTitle({ at, byName }: ReturnCorrection): string {
+	const title = `Korekta wystawiona ${formatWarsawDateTime(at)}`;
+
+	return byName ? `${title}, ${byName}` : title;
 }
 
 function formatQuantities({ items }: ReturnRecord): string {

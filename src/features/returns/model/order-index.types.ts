@@ -41,6 +41,8 @@ type IndexedPackage = {
 	packageNumber: string;
 	innerNumber: string;
 	courierCode: string;
+	/** Przesyłka zwrotna (`package_type` `1` albo numer wewnętrzny `return_...`). */
+	isReturn: boolean;
 };
 
 type OrderIndexEntry = {

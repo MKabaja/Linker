@@ -16,8 +16,14 @@ type ShopMatchingConfig = {
 	 */
 	phoneSuffix: string;
 	/**
-	 * Zamaskowane nazwy sklepu jako prefiksy słów (np. `[['ko'], ['ko', 'dr']]`). Maska imienia o tej samej
-	 * liczbie słów, której każde słowo zaczyna się od prefiksu z tej samej pozycji, nie jest tropem.
+	 * Pełny telefon sklepu, 9 cyfr. Odczyt różniący się od niego jedną cyfrą albo z dodatkową cyfrą
+	 * (np. `880729083`, `1880729093`) i maska, której znany koniec od 4 cyfr różni się od jego końca
+	 * najwyżej jedną cyfrą (`***3 093`), też nie są tropem.
+	 */
+	phone: string;
+	/**
+	 * Zamaskowane nazwy sklepu i firmy odbiorcy jako prefiksy słów (np. `[['ko'], ['ko', 'dr']]`). Maska imienia
+	 * o tej samej liczbie słów, której każde słowo zaczyna się od prefiksu z tej samej pozycji, nie jest tropem.
 	 */
 	shopNameMasks: readonly (readonly string[])[];
 	/** Początek numerów zamówień BaseLinkera na tym koncie. */
@@ -45,6 +51,9 @@ type ReturnItem = ReturnedQuantities & {
 	condition: ReturnItemCondition;
 };
 
+/** Kto i kiedy wystawił korektę; `byName` jest `null`, gdy konto autora już nie istnieje. */
+type ReturnCorrection = { at: Date; byName: string | null };
+
 /** Kto i kiedy usunął zwrot; osoba to `IMPORTED_RECEIVER_NAME`, gdy autora nie ma. */
 type ReturnDeletion = { at: Date; byName: string };
 
@@ -57,6 +66,11 @@ type ReturnRecord = {
 	/** Kod WMS z indeksu; `''`, gdy brak zamówienia w indeksie albo kodu. */
 	wmsCode: string;
 	note: string;
+	matchedBy: ReturnMatchedBy;
+	/** Numer paczki lub etykiety, który dał trafienie; `null`, gdy nie zapisano. */
+	scannedLabel: string | null;
+	/** `null`, gdy korekta nie została wystawiona. */
+	correction: ReturnCorrection | null;
 	/** `id` jest `null` dla zwrotu z importu; `name` jest wtedy etykietą importu. */
 	receivedBy: { id: number | null; name: string };
 	createdAt: Date;
@@ -112,6 +126,11 @@ type DeleteReturnResult = { status: 'deleted' } | { status: 'notFound' };
 
 type RestoreReturnResult = { status: 'restored' } | { status: 'notFound' };
 
+type SetReturnCorrectionResult =
+	| { status: 'updated'; correction: ReturnCorrection | null }
+	| { status: 'deleted' }
+	| { status: 'notFound' };
+
 type OrderDetailsItem = {
 	position: number;
 	orderProductId: number | null;
@@ -125,6 +144,8 @@ type OrderDetailsPackage = {
 	courierCode: string;
 	packageNumber: string;
 	innerNumber: string;
+	/** Przesyłka zwrotna, a nie wysyłkowa. */
+	isReturn: boolean;
 };
 
 /**
@@ -181,6 +202,7 @@ export type {
 	OrderDetailsPackage,
 	OrderDetailsResult,
 	RestoreReturnResult,
+	ReturnCorrection,
 	ReturnDeletion,
 	ReturnDetails,
 	ReturnEvent,
@@ -193,6 +215,7 @@ export type {
 	ReturnNeighbors,
 	ReturnRecord,
 	ReturnSnapshot,
+	SetReturnCorrectionResult,
 	ShopMatchingConfig,
 	UpdateReturnResult,
 };

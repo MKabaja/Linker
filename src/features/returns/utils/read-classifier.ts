@@ -6,7 +6,10 @@ import type {
 	Rect,
 	TraceSource,
 } from '@/features/returns/model/traces.types';
-import { isInpostReturnNumber } from '@/features/returns/utils/carrier';
+import {
+	extractDpdParcelNumber,
+	isInpostReturnNumber,
+} from '@/features/returns/utils/carrier';
 import {
 	classifyDigits,
 	isOrderIdPattern,
@@ -19,10 +22,16 @@ import { stripLabelNoise } from '@/features/returns/utils/label-noise';
 import { normalizeCode } from '@/features/returns/utils/normalize-text';
 import { mergeIntoRows } from '@/features/returns/utils/ocr-rows';
 import {
+	parseAllegroParcelRead,
 	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,
 } from '@/features/returns/utils/pattern-parser';
+import {
+	isReturnReferenceRead,
+	parseReturnReference,
+	RETURN_REFERENCE_IN_TEXT,
+} from '@/features/returns/utils/return-reference';
 import {
 	isShopText,
 	isShopTrace,
@@ -39,6 +48,8 @@ const PHONE_MASK = /(?:\+?48[\s-]?)?[\d*xX•](?:[\s-]?[\d*xX•]){6,10}/g;
 const POSTCODE = /\b\d{2}\s?-\s?\d{3}\b/g;
 const EXTERNAL_ID = /\b(?:\d+X\d+|[0-9a-f]{32})\b/gi;
 const MIXED_WORD = /\b[A-Za-z0-9]{8,}\b/g;
+const ALLEGRO_PARCEL =
+	/(?<![A-Za-z0-9])A[0OoDQ]{2}[A-Za-z0-9]{7}(?![A-Za-z0-9])/g;
 const DIGIT_RUN = /[0-9OoIl|]+(?: [0-9OoIl|]+)*/g;
 const LETTER_OTHER_THAN_DIGIT_LOOKALIKE = /[A-HJ-NP-Za-hj-km-np-z]/;
 
@@ -49,6 +60,23 @@ type TextExtractor = {
 };
 
 const textExtractors: readonly TextExtractor[] = [
+	{
+		regex: ALLEGRO_PARCEL,
+		toRead: (origin) => {
+			const pattern = parseAllegroParcelRead(origin.text);
+			return pattern ? numberRead('package', pattern, origin) : null;
+		},
+	},
+	{
+		regex: RETURN_REFERENCE_IN_TEXT,
+		isTrace: isReturnReferenceRead,
+		toRead: (origin) => {
+			const reference = parseReturnReference(origin.text);
+			return reference
+				? numberRead('returnReference', [...reference], origin)
+				: null;
+		},
+	},
 	{
 		regex: NAME_MASK,
 		toRead: ({ source, bbox, text }) => {
@@ -133,14 +161,25 @@ function readsFromManual(
 }
 
 /**
- * Zamienia kod kreskowy na odczyt. Zwraca `null` dla numeru zwrotnego InPost i kodów krótszych niż 8 znaków.
+ * Zamienia kod kreskowy na odczyt. Zwraca `null` dla numeru zwrotnego InPost, kodów krótszych niż 8 znaków
+ * i kodów sklepu (np. kod trasy DHL z kodem pocztowym sklepu). Z pełnego kodu DPD bierze sam numer paczki.
  */
 function readFromBarcode(
 	code: string,
 	bbox?: Rect,
 	shop: ShopMatchingConfig = defaultShopMatchingConfig,
 ): RawRead | null {
-	const normalized = normalizeCode(code);
+	const read = classifyBarcode(code, bbox, shop);
+	return read && !isShopTrace(read.query, shop) ? read : null;
+}
+
+function classifyBarcode(
+	code: string,
+	bbox: Rect | undefined,
+	shop: ShopMatchingConfig,
+): RawRead | null {
+	const fullCode = normalizeCode(code);
+	const normalized = extractDpdParcelNumber(fullCode) ?? fullCode;
 	if (isInpostReturnNumber(normalized)) {
 		return null;
 	}

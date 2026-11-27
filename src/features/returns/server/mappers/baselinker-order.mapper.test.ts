@@ -87,7 +87,12 @@ describe('mapBaseLinkerOrder', () => {
 		const { packages } = mapBaseLinkerOrder(buildOrder());
 
 		expect(packages).toEqual([
-			{ packageNumber: '31734506509', innerNumber: '', courierCode: 'dhl' },
+			{
+				packageNumber: '31734506509',
+				innerNumber: '',
+				courierCode: 'dhl',
+				isReturn: false,
+			},
 		]);
 	});
 
@@ -142,27 +147,70 @@ describe('mapBaseLinkerPackages', () => {
 				courier_package_nr: 'jjd 0001',
 				courier_inner_number: '',
 				courier_code: '',
+				package_type: '',
 			},
 			{
 				courier_package_nr: 'JJD0001',
 				courier_inner_number: 'a-12',
 				courier_code: 'dhl',
+				package_type: '',
 			},
 			{
 				courier_package_nr: '',
 				courier_inner_number: 'x 9',
 				courier_code: 'dpd',
+				package_type: '',
 			},
 			{
 				courier_package_nr: ' ',
 				courier_inner_number: '',
 				courier_code: 'dpd',
+				package_type: '',
 			},
 		]);
 
 		expect(packages).toEqual([
-			{ packageNumber: 'JJD0001', innerNumber: 'A12', courierCode: 'dhl' },
-			{ packageNumber: 'X9', innerNumber: 'X9', courierCode: 'dpd' },
+			{
+				packageNumber: 'JJD0001',
+				innerNumber: 'A12',
+				courierCode: 'dhl',
+				isReturn: false,
+			},
+			{
+				packageNumber: 'X9',
+				innerNumber: 'X9',
+				courierCode: 'dpd',
+				isReturn: false,
+			},
+		]);
+	});
+
+	it('rozpoznaje przesyłkę zwrotną po typie paczki i numerze wewnętrznym return_', () => {
+		const packages = mapBaseLinkerPackages([
+			{
+				courier_package_nr: '31863808287',
+				courier_inner_number: '',
+				courier_code: 'dhl',
+				package_type: '0',
+			},
+			{
+				courier_package_nr: '600000276632432022076273',
+				courier_inner_number: 'return_600000276632432022076273',
+				courier_code: 'allegrokurier',
+				package_type: '1',
+			},
+			{
+				courier_package_nr: '31863813384',
+				courier_inner_number: 'RETURN_1',
+				courier_code: 'dhl',
+				package_type: '',
+			},
+		]);
+
+		expect(packages.map(({ isReturn }) => isReturn)).toEqual([
+			false,
+			true,
+			true,
 		]);
 	});
 });

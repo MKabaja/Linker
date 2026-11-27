@@ -2,14 +2,18 @@ import 'server-only';
 import type { ReturnsEventContext } from '@/features/returns/model/event-log.types';
 import type { SearchResponse } from '@/features/returns/model/order-search.types';
 import type { TraceQuery } from '@/features/returns/model/traces.types';
+import { findOrderIdsByReturnReference as findOrderIdsByReturnReferenceInDatabase } from '@/features/returns/server/repositories/order-returns.repository';
 import { findExistingReturnsByOrderIds } from '@/features/returns/server/repositories/returns.repository';
 import { logReturnsEvent } from '@/features/returns/server/sources/event-log.source';
 import { toTracePatternLabel } from '@/features/returns/utils/trace-pattern-label';
-import { matchOrdersByTraces } from './order-matcher.service';
+import {
+	type MatchDependencies,
+	matchOrdersByTraces,
+} from './order-matcher.service';
 
 const MAX_LOGGED_CANDIDATES = 3;
 
-type SearchRequest = {
+type SearchRequest = MatchDependencies & {
 	traces: TraceQuery[];
 	now: Date;
 	logContext: ReturnsEventContext;
@@ -25,9 +29,12 @@ export async function searchOrders({
 	traces,
 	now,
 	logContext,
+	findOrderIdsByReturnReference = findOrderIdsByReturnReferenceInDatabase,
 }: SearchRequest): Promise<SearchResponse> {
 	const startedAt = performance.now();
-	const { result, liveLookupCount } = await matchOrdersByTraces(traces, now);
+	const { result, liveLookupCount } = await matchOrdersByTraces(traces, now, {
+		findOrderIdsByReturnReference,
+	});
 	const existingReturnByOrderId = await findExistingReturnsByOrderIds(
 		result.candidates.map((candidate) => candidate.orderId),
 	);

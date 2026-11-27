@@ -130,10 +130,13 @@ function toOrderDetails(
 				quantity,
 			}),
 		),
-		packages: packages.map(({ courierCode, packageNumber, innerNumber }) => ({
-			courierCode,
-			packageNumber,
-			innerNumber,
-		})),
+		packages: packages.map(
+			({ courierCode, packageNumber, innerNumber, isReturn }) => ({
+				courierCode,
+				packageNumber,
+				innerNumber,
+				isReturn,
+			}),
+		),
 	};
 }

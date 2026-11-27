@@ -53,6 +53,8 @@ type ScoringOptions = {
 	/** Bieżący czas w ms; od niego liczony jest wiek zamówienia przy premii za datę. */
 	nowMs: number;
 	shop?: ShopMatchingConfig;
+	/** Zamówienia dla kodów zwrotu Allegro z tropów `returnReference`; bez mapy te tropy nic nie dają. */
+	orderIdByReturnReference?: ReadonlyMap<string, number>;
 };
 
 export type {

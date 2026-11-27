@@ -1,4 +1,5 @@
 import { GlowFrame } from '@/shared/components/glow-frame';
+import { MotionProvider } from '@/shared/components/motion-provider';
 import { SidebarInset, SidebarProvider } from '@/shared/components/sidebar';
 import { AppMobileHeader } from '@/features/app-sidebar/app-mobile-header';
 import { AppSidebar } from '@/features/app-sidebar/app-sidebar';
@@ -9,16 +10,18 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
 	const { name, role } = await requireUser();
 
 	return (
-		<div className={appLayoutStyles.page}>
-			<GlowFrame className={appLayoutStyles.frame}>
-				<SidebarProvider className={appLayoutStyles.shell}>
-					<AppSidebar user={{ name, role }} />
-					<SidebarInset>
-						<AppMobileHeader />
-						{children}
-					</SidebarInset>
-				</SidebarProvider>
-			</GlowFrame>
-		</div>
+		<MotionProvider>
+			<div className={appLayoutStyles.page}>
+				<GlowFrame className={appLayoutStyles.frame}>
+					<SidebarProvider className={appLayoutStyles.shell}>
+						<AppSidebar user={{ name, role }} />
+						<SidebarInset>
+							<AppMobileHeader />
+							{children}
+						</SidebarInset>
+					</SidebarProvider>
+				</GlowFrame>
+			</div>
+		</MotionProvider>
 	);
 }

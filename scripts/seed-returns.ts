@@ -257,7 +257,12 @@ function createPackage(
 	}
 
 	usedPackageNumbers.add(packageNumber);
-	return { packageNumber, innerNumber: '', courierCode: factory.courierCode };
+	return {
+		packageNumber,
+		innerNumber: '',
+		courierCode: factory.courierCode,
+		isReturn: false,
+	};
 }
 
 function createInpostNumber(random: Random): string {

@@ -1,18 +1,27 @@
 import { Download, ScanLine } from 'lucide-react';
 import Link from 'next/link';
 import { CopyOrderIdsButton } from '@/features/returns/components/copy-order-ids-button';
+import { ReturnsCorrectionFilterNav } from '@/features/returns/components/returns-correction-filter';
 import { ReturnsDatePicker } from '@/features/returns/components/returns-date-picker';
+import { ReturnsSortSelect } from '@/features/returns/components/returns-sort-select';
 import { buttonVariants } from '@/shared/components/button';
+import type { ReturnsListScope } from '@/features/returns/model/returns-list.types';
 import { returnsDayToolbarStyles } from './returns-day-toolbar.styles';
 
-type ReturnsDayToolbarProps = { date: string; orderIds: number[] };
+type ReturnsDayToolbarProps = {
+	scope: ReturnsListScope & { date: string };
+	orderIds: number[];
+};
 
-export function ReturnsDayToolbar({ date, orderIds }: ReturnsDayToolbarProps) {
+export function ReturnsDayToolbar({ scope, orderIds }: ReturnsDayToolbarProps) {
 	const { root, actions } = returnsDayToolbarStyles;
+	const { date } = scope;
 
 	return (
 		<div className={root}>
-			<ReturnsDatePicker date={date} />
+			<ReturnsDatePicker scope={scope} />
+			<ReturnsSortSelect scope={scope} />
+			<ReturnsCorrectionFilterNav scope={scope} />
 			<div className={actions}>
 				<CopyOrderIdsButton orderIds={orderIds} />
 				<a

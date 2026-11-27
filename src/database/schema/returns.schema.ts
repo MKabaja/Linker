@@ -33,6 +33,10 @@ const returns = pgTable(
 		createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
 		deletedAt: timestamp({ withTimezone: true }),
 		deletedBy: integer().references(() => users.id, { onDelete: 'restrict' }),
+		correctionIssuedAt: timestamp({ withTimezone: true }),
+		correctionIssuedBy: integer().references(() => users.id, {
+			onDelete: 'set null',
+		}),
 		updatedAt: timestamp({ withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => new Date())

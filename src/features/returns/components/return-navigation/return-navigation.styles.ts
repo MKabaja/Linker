@@ -1,4 +1,3 @@
 export const returnNavigationStyles = {
-	nav: 'flex items-center justify-between gap-3',
-	hint: 'hidden font-mono text-xs text-dim pointer-fine:inline',
+	nav: 'flex flex-wrap items-center justify-between gap-3',
 } satisfies Record<string, string>;

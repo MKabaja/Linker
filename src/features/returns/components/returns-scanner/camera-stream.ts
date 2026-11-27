@@ -1,34 +1,26 @@
+import type { Point } from '@/features/returns/utils/scanner-geometry';
+import type { CameraView } from './camera-selection';
+
 const OPEN_TIMEOUT_MS = 10_000;
 const CONSTRAINTS_WAIT_MS = 1_500;
 const PLAY_WAIT_MS = 3_000;
 const IDEAL_WIDTH_PX = 1920;
 const ASPECT_RATIO = 4 / 3;
 
-type CameraView = 'near' | 'wide';
-
 type ZoomRange = { min: number; max: number; step: number };
 
-type CameraAbilities = { zoom: ZoomRange | null; hasTorch: boolean };
+type CameraAbilities = { zoom: ZoomRange | null };
 
 type ExtendedConstraintSet = MediaTrackConstraintSet & {
 	zoom?: number;
-	torch?: boolean;
 	focusMode?: string;
+	pointsOfInterest?: Point[];
 };
 
 type ExtendedCapabilities = MediaTrackCapabilities & {
 	zoom?: { min: number; max: number; step?: number };
-	torch?: boolean;
 	focusMode?: string[];
 };
-
-type CameraNumberByView = Record<CameraView, number>;
-
-/**
- * Numery aparatów (od 1, tylne najpierw), które na telefonie testowym czytały etykiety:
- * 4 i 2. Użytkownik widzi tylko nazwę widoku.
- */
-const cameraNumberByView: CameraNumberByView = { near: 4, wide: 2 };
 
 const viewLabelByView: Record<CameraView, string> = {
 	near: 'Bliżej',
@@ -40,13 +32,40 @@ const viewStorageKey = 'returns.scanner.view';
 /**
  * Otwiera aparat w proporcji 4:3 (1920 px; 2560 px przeciążało telefon) z ciągłym autofokusem
  * i minimalnym zoomem. Rzuca po 10 s bez odpowiedzi, a spóźniony strumień jest zamykany.
+ * Gdy system podał przednią kamerę, otwiera ponownie z tylną (`exact`, a potem `ideal`).
  */
 async function openCameraStream(deviceId?: string): Promise<MediaStream> {
+	let stream = await requestStream(
+		deviceId
+			? { deviceId: { exact: deviceId } }
+			: { facingMode: { ideal: 'environment' } },
+	);
+	if (readFacingMode(stream) === 'user') {
+		stopStream(stream);
+		stream = await requestRearStream();
+	}
+	await applyInitialConstraints(stream);
+	return stream;
+}
+
+async function requestRearStream(): Promise<MediaStream> {
+	try {
+		return await requestStream({ facingMode: { exact: 'environment' } });
+	} catch {
+		return requestStream({ facingMode: { ideal: 'environment' } });
+	}
+}
+
+function readFacingMode(stream: MediaStream): string | undefined {
+	return stream.getVideoTracks()[0]?.getSettings().facingMode;
+}
+
+async function requestStream(
+	source: MediaTrackConstraints,
+): Promise<MediaStream> {
 	const request = navigator.mediaDevices.getUserMedia({
 		video: {
-			...(deviceId
-				? { deviceId: { exact: deviceId } }
-				: { facingMode: { ideal: 'environment' } }),
+			...source,
 			width: { ideal: IDEAL_WIDTH_PX },
 			aspectRatio: { ideal: ASPECT_RATIO },
 		},
@@ -67,9 +86,7 @@ async function openCameraStream(deviceId?: string): Promise<MediaStream> {
 		})
 		.catch(() => undefined);
 
-	const stream = await Promise.race([request, timeout]);
-	await applyInitialConstraints(stream);
-	return stream;
+	return Promise.race([request, timeout]);
 }
 
 async function applyInitialConstraints(stream: MediaStream): Promise<void> {
@@ -133,32 +150,11 @@ function stopStream(stream: MediaStream): void {
 }
 
 /**
- * Lista kamer z tylnymi na początku. Etykiety są dostępne dopiero po udzieleniu zgody.
+ * Lista kamer w kolejności systemu. Etykiety są dostępne dopiero po udzieleniu zgody.
  */
 async function listCameras(): Promise<MediaDeviceInfo[]> {
 	const devices = await navigator.mediaDevices.enumerateDevices();
-	const cameras = devices.filter((device) => device.kind === 'videoinput');
-	const isBack = (device: MediaDeviceInfo) =>
-		/back|rear|environment|tył/i.test(device.label);
-	return [...cameras.filter(isBack), ...cameras.filter((d) => !isBack(d))];
-}
-
-function hasCameraChoice(cameras: MediaDeviceInfo[]): boolean {
-	return Object.values(cameraNumberByView).every(
-		(cameraNumber) => cameras[cameraNumber - 1] !== undefined,
-	);
-}
-
-/**
- * Wybiera kamerę dla widoku; bez obu preferowanych kamer zostaje pierwsza dostępna.
- */
-function pickCameraForView(
-	cameras: MediaDeviceInfo[],
-	view: CameraView,
-): MediaDeviceInfo | undefined {
-	return hasCameraChoice(cameras)
-		? cameras[cameraNumberByView[view] - 1]
-		: cameras[0];
+	return devices.filter((device) => device.kind === 'videoinput');
 }
 
 function readCameraAbilities(stream: MediaStream): CameraAbilities {
@@ -174,20 +170,54 @@ function readCameraAbilities(stream: MediaStream): CameraAbilities {
 						step: Math.max(zoom.step ?? 0, (zoom.max - zoom.min) / 8),
 					}
 				: null,
-		hasTorch: capabilities.torch === true,
 	};
+}
+
+/**
+ * Best-effort ostrość na punkcie (`x`, `y` znormalizowane 0–1): `pointsOfInterest` z `focusMode` `single-shot`
+ * albo `manual`, tylko gdy aparat je deklaruje. Błędy są ignorowane.
+ *
+ * @returns `true`, gdy ustawienia wysłano i po chwili warto wrócić do `resumeContinuousFocus`.
+ */
+async function focusAtPoint(
+	stream: MediaStream,
+	point: Point,
+): Promise<boolean> {
+	const [track] = stream.getVideoTracks();
+	const capabilities: ExtendedCapabilities = track?.getCapabilities() ?? {};
+	const focusMode = ['single-shot', 'manual'].find((mode) =>
+		capabilities.focusMode?.includes(mode),
+	);
+	if (!track || !focusMode) {
+		return false;
+	}
+	const constraints: ExtendedConstraintSet = {
+		pointsOfInterest: [point],
+		focusMode,
+	};
+	return track
+		.applyConstraints({ advanced: [constraints] })
+		.then(() => true)
+		.catch(() => false);
+}
+
+/**
+ * Przywraca ciągły autofokus, gdy aparat go obsługuje. Błędy są ignorowane.
+ */
+async function resumeContinuousFocus(stream: MediaStream): Promise<void> {
+	const [track] = stream.getVideoTracks();
+	const capabilities: ExtendedCapabilities = track?.getCapabilities() ?? {};
+	if (!track || !capabilities.focusMode?.includes('continuous')) {
+		return;
+	}
+	const constraints: ExtendedConstraintSet = { focusMode: 'continuous' };
+	await track
+		.applyConstraints({ advanced: [constraints] })
+		.catch(() => undefined);
 }
 
 async function applyZoom(stream: MediaStream, zoom: number): Promise<void> {
 	const constraints: ExtendedConstraintSet = { zoom };
-	await stream
-		.getVideoTracks()[0]
-		?.applyConstraints({ advanced: [constraints] })
-		.catch(() => undefined);
-}
-
-async function applyTorch(stream: MediaStream, isOn: boolean): Promise<void> {
-	const constraints: ExtendedConstraintSet = { torch: isOn };
 	await stream
 		.getVideoTracks()[0]
 		?.applyConstraints({ advanced: [constraints] })
@@ -229,19 +259,17 @@ function saveView(view: CameraView): void {
 }
 
 export {
-	applyTorch,
 	applyZoom,
 	type CameraAbilities,
-	type CameraView,
 	describeCameraError,
-	hasCameraChoice,
+	focusAtPoint,
 	listCameras,
 	openCameraStream,
-	pickCameraForView,
 	playStream,
 	readCameraAbilities,
 	readSavedView,
 	releaseCamera,
+	resumeContinuousFocus,
 	saveView,
 	viewLabelByView,
 	type ZoomRange,

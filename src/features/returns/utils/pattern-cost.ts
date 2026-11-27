@@ -22,6 +22,14 @@ const OCR_CONFUSIONS: readonly (readonly [string, string])[] = [
 	['8', 'B'],
 	['5', 'S'],
 	['2', 'Z'],
+	['0', 'D'],
+	['0', 'Q'],
+	['O', 'D'],
+	['O', 'Q'],
+	['1', 'L'],
+	['I', 'L'],
+	['6', 'G'],
+	['7', 'T'],
 ];
 
 const ASCII_SIZE = 128;

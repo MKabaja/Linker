@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
 	frameRectToVideo,
 	isSquareLike,
+	mapPointFromCover,
 	mapRectToCover,
+	pickNearestToPoint,
+	regionAroundPoint,
 	stripRegionBelowDataMatrix,
 } from '@/features/returns/utils/scanner-geometry';
 
@@ -82,5 +85,93 @@ describe('frameRectToVideo', () => {
 		);
 
 		expect(result).toEqual({ x: 150, y: 350, width: 200, height: 40 });
+	});
+});
+
+describe('mapPointFromCover', () => {
+	const frame = { width: 1600, height: 1200 };
+
+	it('na wysokim ekranie dolicza przycięte boki klatki', () => {
+		const point = mapPointFromCover({
+			point: { x: 200, y: 450 },
+			frame,
+			container: { width: 400, height: 900 },
+		});
+
+		expect(point).toEqual({ x: 800, y: 600 });
+	});
+
+	it('jest odwrotnością mapRectToCover', () => {
+		const container = { width: 1600, height: 600 };
+		const rect = mapRectToCover({
+			rect: { x: 320, y: 900, width: 0, height: 0 },
+			frame,
+			container,
+		});
+
+		const point = mapPointFromCover({
+			point: { x: rect?.x ?? 0, y: rect?.y ?? 0 },
+			frame,
+			container,
+		});
+
+		expect(point?.x).toBeCloseTo(320);
+		expect(point?.y).toBeCloseTo(900);
+	});
+
+	it('zwraca null dla punktu poza klatką i pustego wymiaru', () => {
+		expect(
+			mapPointFromCover({
+				point: { x: -10, y: 10 },
+				frame,
+				container: { width: 800, height: 600 },
+			}),
+		).toBeNull();
+		expect(
+			mapPointFromCover({
+				point: { x: 10, y: 10 },
+				frame,
+				container: { width: 0, height: 600 },
+			}),
+		).toBeNull();
+	});
+});
+
+describe('regionAroundPoint', () => {
+	const frame = { width: 1920, height: 1440 };
+
+	it('wyśrodkowuje pas na pełną szerokość na punkcie', () => {
+		const region = regionAroundPoint({ x: 300, y: 720 }, frame);
+
+		expect(region.x).toBe(0);
+		expect(region.width).toBe(1920);
+		expect(region.height).toBeCloseTo(504);
+		expect(region.y).toBeCloseTo(720 - 252);
+	});
+
+	it('przy krawędzi przesuwa pas do wnętrza klatki', () => {
+		expect(regionAroundPoint({ x: 0, y: 40 }, frame).y).toBe(0);
+		const bottom = regionAroundPoint({ x: 0, y: 1430 }, frame);
+		expect(bottom.y + bottom.height).toBeCloseTo(1440);
+	});
+});
+
+describe('pickNearestToPoint', () => {
+	const left = { value: 'left', bbox: { x: 0, y: 0, width: 100, height: 40 } };
+	const right = {
+		value: 'right',
+		bbox: { x: 600, y: 0, width: 100, height: 40 },
+	};
+
+	it('wybiera kod, którego ramka jest najbliżej punktu', () => {
+		expect(pickNearestToPoint([left, right], { x: 500, y: 20 })).toBe(right);
+		expect(pickNearestToPoint([left, right], { x: 50, y: 20 })).toBe(left);
+	});
+
+	it('pomija kody bez ramki', () => {
+		const withoutBox = { value: 'none', bbox: undefined };
+
+		expect(pickNearestToPoint([withoutBox], { x: 0, y: 0 })).toBeNull();
+		expect(pickNearestToPoint([withoutBox, left], { x: 0, y: 0 })).toBe(left);
 	});
 });

@@ -19,7 +19,13 @@ const patternSchema = z.array(z.string().max(40)).min(1).max(MAX_PATTERN_SLOTS);
 const traceQuerySchema = z.discriminatedUnion('kind', [
 	z.object({
 		id: traceIdSchema,
-		kind: z.enum(['package', 'orderId', 'externalId', 'postcode']),
+		kind: z.enum([
+			'package',
+			'orderId',
+			'externalId',
+			'postcode',
+			'returnReference',
+		]),
 		pattern: patternSchema,
 		isSingleOcrRead: z.boolean().optional(),
 	}),
@@ -79,6 +85,11 @@ const updateReturnSchema = z.object({
 
 const returnIdSchema = z.object({ returnId: idSchema });
 
+const returnCorrectionSchema = z.object({
+	returnId: idSchema,
+	isIssued: z.boolean(),
+});
+
 const orderIdSchema = z.object({ orderId: idSchema });
 
 const returnsDaySchema = z.object({ date: z.iso.date() });
@@ -104,12 +115,15 @@ type CreateReturnInput = z.input<typeof createReturnSchema>;
 type UpdateReturnInput = z.input<typeof updateReturnSchema>;
 type UpdateReturn = z.output<typeof updateReturnSchema>;
 type ReturnIdInput = z.input<typeof returnIdSchema>;
+type ReturnCorrectionInput = z.input<typeof returnCorrectionSchema>;
 
 export {
 	type CreateReturnInput,
 	createReturnSchema,
 	orderIdSchema,
+	type ReturnCorrectionInput,
 	type ReturnIdInput,
+	returnCorrectionSchema,
 	returnIdSchema,
 	returnSnapshotSchema,
 	returnsDaySchema,

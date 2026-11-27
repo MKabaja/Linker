@@ -7,6 +7,7 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import type { TapTarget } from './use-tap-target';
 import { ocrResponseSchema } from '@/features/returns/model/ocr.schemas';
 import type { OcrResponse } from '@/features/returns/model/ocr.types';
 import type { RawRead, Rect } from '@/features/returns/model/traces.types';
@@ -14,12 +15,15 @@ import { readsFromOcr } from '@/features/returns/utils/read-classifier';
 import {
 	type OcrPlan,
 	pickOcrPlan,
+	pickTargetFrame,
 	shouldSendFrame,
+	type TargetFrame,
 } from '@/features/returns/utils/scan-plan';
 import {
 	type FrameCrop,
 	frameRectToVideo,
 	isSquareLike,
+	regionAroundPoint,
 	stripRegionBelowDataMatrix,
 } from '@/features/returns/utils/scanner-geometry';
 import {
@@ -36,13 +40,33 @@ const UNAUTHORIZED_STATUS = 401;
 const REQUEST_TIMEOUT_MS = 10_000;
 const OCR_URL = '/api/returns/ocr';
 
+type LoopPlan = OcrPlan | 'target';
+
 type ScheduleRuntime = {
 	startedAtMs: number;
 	lastFullAtMs: number;
 	lastStripAtMs: number;
+	lastTargetAtMs: number;
 	backoffUntilMs: number;
 	isBusy: boolean;
 	returnLabel: { bbox: Rect; seenAtMs: number } | null;
+	target: TapTarget | null;
+};
+
+type TickPlan = LoopPlan | 'first-target' | null;
+
+type SentAtKey = 'lastFullAtMs' | 'lastStripAtMs' | 'lastTargetAtMs';
+
+const sentAtKeyByPlan: Record<LoopPlan, SentAtKey> = {
+	full: 'lastFullAtMs',
+	strip: 'lastStripAtMs',
+	target: 'lastTargetAtMs',
+};
+
+const loopPlanByTargetFrame: Record<TargetFrame, TickPlan> = {
+	first: 'first-target',
+	next: 'target',
+	wait: null,
 };
 
 type UseOcrLoopOptions = {
@@ -59,6 +83,8 @@ type UseOcrLoopOptions = {
 type UseOcrLoopResult = {
 	/** Zgłasza kod zwrotny InPost (DataMatrix); przez 3 s co 0,5 s czytany jest pasek pod nim. */
 	noteReturnLabel: (bbox: Rect | undefined) => void;
+	/** Kieruje OCR na tapnięty cel: przez 5 s zamiast zwykłych klatek idzie pas wokół punktu, pierwszy bez bramki. */
+	aimAt: (target: TapTarget) => void;
 	hasReturnLabel: boolean;
 };
 
@@ -122,15 +148,12 @@ function useOcrLoop({
 				return;
 			}
 			const nowMs = Date.now();
-			const plan = pickOcrPlan({
-				nowMs,
-				scanStartedAtMs: runtime.startedAtMs,
-				lastFullAtMs: runtime.lastFullAtMs,
-				lastStripAtMs: runtime.lastStripAtMs,
-				backoffUntilMs: runtime.backoffUntilMs,
-				returnLabelSeenAtMs: runtime.returnLabel?.seenAtMs ?? null,
-			});
+			const plan = pickLoopPlan(runtime, nowMs);
 			if (!plan) {
+				return;
+			}
+			if (plan === 'first-target') {
+				await sendFrame({ video, pipeline, plan: 'target', nowMs, signal });
 				return;
 			}
 			const gate = await pipeline.measure(video);
@@ -138,6 +161,7 @@ function useOcrLoop({
 			const lastSentAtMs = Math.max(
 				runtime.lastFullAtMs,
 				runtime.lastStripAtMs,
+				runtime.lastTargetAtMs,
 				runtime.startedAtMs,
 			);
 			if (
@@ -161,17 +185,14 @@ function useOcrLoop({
 			const runtime = runtimeRef.current;
 			const startedAt = performance.now();
 			runtime.isBusy = true;
-			if (plan === 'strip') {
-				runtime.lastStripAtMs = nowMs;
-			} else {
-				runtime.lastFullAtMs = nowMs;
-			}
+			runtime[sentAtKeyByPlan[plan]] = nowMs;
 			try {
 				const frame = await captureForPlan({
 					video,
 					pipeline,
 					plan,
 					returnLabel: runtime.returnLabel?.bbox,
+					target: runtime.target,
 				});
 				diagnostics.noteCapture(performance.now() - startedAt);
 				if (!frame || signal.aborted) {
@@ -233,13 +254,17 @@ function useOcrLoop({
 		}
 	}
 
-	return { noteReturnLabel, hasReturnLabel };
+	function aimAt(target: TapTarget) {
+		runtimeRef.current.target = target;
+	}
+
+	return { noteReturnLabel, aimAt, hasReturnLabel };
 }
 
 type SendFrameInput = {
 	video: HTMLVideoElement;
 	pipeline: FramePipeline;
-	plan: OcrPlan;
+	plan: LoopPlan;
 	nowMs: number;
 	signal: AbortSignal;
 };
@@ -247,8 +272,9 @@ type SendFrameInput = {
 type CaptureInput = {
 	video: HTMLVideoElement;
 	pipeline: FramePipeline;
-	plan: OcrPlan;
+	plan: LoopPlan;
 	returnLabel: Rect | undefined;
+	target: TapTarget | null;
 };
 
 function createRuntime(startedAtMs: number): ScheduleRuntime {
@@ -256,10 +282,32 @@ function createRuntime(startedAtMs: number): ScheduleRuntime {
 		startedAtMs,
 		lastFullAtMs: 0,
 		lastStripAtMs: 0,
+		lastTargetAtMs: 0,
 		backoffUntilMs: 0,
 		isBusy: false,
 		returnLabel: null,
+		target: null,
 	};
+}
+
+function pickLoopPlan(runtime: ScheduleRuntime, nowMs: number): TickPlan {
+	const targetFrame = pickTargetFrame({
+		nowMs,
+		tappedAtMs: runtime.target?.tappedAtMs ?? null,
+		lastTargetAtMs: runtime.lastTargetAtMs,
+		backoffUntilMs: runtime.backoffUntilMs,
+	});
+	if (targetFrame) {
+		return loopPlanByTargetFrame[targetFrame];
+	}
+	return pickOcrPlan({
+		nowMs,
+		scanStartedAtMs: runtime.startedAtMs,
+		lastFullAtMs: runtime.lastFullAtMs,
+		lastStripAtMs: runtime.lastStripAtMs,
+		backoffUntilMs: runtime.backoffUntilMs,
+		returnLabelSeenAtMs: runtime.returnLabel?.seenAtMs ?? null,
+	});
 }
 
 async function captureForPlan({
@@ -267,7 +315,18 @@ async function captureForPlan({
 	pipeline,
 	plan,
 	returnLabel,
+	target,
 }: CaptureInput): Promise<CapturedFrame | null> {
+	if (plan === 'target' && target) {
+		const frameSize = { width: video.videoWidth, height: video.videoHeight };
+		const detail = await pipeline.captureTarget(
+			video,
+			regionAroundPoint(target.point, frameSize),
+		);
+		if (detail) {
+			return detail;
+		}
+	}
 	if (plan === 'strip' && returnLabel) {
 		const strip = await pipeline.capture(
 			video,

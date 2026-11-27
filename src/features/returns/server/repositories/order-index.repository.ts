@@ -9,12 +9,14 @@ import {
 	inArray,
 	isNull,
 	lt,
+	ne,
 	notExists,
 	or,
 	sql,
 } from 'drizzle-orm';
 import { db } from '@/database/client';
 import { indexedOrderItems } from '@/database/schema/indexed-order-items.schema';
+import { indexedOrderReturns } from '@/database/schema/indexed-order-returns.schema';
 import { indexedOrders } from '@/database/schema/indexed-orders.schema';
 import { indexedPackages } from '@/database/schema/indexed-packages.schema';
 import type {
@@ -22,6 +24,7 @@ import type {
 	OrderIndexEntry,
 } from '@/features/returns/model/order-index.types';
 import type { IndexedOrder } from '@/features/returns/model/order-scoring.types';
+import { collectPackageNumbersByOrderId } from '@/features/returns/server/mappers/package-numbers.mapper';
 import { normalizeCode } from '@/features/returns/utils/normalize-text';
 
 const WRITE_BATCH_SIZE = 200;
@@ -193,6 +196,22 @@ async function findOrderIdsPendingPackages({
 	return rows.map((row) => row.orderId);
 }
 
+/**
+ * Zwraca spośród podanych identyfikatorów te zamówienia, które są w indeksie.
+ */
+async function findIndexedOrderIds(orderIds: number[]): Promise<number[]> {
+	if (orderIds.length === 0) {
+		return [];
+	}
+
+	const rows = await db
+		.select({ orderId: indexedOrders.orderId })
+		.from(indexedOrders)
+		.where(inArray(indexedOrders.orderId, orderIds));
+
+	return rows.map((row) => row.orderId);
+}
+
 async function countOrdersPendingPackages(): Promise<number> {
 	const [row] = await db
 		.select({ total: count() })
@@ -230,7 +249,7 @@ async function deleteOrdersBySource(source: string): Promise<number> {
  * Wczytuje cały indeks w kształcie do punktacji (daty w sekundach, numery przesyłek bez powtórzeń).
  */
 async function findAllIndexedOrders(): Promise<IndexedOrder[]> {
-	const [orderRows, packageRows] = await Promise.all([
+	const [orderRows, packageRows, returnRows] = await Promise.all([
 		db.select().from(indexedOrders),
 		db
 			.select({
@@ -239,20 +258,18 @@ async function findAllIndexedOrders(): Promise<IndexedOrder[]> {
 				innerNumber: indexedPackages.innerNumber,
 			})
 			.from(indexedPackages),
+		db
+			.select({
+				orderId: indexedOrderReturns.orderId,
+				packageNumber: indexedOrderReturns.packageNumber,
+			})
+			.from(indexedOrderReturns)
+			.where(ne(indexedOrderReturns.packageNumber, '')),
 	]);
-	const packageNumbersByOrderId = new Map<number, Set<string>>();
-
-	for (const { orderId, packageNumber, innerNumber } of packageRows) {
-		const numbers = packageNumbersByOrderId.get(orderId) ?? new Set<string>();
-
-		for (const number of [packageNumber, innerNumber]) {
-			if (number) {
-				numbers.add(number);
-			}
-		}
-
-		packageNumbersByOrderId.set(orderId, numbers);
-	}
+	const packageNumbersByOrderId = collectPackageNumbersByOrderId({
+		packages: packageRows,
+		returns: returnRows,
+	});
 
 	return orderRows.map((row) => ({
 		orderId: row.orderId,
@@ -266,7 +283,7 @@ async function findAllIndexedOrders(): Promise<IndexedOrder[]> {
 		lastNameNorm: row.lastNameNormalized,
 		postcode: row.postcode,
 		cityNorm: row.cityNormalized,
-		packageNumbers: [...(packageNumbersByOrderId.get(row.orderId) ?? [])],
+		packageNumbers: packageNumbersByOrderId.get(row.orderId) ?? [],
 	}));
 }
 
@@ -318,10 +335,11 @@ async function findIndexedOrderEntry(
 		},
 		items: itemRows.map(({ orderId: _orderId, ...item }) => item),
 		packages: packageRows.map(
-			({ packageNumber, innerNumber, courierCode }) => ({
+			({ packageNumber, innerNumber, courierCode, isReturn }) => ({
 				packageNumber,
 				innerNumber,
 				courierCode,
+				isReturn,
 			}),
 		),
 	};
@@ -361,6 +379,7 @@ export {
 	deleteOrdersBySource,
 	findAllIndexedOrders,
 	findIndexedOrderEntry,
+	findIndexedOrderIds,
 	findOrderIdsPendingPackages,
 	markPackagesChecked,
 	replaceOrderPackages,

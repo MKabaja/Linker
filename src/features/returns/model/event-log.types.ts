@@ -65,6 +65,7 @@ type ServerEventFields =
 			itemsBefore: ReturnItemQuantity[];
 			itemsAfter: ReturnItemQuantity[];
 	  }
+	| { type: 'return.correction'; returnId: number; isIssued: boolean }
 	| { type: 'return.deleted'; returnId: number }
 	| { type: 'return.restored'; returnId: number }
 	| { type: 'auth.login'; outcome: 'success' }

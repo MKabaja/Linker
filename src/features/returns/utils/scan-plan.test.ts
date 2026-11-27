@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	type OcrScheduleState,
 	pickOcrPlan,
+	pickTargetFrame,
 	shouldSendFrame,
+	type TargetScheduleState,
 } from '@/features/returns/utils/scan-plan';
 
 const idle: OcrScheduleState = {
@@ -76,5 +78,37 @@ describe('shouldSendFrame', () => {
 		expect(
 			shouldSendFrame({ isGateReady: false, nowMs: 2_500, lastSentAtMs: 0 }),
 		).toBe(true);
+	});
+});
+
+describe('pickTargetFrame', () => {
+	const tapped: TargetScheduleState = {
+		nowMs: 10_000,
+		tappedAtMs: 10_000,
+		lastTargetAtMs: 0,
+		backoffUntilMs: 0,
+	};
+
+	it('bez celu albo po 5 s oddaje sterowanie zwykłemu planowi', () => {
+		expect(pickTargetFrame({ ...tapped, tappedAtMs: null })).toBeNull();
+		expect(pickTargetFrame({ ...tapped, nowMs: 15_000 })).toBeNull();
+	});
+
+	it('pierwsza klatka po tapnięciu idzie od razu, także po świeżej wysyłce poprzedniego celu', () => {
+		expect(pickTargetFrame(tapped)).toBe('first');
+		expect(
+			pickTargetFrame({ ...tapped, nowMs: 10_100, lastTargetAtMs: 9_900 }),
+		).toBe('first');
+	});
+
+	it('kolejne klatki najwyżej co 0,4 s', () => {
+		const sent = { ...tapped, lastTargetAtMs: 10_000 };
+
+		expect(pickTargetFrame({ ...sent, nowMs: 10_200 })).toBe('wait');
+		expect(pickTargetFrame({ ...sent, nowMs: 10_400 })).toBe('next');
+	});
+
+	it('przerwa po odmowie serwera wstrzymuje także cel', () => {
+		expect(pickTargetFrame({ ...tapped, backoffUntilMs: 10_500 })).toBe('wait');
 	});
 });

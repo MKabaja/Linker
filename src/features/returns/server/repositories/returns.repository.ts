@@ -4,11 +4,9 @@ import {
 	asc,
 	desc,
 	eq,
-	gt,
 	inArray,
 	isNotNull,
 	isNull,
-	lt,
 	or,
 	type SQL,
 	sql,
@@ -26,13 +24,21 @@ import { IMPORTED_RECEIVER_NAME } from '@/features/returns/model/return-origin.c
 import type { UpdateReturn } from '@/features/returns/model/returns.schemas';
 import { returnSnapshotSchema } from '@/features/returns/model/returns.schemas';
 import type {
+	ReturnCorrection,
 	ReturnEvent,
 	ReturnEventKind,
 	ReturnItem,
+	ReturnMatchedBy,
 	ReturnNeighbors,
 	ReturnRecord,
 	ReturnSnapshot,
+	SetReturnCorrectionResult,
 } from '@/features/returns/model/returns.types';
+import type {
+	ReturnsCorrectionFilter,
+	ReturnsListScope,
+	ReturnsSort,
+} from '@/features/returns/model/returns-list.types';
 import { getReturnKind } from '@/features/returns/utils/return-kind';
 import { WARSAW_TIME_ZONE } from '@/shared/lib/warsaw-time';
 
@@ -49,13 +55,41 @@ type SoftDeleteChange = { returnId: number; userId: number; deletedAt: Date };
 
 type RestoreChange = { returnId: number; userId: number; restoredAt: Date };
 
+type CorrectionChange = {
+	returnId: number;
+	userId: number;
+	issuedAt: Date;
+	isIssued: boolean;
+};
+
 type UpdateOutcome = 'updated' | 'deleted' | 'notFound';
+
+type OrderBySort = Record<ReturnsSort, SQL[]>;
+
+type ConditionByCorrectionFilter = Record<
+	ReturnsCorrectionFilter,
+	SQL | undefined
+>;
 
 type ExistingReturnByOrderId = Map<number, ExistingReturn>;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const deleter = alias(users, 'deleter');
+const corrector = alias(users, 'corrector');
+
+const orderBySort: OrderBySort = {
+	'scanned-desc': [desc(returns.createdAt), desc(returns.id)],
+	'scanned-asc': [asc(returns.createdAt), asc(returns.id)],
+	'order-asc': [asc(returns.orderId), asc(returns.id)],
+	'order-desc': [desc(returns.orderId), desc(returns.id)],
+};
+
+const conditionByCorrectionFilter: ConditionByCorrectionFilter = {
+	all: undefined,
+	without: isNull(returns.correctionIssuedAt),
+	with: isNotNull(returns.correctionIssuedAt),
+};
 
 const returnColumns = {
 	id: returns.id,
@@ -64,10 +98,14 @@ const returnColumns = {
 	waproOrderNumber: indexedOrders.waproOrderNumber,
 	wmsCode: indexedOrders.wmsCode,
 	note: returns.note,
+	matchedBy: returns.matchedBy,
+	scannedLabel: returns.scannedLabel,
 	createdAt: returns.createdAt,
 	updatedAt: returns.updatedAt,
 	deletedAt: returns.deletedAt,
 	deletedByName: deleter.name,
+	correctionIssuedAt: returns.correctionIssuedAt,
+	correctionIssuedByName: corrector.name,
 	receivedById: users.id,
 	receivedByName: users.name,
 };
@@ -91,10 +129,14 @@ type ReturnRow = {
 	waproOrderNumber: string | null;
 	wmsCode: string | null;
 	note: string;
+	matchedBy: ReturnMatchedBy;
+	scannedLabel: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	deletedAt: Date | null;
 	deletedByName: string | null;
+	correctionIssuedAt: Date | null;
+	correctionIssuedByName: string | null;
 	receivedById: number | null;
 	receivedByName: string | null;
 };
@@ -267,6 +309,65 @@ async function restoreReturnWithEvent({
 	});
 }
 
+/**
+ * Ustawia albo zdejmuje znacznik wystawienia korekty. Zapis jest idempotentny: powtórne ustawienie nie zmienia osoby ani czasu.
+ *
+ * @remarks Wiersz zwrotu jest blokowany do końca transakcji. Usunięty zwrot nie zmienia się (`deleted`).
+ */
+async function setReturnCorrection({
+	returnId,
+	userId,
+	issuedAt,
+	isIssued,
+}: CorrectionChange): Promise<SetReturnCorrectionResult> {
+	return db.transaction(async (transaction) => {
+		const [locked] = await transaction
+			.select({
+				deletedAt: returns.deletedAt,
+				correctionIssuedAt: returns.correctionIssuedAt,
+			})
+			.from(returns)
+			.where(eq(returns.id, returnId))
+			.for('update');
+
+		if (!locked) {
+			return { status: 'notFound' };
+		}
+
+		if (locked.deletedAt) {
+			return { status: 'deleted' };
+		}
+
+		if (isIssued !== (locked.correctionIssuedAt !== null)) {
+			await transaction
+				.update(returns)
+				.set(
+					isIssued
+						? { correctionIssuedAt: issuedAt, correctionIssuedBy: userId }
+						: { correctionIssuedAt: null, correctionIssuedBy: null },
+				)
+				.where(eq(returns.id, returnId));
+		}
+
+		const [current] = await transaction
+			.select({
+				at: returns.correctionIssuedAt,
+				byName: corrector.name,
+			})
+			.from(returns)
+			.leftJoin(corrector, eq(corrector.id, returns.correctionIssuedBy))
+			.where(eq(returns.id, returnId));
+
+		return {
+			status: 'updated',
+			correction: toReturnCorrection(
+				current?.at ?? null,
+				current?.byName ?? null,
+			),
+		};
+	});
+}
+
 async function findReturnById(returnId: number): Promise<ReturnRecord | null> {
 	const [record] = await findReturnRecords(eq(returns.id, returnId));
 	return record ?? null;
@@ -322,70 +423,62 @@ async function findExistingReturnsByOrderIds(
 }
 
 /**
- * Zwraca nieusunięte zwroty przyjęte danego dnia kalendarzowego w Polsce, od najnowszego.
- *
- * @param dateKey - Data `YYYY-MM-DD`.
+ * Zwraca identyfikatory zamówień, które mają aktywny (nieusunięty) przyjęty zwrot.
  */
-function findReturnsCreatedOn(dateKey: string): Promise<ReturnRecord[]> {
-	return findReturnRecords(
-		and(
-			isNull(returns.deletedAt),
-			sql`(${returns.createdAt} at time zone ${WARSAW_TIME_ZONE})::date = ${dateKey}::date`,
-		),
-	);
+async function findActiveReturnOrderIds(): Promise<Set<number>> {
+	const rows = await db
+		.select({ orderId: returns.orderId })
+		.from(returns)
+		.where(isNull(returns.deletedAt));
+
+	return new Set(rows.map((row) => row.orderId));
 }
 
 /**
- * Zwraca identyfikatory zwrotów przyjętych tuż przed i tuż po wskazanym (kolejność po `created_at`, remis po `id`),
- * z pominięciem usuniętych.
- *
- * @remarks Wskazany zwrot może być usunięty. Gdy go nie ma, oba identyfikatory to `null`.
+ * Zwraca nieusunięte zwroty z zakresu listy (dzień kalendarzowy w Polsce, filtr korekty) w wybranej kolejności.
  */
-async function findReturnNeighbors(returnId: number): Promise<ReturnNeighbors> {
-	const [current] = await db
-		.select({ createdAt: returns.createdAt })
-		.from(returns)
-		.where(eq(returns.id, returnId));
+function findReturnsInScope(scope: ReturnsListScope): Promise<ReturnRecord[]> {
+	return findReturnRecords(buildListCondition(scope), orderBySort[scope.sort]);
+}
 
-	if (!current) {
-		return { previousReturnId: null, nextReturnId: null };
-	}
-
-	const isActive = isNull(returns.deletedAt);
-	const isSameMoment = eq(returns.createdAt, current.createdAt);
-	const [previous] = await db
-		.select({ id: returns.id })
-		.from(returns)
-		.where(
-			and(
-				isActive,
-				or(
-					lt(returns.createdAt, current.createdAt),
-					and(isSameMoment, lt(returns.id, returnId)),
-				),
+/**
+ * Zwraca identyfikatory zwrotów tuż przed i tuż po wskazanym na liście o podanym zakresie
+ * (te same warunki i kolejność co {@link findReturnsInScope}), remis rozstrzyga `id`.
+ *
+ * @remarks Wskazany zwrot zawsze jest w ciągu, także gdy jest usunięty albo nie pasuje już do filtra.
+ * Gdy go nie ma w bazie, oba identyfikatory to `null`.
+ */
+async function findReturnNeighbors(
+	returnId: number,
+	scope: ReturnsListScope,
+): Promise<ReturnNeighbors> {
+	const orderClause = sql.join(orderBySort[scope.sort], sql`, `);
+	const sequence = db
+		.select({
+			id: returns.id,
+			previousReturnId: sql<
+				number | null
+			>`lag(${returns.id}) over (order by ${orderClause})`.as(
+				'previous_return_id',
 			),
-		)
-		.orderBy(desc(returns.createdAt), desc(returns.id))
-		.limit(1);
-	const [next] = await db
-		.select({ id: returns.id })
-		.from(returns)
-		.where(
-			and(
-				isActive,
-				or(
-					gt(returns.createdAt, current.createdAt),
-					and(isSameMoment, gt(returns.id, returnId)),
-				),
+			nextReturnId: sql<
+				number | null
+			>`lead(${returns.id}) over (order by ${orderClause})`.as(
+				'next_return_id',
 			),
-		)
-		.orderBy(asc(returns.createdAt), asc(returns.id))
-		.limit(1);
+		})
+		.from(returns)
+		.where(or(buildListCondition(scope), eq(returns.id, returnId)))
+		.as('return_sequence');
+	const [neighbors] = await db
+		.select({
+			previousReturnId: sequence.previousReturnId,
+			nextReturnId: sequence.nextReturnId,
+		})
+		.from(sequence)
+		.where(eq(sequence.id, returnId));
 
-	return {
-		previousReturnId: previous?.id ?? null,
-		nextReturnId: next?.id ?? null,
-	};
+	return neighbors ?? { previousReturnId: null, nextReturnId: null };
 }
 
 async function findReturnEvents(returnId: number): Promise<ReturnEvent[]> {
@@ -409,17 +502,33 @@ async function findReturnEvents(returnId: number): Promise<ReturnEvent[]> {
 	}));
 }
 
+function buildListCondition({ date, correction }: ReturnsListScope): SQL {
+	const isOnDate = date
+		? sql`(${returns.createdAt} at time zone ${WARSAW_TIME_ZONE})::date = ${date}::date`
+		: undefined;
+
+	return (
+		and(
+			isNull(returns.deletedAt),
+			isOnDate,
+			conditionByCorrectionFilter[correction],
+		) ?? sql`true`
+	);
+}
+
 async function findReturnRecords(
 	condition: SQL | undefined,
+	orderBy: SQL[] = orderBySort['scanned-desc'],
 ): Promise<ReturnRecord[]> {
 	const rows = await db
 		.select(returnColumns)
 		.from(returns)
 		.leftJoin(users, eq(users.id, returns.receivedBy))
 		.leftJoin(deleter, eq(deleter.id, returns.deletedBy))
+		.leftJoin(corrector, eq(corrector.id, returns.correctionIssuedBy))
 		.leftJoin(indexedOrders, eq(indexedOrders.orderId, returns.orderId))
 		.where(condition)
-		.orderBy(desc(returns.createdAt));
+		.orderBy(...orderBy);
 
 	if (rows.length === 0) {
 		return [];
@@ -469,6 +578,13 @@ async function insertEvent(
 		.values({ returnId, kind, userId, snapshot, createdAt });
 }
 
+function toReturnCorrection(
+	issuedAt: Date | null,
+	byName: string | null,
+): ReturnCorrection | null {
+	return issuedAt ? { at: issuedAt, byName } : null;
+}
+
 function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 	return {
 		id: row.id,
@@ -477,6 +593,12 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 		waproOrderNumber: row.waproOrderNumber ?? '',
 		wmsCode: row.wmsCode ?? '',
 		note: row.note,
+		matchedBy: row.matchedBy,
+		scannedLabel: row.scannedLabel,
+		correction: toReturnCorrection(
+			row.correctionIssuedAt,
+			row.correctionIssuedByName,
+		),
 		receivedBy: {
 			id: row.receivedById,
 			name: row.receivedByName ?? IMPORTED_RECEIVER_NAME,
@@ -495,14 +617,16 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 }
 
 export {
+	findActiveReturnOrderIds,
 	findExistingReturnsByOrderIds,
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
 	findReturnNeighbors,
-	findReturnsCreatedOn,
+	findReturnsInScope,
 	insertReturnIfAbsent,
 	restoreReturnWithEvent,
+	setReturnCorrection,
 	softDeleteReturnWithEvent,
 	updateReturnWithEvent,
 };

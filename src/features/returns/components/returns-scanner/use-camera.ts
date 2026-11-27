@@ -7,19 +7,19 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import type { Point } from '@/features/returns/utils/scanner-geometry';
+import { type CameraView, selectCamera } from './camera-selection';
 import {
-	applyTorch,
 	applyZoom,
-	type CameraView,
 	describeCameraError,
-	hasCameraChoice,
+	focusAtPoint,
 	listCameras,
 	openCameraStream,
-	pickCameraForView,
 	playStream,
 	readCameraAbilities,
 	readSavedView,
 	releaseCamera,
+	resumeContinuousFocus,
 	saveView,
 	type ZoomRange,
 } from './camera-stream';
@@ -27,6 +27,7 @@ import {
 const WATCHDOG_INTERVAL_MS = 2_000;
 const FROZEN_VIDEO_MS = 5_000;
 const DEFAULT_FRAME_SIZE = { width: 4, height: 3 };
+const FOCUS_HOLD_MS = 2_500;
 
 type CameraStatus =
 	| { kind: 'starting' }
@@ -50,9 +51,8 @@ type UseCameraResult = {
 	toggleView: () => void;
 	zoom: ZoomState | null;
 	changeZoomBy: (direction: 1 | -1) => void;
-	hasTorch: boolean;
-	isTorchOn: boolean;
-	toggleTorch: () => void;
+	/** Best-effort ostrość na punkcie klatki wideo; po 2,5 s powrót do ciągłego autofokusu. Bez wsparcia aparatu nic nie robi. */
+	focusAt: (point: Point) => void;
 	/** Rozmiar klatki wideo w pikselach (do przeliczenia ramek na ekran). */
 	frameSize: { width: number; height: number };
 	/** Ponowne otwarcie aparatu bez przeładowania strony. */
@@ -62,9 +62,9 @@ type UseCameraResult = {
 };
 
 /**
- * Otwiera aparat dla wybranego widoku (kamery 4 albo 2 z listy, wybór zapamiętany w `localStorage`),
+ * Otwiera aparat dla wybranego widoku (tylne aparaty, wybór zapamiętany w `localStorage`),
  * pilnuje go strażnikiem co 2 s (zakończona ścieżka, zatrzymane wideo, obraz stojący ponad 5 s
- * to ponowne otwarcie) i obsługuje zoom oraz latarkę. Każde czekanie na przeglądarkę ma limit czasu.
+ * to ponowne otwarcie) i obsługuje zoom. Każde czekanie na przeglądarkę ma limit czasu.
  */
 function useCamera({
 	videoRef,
@@ -76,11 +76,12 @@ function useCamera({
 	const [view, setView] = useState<CameraView>(readSavedView);
 	const [hasChoice, setHasChoice] = useState(false);
 	const [zoom, setZoom] = useState<ZoomState | null>(null);
-	const [hasTorch, setHasTorch] = useState(false);
-	const [isTorchOn, setIsTorchOn] = useState(false);
 	const [frameSize, setFrameSize] = useState(DEFAULT_FRAME_SIZE);
 	const [attempt, setAttempt] = useState(0);
 	const streamRef = useRef<MediaStream | null>(null);
+	const focusTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
 	const isClosedRef = useRef(false);
 	const notifyRestart = useEffectEvent(onRestart);
 	const notifyCameraLabel = useEffectEvent(onCameraLabel);
@@ -112,8 +113,6 @@ function useCamera({
 					? { ...abilities.zoom, value: abilities.zoom.min }
 					: null,
 			);
-			setHasTorch(abilities.hasTorch);
-			setIsTorchOn(false);
 			setFrameSize({
 				width: video?.videoWidth || DEFAULT_FRAME_SIZE.width,
 				height: video?.videoHeight || DEFAULT_FRAME_SIZE.height,
@@ -130,8 +129,9 @@ function useCamera({
 				releaseCamera(probe, null);
 				cameras = await listCameras();
 			}
-			setHasChoice(hasCameraChoice(cameras));
-			return pickCameraForView(cameras, view)?.deviceId;
+			const selection = selectCamera(cameras, view);
+			setHasChoice(selection.canSwitchView);
+			return selection.deviceId;
 		}
 
 		async function start(): Promise<void> {
@@ -190,6 +190,7 @@ function useCamera({
 		return () => {
 			isCancelled = true;
 			clearInterval(watchdog);
+			clearTimeout(focusTimerRef.current);
 			releaseCamera(streamRef.current, video);
 			streamRef.current = null;
 		};
@@ -226,14 +227,26 @@ function useCamera({
 		void applyZoom(stream, value);
 	}
 
-	function toggleTorch() {
+	function focusAt(point: Point) {
 		const stream = streamRef.current;
 		if (!stream) {
 			return;
 		}
-		const nextIsOn = !isTorchOn;
-		setIsTorchOn(nextIsOn);
-		void applyTorch(stream, nextIsOn);
+		clearTimeout(focusTimerRef.current);
+		const normalizedPoint = {
+			x: clampUnit(point.x / frameSize.width),
+			y: clampUnit(point.y / frameSize.height),
+		};
+		void focusAtPoint(stream, normalizedPoint).then((isFocusing) => {
+			if (!isFocusing || streamRef.current !== stream) {
+				return;
+			}
+			clearTimeout(focusTimerRef.current);
+			focusTimerRef.current = setTimeout(
+				() => void resumeContinuousFocus(stream),
+				FOCUS_HOLD_MS,
+			);
+		});
 	}
 
 	return {
@@ -243,13 +256,15 @@ function useCamera({
 		toggleView,
 		zoom,
 		changeZoomBy,
-		hasTorch,
-		isTorchOn,
-		toggleTorch,
+		focusAt,
 		frameSize,
 		retry,
 		close,
 	};
+}
+
+function clampUnit(value: number): number {
+	return Math.min(1, Math.max(0, value));
 }
 
 export { type CameraStatus, type UseCameraResult, useCamera };

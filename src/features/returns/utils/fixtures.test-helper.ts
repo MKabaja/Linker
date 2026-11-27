@@ -74,6 +74,40 @@ const SCORING_OPTIONS: ScoringOptions = {
 
 type OrderOverrides = Partial<IndexedOrder> & { orderId: number };
 
+const LABEL_CODES = {
+	inpostAllegroReturn: '600000276632432022076273',
+	inpost: ['620999667432432409166164', '632432176632432034601449'],
+	orlen: '2102986472869',
+	dpdFull: ['%10324321055513876329U101616', '%10324321055932027487U101616'],
+	dpdParcel: ['1055513876329U', '1055932027487U'],
+	dhl: ['31863808287', 'JJD000030107342000000063857'],
+	dhlRouting: '2LPL32432+81000000',
+	allegroOne: 'A0066RM3O6',
+	allegroOneOther: 'A006A485G0',
+	returnReferenceText: 'Zwrot: NZ5J/2026',
+} as const;
+
+const ALLEGRO_ONE_ORDER_ID = 356_294_791;
+
+const ALLEGRO_ONE_PARCELS = [
+	'A0066RM3O6',
+	'A0065KBBY3',
+	'A0065K8YU5',
+	'A0065KB9D7',
+] as const;
+
+/**
+ * Zamówienia z prawdziwymi numerami Allegro One z indeksu; `A0066RM3O6` to zamówienie 356294791.
+ */
+function makeAllegroOneOrders(): IndexedOrder[] {
+	return ALLEGRO_ONE_PARCELS.map((packageNumber, index) =>
+		makeOrder({
+			orderId: ALLEGRO_ONE_ORDER_ID + index,
+			packageNumbers: [packageNumber],
+		}),
+	);
+}
+
 function createRandom(seed: number): () => number {
 	let state = seed >>> 0;
 	return () => {
@@ -147,9 +181,13 @@ function randomDigits(random: () => number, count: number): string {
 }
 
 export {
+	ALLEGRO_ONE_ORDER_ID,
+	ALLEGRO_ONE_PARCELS,
 	createRandom,
 	generateOrders,
 	INPOST_PREFIX,
+	LABEL_CODES,
+	makeAllegroOneOrders,
 	makeOrder,
 	type OrderOverrides,
 	SCORING_OPTIONS,

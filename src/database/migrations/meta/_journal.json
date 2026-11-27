@@ -57,6 +57,20 @@
       "when": 1795766089707,
       "tag": "20261127075449_add_wapro_and_wms_to_indexed_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795780037903,
+      "tag": "20261127114717_noisy_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795781253687,
+      "tag": "20261127120733_add_correction_to_returns",
+      "breakpoints": true
     }
   ]
 }

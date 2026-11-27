@@ -5,6 +5,8 @@ import {
 	syncOrderIndex,
 	syncPendingPackages,
 } from './order-index-sync.service';
+import { syncOrderReturns } from './order-returns-sync.service';
+import { syncPackagesFromJournal } from './package-journal-sync.service';
 
 const SYNC_INTERVAL_MILLISECONDS = 2 * 60_000;
 const FIRST_SYNC_DELAY_MILLISECONDS = 15_000;
@@ -50,6 +52,21 @@ async function runSyncRound() {
 
 		if (packagesSummary.status === 'error') {
 			console.error('[returns] Synchronizacja paczek:', packagesSummary);
+		}
+
+		const journalSummary = await syncPackagesFromJournal(new Date());
+
+		if (journalSummary.status === 'error') {
+			console.error(
+				'[returns] Odświeżanie paczek z dziennika:',
+				journalSummary,
+			);
+		}
+
+		const returnsSummary = await syncOrderReturns(new Date());
+
+		if (returnsSummary.status === 'error') {
+			console.error('[returns] Synchronizacja zwrotów BL:', returnsSummary);
 		}
 	} catch (error) {
 		console.error('[returns] Synchronizacja przerwana:', error);

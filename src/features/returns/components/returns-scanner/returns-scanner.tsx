@@ -5,20 +5,27 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useIsCoarsePointer } from '@/shared/hooks/use-is-coarse-pointer';
+import { useWakeLock } from '@/shared/hooks/use-wake-lock';
 import { useBarcodeLoop } from './use-barcode-loop';
 import { useCamera } from './use-camera';
 import { useOcrLoop } from './use-ocr-loop';
+import { useTapTarget } from './use-tap-target';
 import { type AutoMatch, useTraceSearch } from './use-trace-search';
-import { useWakeLock } from './use-wake-lock';
 import {
 	createReturnAction,
 	saveScanLogAction,
+	searchTypedNumberAction,
 } from '@/features/returns/actions';
 import type { SearchCandidate } from '@/features/returns/model/order-search.types';
 import type { CreateReturnInput } from '@/features/returns/model/returns.schemas';
 import type { CreateReturnResult } from '@/features/returns/model/returns.types';
 import type { ScanLogInput } from '@/features/returns/model/scan-log.schemas';
 import type { TraceEntry } from '@/features/returns/model/traces.types';
+import type {
+	PendingReturnView,
+	TypedNumberCandidate,
+	TypedNumberSearchResult,
+} from '@/features/returns/model/typed-number.types';
 import { decideCameraStart } from '@/features/returns/utils/camera-start';
 import {
 	type Carrier,
@@ -26,12 +33,14 @@ import {
 	isInpostReturnNumber,
 } from '@/features/returns/utils/carrier';
 import { normalizeCode } from '@/features/returns/utils/normalize-text';
+import { MIN_SUFFIX_LENGTH } from '@/features/returns/utils/package-suffix-search';
 import {
 	readFromBarcode,
 	readsFromManual,
 } from '@/features/returns/utils/read-classifier';
 import { pickScannedLabel } from '@/features/returns/utils/scanned-label';
 import type { DetectedCode } from './barcode-reader';
+import { toManualCandidate } from './manual-candidate';
 import { returnsScannerStyles } from './returns-scanner.styles';
 import { createScanDiagnostics } from './scan-diagnostics';
 import { beginScan, endScan, recordScanEvent } from './scan-event-recorder';
@@ -41,15 +50,23 @@ import { ScannerControls } from './scanner-controls';
 import { playHitFeedback, unlockAudio } from './scanner-feedback';
 import { ScannerManualEntrySheet } from './scanner-manual-entry-sheet';
 import { ScannerOverlay } from './scanner-overlay';
+import { ScannerPendingReturnsSheet } from './scanner-pending-returns-sheet';
 import { ScannerStartScreen } from './scanner-start-screen';
 import { showDuplicateToast, showMatchToast } from './scanner-toast';
 import { ScannerTraceList } from './scanner-trace-list';
+import { ScannerTypedCandidatesSheet } from './scanner-typed-candidates-sheet';
 
 const SAVE_TIMEOUT_MS = 15_000;
 const CLOCK_TICK_MS = 500;
 const MIN_ABORTED_SCAN_MS = 3_000;
 
-type Panel = 'none' | 'manual' | 'candidates';
+type Panel = 'none' | 'manual' | 'candidates' | 'typed' | 'pending';
+
+type TypedSearch = { suffix: string; candidates: TypedNumberCandidate[] };
+
+type TypedSearchOutcome =
+	| { status: 'found'; search: TypedSearch }
+	| { status: 'failed'; message: string };
 
 type Phase =
 	| { kind: 'scanning' }
@@ -78,6 +95,10 @@ export function ReturnsScanner() {
 	const [phase, setPhase] = useState<Phase>({ kind: 'scanning' });
 	const [panel, setPanel] = useState<Panel>('none');
 	const [detectedCarrier, setDetectedCarrier] = useState<Carrier | null>(null);
+	const [typedSearch, setTypedSearch] = useState<TypedSearch>({
+		suffix: '',
+		candidates: [],
+	});
 	const [nowMs, setNowMs] = useState(0);
 	const [isOcrUnauthorized, setIsOcrUnauthorized] = useState(false);
 	const [isStartRequested, setIsStartRequested] = useState(false);
@@ -93,7 +114,7 @@ export function ReturnsScanner() {
 		onCameraLabel: diagnostics.noteCameraLabel,
 	});
 	const isLoopRunning = isScanning && camera.status.kind === 'ready';
-	const isPaused = panel === 'manual';
+	const isPaused = panel !== 'none' && panel !== 'candidates';
 
 	const traceSearch = useTraceSearch({
 		scanId: scanSession,
@@ -112,6 +133,12 @@ export function ReturnsScanner() {
 		onReads: traceSearch.addReads,
 		onUnauthorized: () => setIsOcrUnauthorized(true),
 	});
+	const tapTarget = useTapTarget({
+		onAim: (target) => {
+			ocrLoop.aimAt(target);
+			camera.focusAt(target.point);
+		},
+	});
 	useBarcodeLoop({
 		videoRef,
 		isEnabled: isLoopRunning,
@@ -119,7 +146,10 @@ export function ReturnsScanner() {
 		onCodes: handleCodes,
 		onDetectionTime: diagnostics.noteBarcodeCall,
 	});
-	useWakeLock(isScanning && isCameraAllowed);
+	useWakeLock(true, {
+		onIssue: (issue) =>
+			recordScanEvent(scanSession, { type: 'scan.wake-lock', issue }),
+	});
 
 	const logAbortedScan = useEffectEvent(() => {
 		if (isFinishingRef.current) {
@@ -172,7 +202,7 @@ export function ReturnsScanner() {
 	}, [scanSession]);
 
 	function handleCodes(codes: DetectedCode[]) {
-		const reads = codes.flatMap(({ value, bbox }) => {
+		const reads = tapTarget.preferAimed(codes).flatMap(({ value, bbox }) => {
 			const carrier = detectCarrier(value);
 			diagnostics.noteCarrier(carrier);
 			if (carrier) {
@@ -266,24 +296,88 @@ export function ReturnsScanner() {
 		});
 	}
 
+	function pickTypedCandidate(candidate: TypedNumberCandidate) {
+		const manualCandidate = toManualCandidate(candidate);
+		void finishScan({
+			candidate: manualCandidate,
+			entries: traceSearch.entries,
+			candidates: [manualCandidate],
+			matchedBy: 'manual-entry',
+		});
+	}
+
+	function pickPendingReturn(pendingReturn: PendingReturnView) {
+		const manualCandidate = toManualCandidate({
+			orderId: pendingReturn.orderId,
+			existingReturn: null,
+		});
+		void finishScan({
+			candidate: manualCandidate,
+			entries: traceSearch.entries,
+			candidates: [manualCandidate],
+			matchedBy: 'manual-pick',
+		});
+	}
+
 	async function submitManualEntry(text: string): Promise<string> {
-		const reads = readsFromManual(text);
-		if (reads.length === 0) {
-			return 'Nie rozpoznano numeru. Wpisz numer paczki, zamówienia, ID zewnętrzne albo telefon.';
-		}
 		diagnostics.noteManualEntry();
-		const result = await traceSearch.searchReads(reads);
+		const reads = readsFromManual(text);
+		if (reads.length > 0) {
+			const result = await traceSearch.searchReads(reads);
+			if (isFinishingRef.current) {
+				return '';
+			}
+			if (!result) {
+				return 'Nie udało się wyszukać. Spróbuj ponownie.';
+			}
+			if (result.decision === 'candidates') {
+				setPanel('candidates');
+				return '';
+			}
+		}
+		const outcome = await searchTypedSuffix(text);
 		if (isFinishingRef.current) {
 			return '';
 		}
-		if (!result) {
-			return 'Nie udało się wyszukać. Spróbuj ponownie.';
+		if (outcome.status === 'failed') {
+			return outcome.message;
 		}
-		if (result.decision === 'candidates') {
-			setPanel('candidates');
-			return '';
+		setTypedSearch(outcome.search);
+		setPanel('typed');
+		return '';
+	}
+
+	async function searchTypedSuffix(text: string): Promise<TypedSearchOutcome> {
+		const suffix = normalizeCode(text);
+		if (suffix.length < MIN_SUFFIX_LENGTH) {
+			return {
+				status: 'failed',
+				message:
+					'Nie rozpoznano numeru. Wpisz co najmniej 4 ostatnie znaki numeru paczki, kod zwrotu, numer zamówienia, ID zewnętrzne albo telefon.',
+			};
 		}
-		return 'Nic nie znaleziono dla wpisanego numeru.';
+		const result = await requestTypedNumber({
+			text,
+			carrier: detectedCarrier ?? undefined,
+			traces: traceSearch.entries.map(({ query }) => query),
+		});
+		if (result.status !== 'ok') {
+			return {
+				status: 'failed',
+				message: 'Nie udało się wyszukać. Spróbuj ponownie.',
+			};
+		}
+		if (result.candidates.length === 0) {
+			return {
+				status: 'failed',
+				message:
+					'Nic nie znaleziono dla wpisanego numeru. Spróbuj z listy oczekujących zwrotów.',
+			};
+		}
+		return {
+			status: 'found',
+			search: { suffix, candidates: result.candidates },
+		};
 	}
 
 	function retryAfterFailure() {
@@ -310,13 +404,20 @@ export function ReturnsScanner() {
 
 	return (
 		<div className={root}>
-			<video ref={videoRef} className={video} playsInline muted>
+			<video
+				ref={videoRef}
+				className={video}
+				playsInline
+				muted
+				onPointerDown={tapTarget.aimFromPointer}
+			>
 				<track kind="captions" />
 			</video>
 			<ScannerOverlay
 				entries={traceSearch.entries}
 				frameSize={camera.frameSize}
 				nowMs={nowMs}
+				target={tapTarget.target}
 			/>
 
 			{cameraStart === 'waiting' && (
@@ -384,6 +485,19 @@ export function ReturnsScanner() {
 				isOpen={panel === 'manual'}
 				onOpenChange={(isOpen) => setPanel(isOpen ? 'manual' : 'none')}
 				onSubmit={submitManualEntry}
+				onOpenPendingReturns={() => setPanel('pending')}
+			/>
+			<ScannerTypedCandidatesSheet
+				isOpen={panel === 'typed'}
+				candidates={typedSearch.candidates}
+				suffix={typedSearch.suffix}
+				onOpenChange={(isOpen) => setPanel(isOpen ? 'typed' : 'manual')}
+				onPick={pickTypedCandidate}
+			/>
+			<ScannerPendingReturnsSheet
+				isOpen={panel === 'pending'}
+				onOpenChange={(isOpen) => setPanel(isOpen ? 'pending' : 'manual')}
+				onPick={pickPendingReturn}
 			/>
 			<ScannerCandidatesSheet
 				isOpen={panel === 'candidates'}
@@ -466,5 +580,18 @@ async function saveReturn(input: CreateReturnInput): Promise<SaveResult> {
 		return await Promise.race([createReturnAction(input), timeout]);
 	} catch {
 		return { status: 'timeout' };
+	}
+}
+
+async function requestTypedNumber(
+	input: Parameters<typeof searchTypedNumberAction>[0],
+): Promise<TypedNumberSearchResult> {
+	const timeout = new Promise<TypedNumberSearchResult>((resolve) =>
+		setTimeout(() => resolve({ status: 'invalid' }), SAVE_TIMEOUT_MS),
+	);
+	try {
+		return await Promise.race([searchTypedNumberAction(input), timeout]);
+	} catch {
+		return { status: 'invalid' };
 	}
 }

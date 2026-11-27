@@ -7,6 +7,7 @@ const traceKindSchema = z.enum([
 	'phone',
 	'name',
 	'postcode',
+	'returnReference',
 ]);
 
 const searchCandidateSchema = z.object({

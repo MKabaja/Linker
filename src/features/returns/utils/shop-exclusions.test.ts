@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { LABEL_CODES } from '@/features/returns/utils/fixtures.test-helper';
 import { createOcrResponse } from '@/features/returns/utils/ocr.test-helper';
 import {
 	parseNameMask,
 	parseNumberRead,
 	parsePhoneMask,
 } from '@/features/returns/utils/pattern-parser';
-import { readsFromOcr } from '@/features/returns/utils/read-classifier';
+import {
+	readFromBarcode,
+	readsFromOcr,
+} from '@/features/returns/utils/read-classifier';
 import {
 	isShopPhone,
 	isShopText,
@@ -120,5 +124,53 @@ describe('wykluczenia sklepu', () => {
 		);
 
 		expect(reads.map((read) => read.kind)).toEqual(['package']);
+	});
+
+	it.each([
+		'880729093',
+		'880729083',
+		'880729003',
+		'1880729093',
+		'1880729083',
+		'18807290893',
+		'o 880729093',
+	])('telefon sklepu z pomyłką OCR %s nie daje tropu', (text) => {
+		expect(readsFromOcr(createOcrResponse([['rapid', text]]))).toEqual([]);
+	});
+
+	it('telefon klienta różny od telefonu sklepu na dwóch pozycjach zostaje tropem', () => {
+		expect(isShopPhone('880721193')).toBe(false);
+	});
+
+	it.each(['** ** **3 093', '*********9093'])(
+		'zamaskowana końcówka telefonu sklepu %s nie daje tropu',
+		(text) => {
+			expect(readsFromOcr(createOcrResponse([['rapid', text]]))).toEqual([]);
+		},
+	);
+
+	it('kod trasy DHL z kodem pocztowym sklepu nie jest tropem', () => {
+		expect(readFromBarcode(LABEL_CODES.dhlRouting)).toBeNull();
+		expect(
+			readsFromOcr(createOcrResponse([['rapid', LABEL_CODES.dhlRouting]])),
+		).toEqual([]);
+	});
+
+	it('kod pocztowy sklepu w pełnym kodzie DPD nie daje tropu kodu pocztowego', () => {
+		const reads = readsFromOcr(
+			createOcrResponse([['rapid', LABEL_CODES.dpdFull[0]]]),
+		);
+
+		expect(reads.map((read) => read.kind)).toEqual(['package']);
+	});
+
+	it.each([
+		'Fi**',
+		'Kr***',
+		'Kr*** K.*** Ko*** Sp***',
+		'Dro**',
+		'Ko*** Dri** Ko*** Drr**',
+	])('zamaskowana nazwa firmy odbiorcy %s nie jest tropem imienia', (text) => {
+		expect(readsFromOcr(createOcrResponse([['rapid', text]]))).toEqual([]);
 	});
 });

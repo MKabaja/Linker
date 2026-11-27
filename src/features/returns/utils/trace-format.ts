@@ -22,6 +22,7 @@ const numberDescriberByKind: NumberDescriberByKind = {
 	externalId: (text) => `ID zewn. ${shortenNumber(text)}`,
 	postcode: (text) =>
 		`Kod poczt. ${text.slice(0, POSTCODE_HEAD_LENGTH)}-${text.slice(POSTCODE_HEAD_LENGTH)}`,
+	returnReference: (text) => `Zwrot ${text}`,
 };
 
 /**

@@ -3,7 +3,7 @@ import { Skeleton } from '@/shared/components/skeleton';
 
 export default function ReturnLoading() {
 	return (
-		<PageContent aria-busy="true" className="mx-auto w-full max-w-4xl">
+		<PageContent aria-busy="true" className="w-full">
 			<Skeleton className="h-8 w-72" />
 			<Skeleton className="h-20 w-full" />
 			<Skeleton className="h-14 w-full" />

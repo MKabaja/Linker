@@ -55,4 +55,30 @@ describe('matchOrdersByTraces', () => {
 		expect(result.decision).toBe('candidates');
 		expect(result.candidates[0]?.orderId).toBe(LIVE_ORDER_ID);
 	});
+
+	it('kod zwrotu rozwiązuje przekazana funkcja wyszukująca, jednym wywołaniem', async () => {
+		const { matchOrdersByTraces } = await import(
+			'@/features/returns/server/services/order-matcher.service'
+		);
+		const targetOrderId = generateOrders(200)[5].orderId;
+		const findOrderIdsByReturnReference = vi.fn(
+			async (references: string[]) =>
+				new Map(references.map((reference) => [reference, targetOrderId])),
+		);
+		const trace: TraceQuery = {
+			id: 'r1@1',
+			kind: 'returnReference',
+			pattern: [...'NZ5J/2026'],
+		};
+
+		const { result } = await matchOrdersByTraces([trace, trace], new Date(), {
+			findOrderIdsByReturnReference,
+		});
+
+		expect(findOrderIdsByReturnReference).toHaveBeenCalledExactlyOnceWith([
+			'NZ5J/2026',
+		]);
+		expect(result.decision).toBe('auto');
+		expect(result.candidates[0]?.orderId).toBe(targetOrderId);
+	});
 });

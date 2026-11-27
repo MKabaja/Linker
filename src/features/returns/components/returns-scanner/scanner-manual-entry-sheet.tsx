@@ -1,4 +1,4 @@
-import { type SubmitEvent, useState } from 'react';
+import { type SubmitEvent, useRef, useState } from 'react';
 import { Input } from '@/shared/components/input';
 import {
 	Sheet,
@@ -14,6 +14,7 @@ type ScannerManualEntrySheetProps = {
 	onOpenChange: (isOpen: boolean) => void;
 	/** Zwraca komunikat dla użytkownika albo pusty tekst, gdy panel ma się zamknąć. */
 	onSubmit: (text: string) => Promise<string>;
+	onOpenPendingReturns: () => void;
 };
 
 /**
@@ -24,11 +25,28 @@ export function ScannerManualEntrySheet({
 	isOpen,
 	onOpenChange,
 	onSubmit,
+	onOpenPendingReturns,
 }: ScannerManualEntrySheetProps) {
-	const { content, form, input, note, submit } = scannerSheetStyles;
+	const {
+		content,
+		form,
+		input,
+		inputRow,
+		modeToggle,
+		note,
+		secondaryAction,
+		submit,
+	} = scannerSheetStyles;
+	const inputRef = useRef<HTMLInputElement>(null);
+	const [isTextMode, setIsTextMode] = useState(false);
 	const [value, setValue] = useState('');
 	const [message, setMessage] = useState('');
 	const [isSearching, setIsSearching] = useState(false);
+
+	function toggleInputMode() {
+		setIsTextMode((current) => !current);
+		inputRef.current?.focus();
+	}
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -44,19 +62,35 @@ export function ScannerManualEntrySheet({
 				<SheetHeader>
 					<SheetTitle>Wpisz numer</SheetTitle>
 					<SheetDescription>
-						Numer paczki, zamówienia, ID zewnętrzne albo telefon.
+						Numer paczki (wystarczą ostatnie 4 znaki), kod zwrotu, numer
+						zamówienia, ID zewnętrzne albo telefon.
 					</SheetDescription>
 				</SheetHeader>
 				<form className={form} onSubmit={handleSubmit}>
-					<Input
-						className={input}
-						value={value}
-						onChange={(event) => setValue(event.target.value)}
-						aria-label="Numer do wyszukania"
-						inputMode="text"
-						autoComplete="off"
-						enterKeyHint="search"
-					/>
+					<div className={inputRow}>
+						<Input
+							ref={inputRef}
+							className={input}
+							value={value}
+							onChange={(event) => setValue(event.target.value)}
+							aria-label="Numer do wyszukania"
+							inputMode={isTextMode ? 'text' : 'numeric'}
+							pattern={isTextMode ? undefined : '[0-9]*'}
+							autoCapitalize={isTextMode ? 'characters' : 'off'}
+							autoComplete="off"
+							enterKeyHint="search"
+						/>
+						<button
+							type="button"
+							className={modeToggle}
+							onMouseDown={(event) => event.preventDefault()}
+							onClick={toggleInputMode}
+							aria-pressed={isTextMode}
+							aria-label="Klawiatura z literami"
+						>
+							{isTextMode ? '123' : 'ABC'}
+						</button>
+					</div>
 					{message && (
 						<p className={note} role="status">
 							{message}
@@ -64,6 +98,13 @@ export function ScannerManualEntrySheet({
 					)}
 					<button type="submit" className={submit} disabled={isSearching}>
 						Szukaj
+					</button>
+					<button
+						type="button"
+						className={secondaryAction}
+						onClick={onOpenPendingReturns}
+					>
+						Oczekujące zwroty Allegro
 					</button>
 				</form>
 			</SheetContent>

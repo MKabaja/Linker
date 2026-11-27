@@ -4,6 +4,8 @@ const FULL_FRAME_WITH_RETURN_LABEL_INTERVAL_MS = 4_000;
 const STRIP_INTERVAL_MS = 500;
 const RETURN_LABEL_TTL_MS = 3_000;
 const MAX_GATE_WAIT_MS = 2_500;
+const TAP_TARGET_TTL_MS = 5_000;
+const TARGET_FRAME_INTERVAL_MS = 400;
 
 type OcrPlan = 'strip' | 'full';
 
@@ -15,6 +17,17 @@ type OcrScheduleState = {
 	backoffUntilMs: number;
 	/** Kiedy ostatnio widziano kod zwrotny InPost; `null`, gdy nie widziano. */
 	returnLabelSeenAtMs: number | null;
+};
+
+/** `first`: pierwsza klatka po tapnięciu, bez bramki; `next`: kolejna, przez bramkę; `wait`: cel aktywny, ale jeszcze nie teraz. */
+type TargetFrame = 'first' | 'next' | 'wait';
+
+type TargetScheduleState = {
+	nowMs: number;
+	/** Kiedy użytkownik tapnął cel; `null`, gdy nie tapnął. */
+	tappedAtMs: number | null;
+	lastTargetAtMs: number;
+	backoffUntilMs: number;
 };
 
 type GateDecisionInput = {
@@ -63,10 +76,41 @@ function shouldSendFrame({
 	return isGateReady || nowMs - lastSentAtMs >= MAX_GATE_WAIT_MS;
 }
 
+/**
+ * Sprawdza, czy tapnięty cel jest jeszcze aktywny (5 s od tapnięcia).
+ */
+function isTapTargetActive(tappedAtMs: number | null, nowMs: number): boolean {
+	return tappedAtMs !== null && nowMs - tappedAtMs < TAP_TARGET_TTL_MS;
+}
+
+/**
+ * Plan klatek dla aktywnego celu, który zastępuje zwykły plan: pierwsza klatka od razu,
+ * kolejne najwyżej co 0,4 s. Przerwa po odmowie serwera obowiązuje także cel.
+ * Zwraca `null`, gdy celu nie ma albo wygasł (wtedy działa `pickOcrPlan`).
+ */
+function pickTargetFrame(state: TargetScheduleState): TargetFrame | null {
+	if (!isTapTargetActive(state.tappedAtMs, state.nowMs)) {
+		return null;
+	}
+	if (state.nowMs < state.backoffUntilMs) {
+		return 'wait';
+	}
+	if (state.lastTargetAtMs < (state.tappedAtMs ?? 0)) {
+		return 'first';
+	}
+	return state.nowMs - state.lastTargetAtMs >= TARGET_FRAME_INTERVAL_MS
+		? 'next'
+		: 'wait';
+}
+
 export {
 	type GateDecisionInput,
+	isTapTargetActive,
 	type OcrPlan,
 	type OcrScheduleState,
 	pickOcrPlan,
+	pickTargetFrame,
 	shouldSendFrame,
+	type TargetFrame,
+	type TargetScheduleState,
 };

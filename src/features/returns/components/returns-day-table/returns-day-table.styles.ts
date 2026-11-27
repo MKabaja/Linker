@@ -10,7 +10,10 @@ export const returnsDayTableStyles = {
 	timeCell: 'whitespace-nowrap tabular-nums',
 	codeCell: 'whitespace-nowrap',
 	detailsLink:
-		'font-medium text-brand underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-brand',
+		'inline-block font-medium text-brand underline-offset-2 transition-transform hover:underline focus-visible:outline-2 focus-visible:outline-brand motion-safe:active:scale-[0.98]',
+	correctionCell: 'whitespace-nowrap',
+	correctionIssued: 'inline-flex text-success',
+	correctionMissing: 'inline-flex text-faint',
 	quantityCell: 'whitespace-nowrap tabular-nums',
 	noteCell: 'w-full max-w-md truncate text-dim',
 	importMark:

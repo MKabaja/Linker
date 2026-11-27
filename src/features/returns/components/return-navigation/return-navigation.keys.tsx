@@ -3,8 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import type { ReturnNeighbors } from '@/features/returns/model/returns.types';
+import type { ReturnsListSearch } from '@/features/returns/utils/returns-list-query';
 
-type ReturnNavigationKeysProps = ReturnNeighbors;
+type ReturnNavigationKeysProps = ReturnNeighbors & {
+	listSearch: ReturnsListSearch;
+};
 
 const TEXT_FIELD_SELECTOR =
 	'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
@@ -14,6 +17,7 @@ const OPEN_DIALOG_SELECTOR =
 export function ReturnNavigationKeys({
 	previousReturnId,
 	nextReturnId,
+	listSearch,
 }: ReturnNavigationKeysProps) {
 	const router = useRouter();
 
@@ -27,14 +31,14 @@ export function ReturnNavigationKeys({
 				event.key === 'ArrowLeft' ? previousReturnId : nextReturnId;
 
 			if (targetReturnId !== null) {
-				router.push(`/returns/${targetReturnId}`);
+				router.push(`/returns/${targetReturnId}${listSearch}`);
 			}
 		}
 
 		window.addEventListener('keydown', handleKeyDown);
 
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [router, previousReturnId, nextReturnId]);
+	}, [router, previousReturnId, nextReturnId, listSearch]);
 
 	return null;
 }

@@ -43,6 +43,7 @@ const baseLinkerPackageSchema = z.object({
 	courier_package_nr: looseString,
 	courier_inner_number: looseString,
 	courier_code: looseString,
+	package_type: looseString,
 });
 
 const getOrderPackagesResponseSchema = z.object({
@@ -112,7 +113,44 @@ const getOrderStatusListResponseSchema = z.object({
 	),
 });
 
+const baseLinkerJournalLogSchema = z.object({
+	log_id: z.coerce.number().int().positive(),
+	log_type: z.coerce.number().int(),
+	order_id: z.coerce.number().int(),
+});
+
+const getJournalListResponseSchema = z.object({
+	logs: z.array(baseLinkerJournalLogSchema).default([]),
+});
+
+const baseLinkerOrderReturnProductSchema = z.object({
+	name: looseString,
+	sku: looseString,
+	ean: looseString,
+	quantity: z.coerce.number(),
+});
+
+const baseLinkerOrderReturnSchema = z.object({
+	return_id: z.coerce.number().int().positive(),
+	order_id: z.coerce.number().int(),
+	reference_number: looseString,
+	order_return_source: looseString,
+	status_id: z.coerce.number().int().catch(0),
+	date_add: z.coerce.number().int(),
+	delivery_fullname: looseString,
+	delivery_postcode: looseString,
+	delivery_package_module: looseString,
+	delivery_package_nr: looseString,
+	products: z.array(baseLinkerOrderReturnProductSchema).default([]),
+});
+
+const getOrderReturnsResponseSchema = z.object({
+	returns: z.array(baseLinkerOrderReturnSchema).default([]),
+});
+
 type BaseLinkerOrder = z.infer<typeof baseLinkerOrderSchema>;
+type BaseLinkerJournalLog = z.infer<typeof baseLinkerJournalLogSchema>;
+type BaseLinkerOrderReturn = z.infer<typeof baseLinkerOrderReturnSchema>;
 type BaseLinkerPackage = z.infer<typeof baseLinkerPackageSchema>;
 type BaseLinkerOrderCustomer = z.infer<typeof baseLinkerOrderCustomerSchema>;
 type BaseLinkerPickPackEntry = z.infer<typeof baseLinkerPickPackEntrySchema>;
@@ -123,17 +161,21 @@ type BaseLinkerOrderStatus = z.infer<
 >['statuses'][number];
 
 export {
+	type BaseLinkerJournalLog,
 	type BaseLinkerOrder,
 	type BaseLinkerOrderCustomer,
+	type BaseLinkerOrderReturn,
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
 	type BaseLinkerPickPackEntry,
 	type BaseLinkerShipment,
 	type BaseLinkerStatusEvent,
 	getCourierPackagesStatusHistoryResponseSchema,
+	getJournalListResponseSchema,
 	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,
 	getOrderPickPackHistoryResponseSchema,
+	getOrderReturnsResponseSchema,
 	getOrderShipmentsResponseSchema,
 	getOrderStatusListResponseSchema,
 	getOrdersResponseSchema,

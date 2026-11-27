@@ -6,6 +6,8 @@ import { createWorkerClient } from './worker-client';
 const GATE_WIDTH_PX = 160;
 const OCR_FRAME_WIDTH_PX = 1280;
 const STRIP_UPSCALE = 2;
+const TARGET_UPSCALE = 2;
+const TARGET_FRAME_MAX_SIDE_PX = 2048;
 const MIN_REGION_WIDTH_PX = 40;
 const MIN_REGION_HEIGHT_PX = 16;
 const TASK_TIMEOUT_MS = 3_000;
@@ -29,10 +31,20 @@ type FramePipeline = {
 		video: HTMLVideoElement,
 		region?: Rect,
 	) => Promise<CapturedFrame | null>;
+	/**
+	 * Wycinek wokół tapniętego celu w wyższej rozdzielczości niż zwykła klatka (do 2× i maks. 2048 px na boku).
+	 * Czytany jak pełna klatka (`isStrip: false`); `null` jak w `capture`.
+	 */
+	captureTarget: (
+		video: HTMLVideoElement,
+		region: Rect,
+	) => Promise<CapturedFrame | null>;
 	dispose: () => void;
 };
 
 type VideoSize = { videoWidth: number; videoHeight: number };
+
+type EncodeAreaInput = { area: Rect; scale: number };
 
 /**
  * Obróbka klatek poza głównym wątkiem (`frame.worker.ts`): bramka ostrości i ruchu oraz kodowanie JPEG.
@@ -93,6 +105,28 @@ function createFramePipeline(): FramePipeline {
 			region ? STRIP_UPSCALE : 1,
 			OCR_FRAME_WIDTH_PX / area.width,
 		);
+		const frame = await encodeArea(video, { area, scale });
+		return { ...frame, isStrip: region !== undefined };
+	}
+
+	async function captureTarget(video: HTMLVideoElement, region: Rect) {
+		const area = video.videoWidth ? clampRegion(region, video) : null;
+		if (!area) {
+			return null;
+		}
+		const scale = Math.min(
+			TARGET_UPSCALE,
+			TARGET_FRAME_MAX_SIDE_PX / area.width,
+			TARGET_FRAME_MAX_SIDE_PX / area.height,
+		);
+		const frame = await encodeArea(video, { area, scale });
+		return { ...frame, isStrip: false };
+	}
+
+	async function encodeArea(
+		video: HTMLVideoElement,
+		{ area, scale }: EncodeAreaInput,
+	): Promise<FrameCrop & { blob: Blob }> {
 		const bitmap = await createImageBitmap(
 			video,
 			area.x,
@@ -114,16 +148,16 @@ function createFramePipeline(): FramePipeline {
 				bitmap.close();
 				throw error;
 			});
-		return {
-			blob,
-			scale,
-			offsetX: area.x,
-			offsetY: area.y,
-			isStrip: region !== undefined,
-		};
+		return { blob, scale, offsetX: area.x, offsetY: area.y };
 	}
 
-	return { reset, measure, capture, dispose: client.dispose };
+	return {
+		reset,
+		measure,
+		capture,
+		captureTarget,
+		dispose: client.dispose,
+	};
 }
 
 function clampRegion(

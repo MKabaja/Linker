@@ -16,6 +16,7 @@ const traceKindSchema = z.enum([
 	'phone',
 	'name',
 	'postcode',
+	'returnReference',
 ]);
 const traceSourceSchema = z.enum([
 	'code',
@@ -95,6 +96,10 @@ const clientEventSchema = z.discriminatedUnion('type', [
 		pattern: shortText,
 		state: traceStateSchema,
 		version: counter,
+	}),
+	clientEvent({
+		type: z.literal('scan.wake-lock'),
+		issue: z.enum(['denied', 'released']),
 	}),
 	clientEvent({
 		type: z.literal('scan.decision'),

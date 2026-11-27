@@ -1,15 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 
 const MOBILE_USER_AGENT = /Android|iPhone|iPad|iPod|Mobile/i;
 
+type WakeLockIssue = 'denied' | 'released';
+
+type UseWakeLockOptions = {
+	/** Wywoływany, gdy system odmówi blokady (`denied`) albo ją zdejmie (`released`). */
+	onIssue?: (issue: WakeLockIssue) => void;
+};
+
 /**
- * Telefon nie gasi ekranu, dopóki skaner jest otwarty (Screen Wake Lock API, wymaga HTTPS).
+ * Telefon nie gasi ekranu, dopóki `isEnabled` jest prawdziwe (Screen Wake Lock API, wymaga HTTPS).
  * System zdejmuje blokadę po schowaniu karty, więc jest odnawiana po każdym powrocie.
  * Na komputerze nic nie robi.
  */
-function useWakeLock(isEnabled: boolean): void {
+function useWakeLock(
+	isEnabled: boolean,
+	{ onIssue }: UseWakeLockOptions = {},
+): void {
+	const notifyIssue = useEffectEvent((issue: WakeLockIssue) =>
+		onIssue?.(issue),
+	);
+
 	useEffect(() => {
 		if (
 			!isEnabled ||
@@ -35,9 +49,16 @@ function useWakeLock(isEnabled: boolean): void {
 					await acquired.release();
 					return;
 				}
+				acquired.addEventListener('release', handleRelease);
 				lock = acquired;
 			} catch {
-				// Brak zgody systemu (np. oszczędzanie baterii): skaner działa dalej.
+				notifyIssue('denied');
+			}
+		}
+
+		function handleRelease() {
+			if (!isDisposed) {
+				notifyIssue('released');
 			}
 		}
 
@@ -55,4 +76,4 @@ function useWakeLock(isEnabled: boolean): void {
 	}, [isEnabled]);
 }
 
-export { useWakeLock };
+export { useWakeLock, type WakeLockIssue };

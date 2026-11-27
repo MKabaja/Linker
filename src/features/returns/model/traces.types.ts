@@ -16,7 +16,8 @@ type TraceKind =
 	| 'externalId'
 	| 'phone'
 	| 'name'
-	| 'postcode';
+	| 'postcode'
+	| 'returnReference';
 
 type NumberTraceKind = Exclude<TraceKind, 'phone' | 'name'>;
 

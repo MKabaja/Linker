@@ -20,6 +20,7 @@ import {
 } from '@/features/returns/server/repositories/remote-orders.repository';
 import { normalizeCode } from '@/features/returns/utils/normalize-text';
 import { scoreOrders } from '@/features/returns/utils/order-scorer';
+import { collectReturnReferences } from '@/features/returns/utils/return-reference';
 import { getProcessSingleton } from '@/shared/lib/process-singleton';
 
 const MAX_LIVE_LOOKUPS = 2;
@@ -41,6 +42,16 @@ type LiveLookupResult =
 	| { status: 'disabled' };
 
 type LiveHit = { result: ScoreResult; trace: LiveTrace; orderId: number };
+
+/** Szuka zamówień po kodach zwrotu Allegro (`NZ5J/2026`); klucz mapy to kod w tej samej postaci. */
+type ReturnReferenceLookup = (
+	references: string[],
+) => Promise<Map<string, number>>;
+
+type MatchDependencies = {
+	/** Bez tej funkcji tropy `returnReference` nic nie dają. */
+	findOrderIdsByReturnReference?: ReturnReferenceLookup;
+};
 
 type MatchOutcome = {
 	result: ScoreResult;
@@ -65,13 +76,23 @@ const liveLabelByKind: Record<LiveTraceKind, string> = {
  * Gdy punktacja nic nie daje, a jest w pełni odczytany numer zamówienia albo ID zewnętrzne spoza indeksu,
  * pyta BaseLinkera na żywo (najwyżej 2 wywołania, numery zamówień pierwsze). Trafienie dopisuje do indeksu
  * i zwraca jako `candidates` (zawsze wymaga dotknięcia pracownika, bo źródło tropu nie jest znane). Klucze bez wyniku nie są ponawiane przez 10 minut. Bez tokenu krok jest pomijany.
+ *
+ * Kody zwrotu z tropów `returnReference` rozwiązuje jednym wywołaniem `findOrderIdsByReturnReference`
+ * (tylko gdy takie tropy są); zamówienie spoza indeksu nie dostaje punktów.
  */
-export async function matchOrdersByTraces(
+async function matchOrdersByTraces(
 	traces: TraceQuery[],
 	now: Date,
+	{ findOrderIdsByReturnReference }: MatchDependencies = {},
 ): Promise<MatchOutcome> {
-	const orders = await getIndexedOrders(now);
-	const result = scoreOrders(traces, orders, { nowMs: now.getTime() });
+	const [orders, orderIdByReturnReference] = await Promise.all([
+		getIndexedOrders(now),
+		findReturnReferenceOrders(traces, findOrderIdsByReturnReference),
+	]);
+	const result = scoreOrders(traces, orders, {
+		nowMs: now.getTime(),
+		orderIdByReturnReference,
+	});
 
 	if (result.decision !== 'none') {
 		return { result, liveLookupCount: 0 };
@@ -102,6 +123,17 @@ export async function matchOrdersByTraces(
 	}
 
 	return { result, liveLookupCount };
+}
+
+async function findReturnReferenceOrders(
+	traces: TraceQuery[],
+	findOrderIdsByReturnReference: ReturnReferenceLookup | undefined,
+): Promise<Map<string, number>> {
+	const references = collectReturnReferences(traces);
+	if (!findOrderIdsByReturnReference || references.length === 0) {
+		return new Map();
+	}
+	return findOrderIdsByReturnReference(references);
 }
 
 async function lookUpLiveOrder({
@@ -259,3 +291,9 @@ function pruneExpiredMisses(now: Date): void {
 function toMissKey(trace: LiveTrace): string {
 	return `${trace.kind}:${trace.value}`;
 }
+
+export {
+	type MatchDependencies,
+	matchOrdersByTraces,
+	type ReturnReferenceLookup,
+};

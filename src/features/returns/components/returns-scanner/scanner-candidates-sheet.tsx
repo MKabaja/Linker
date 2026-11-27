@@ -6,8 +6,8 @@ import {
 	SheetTitle,
 } from '@/shared/components/sheet';
 import type { SearchCandidate } from '@/features/returns/model/order-search.types';
-import { formatWarsawDateTime } from '@/shared/lib/warsaw-time';
 import { scannerSheetStyles } from './returns-scanner.styles';
+import { ScannerExistingReturnNote } from './scanner-existing-return-note';
 
 const MAX_VISIBLE_CANDIDATES = 3;
 
@@ -36,7 +36,6 @@ export function ScannerCandidatesSheet({
 		candidateId,
 		candidateBits,
 		candidateReasons,
-		existingReturn,
 	} = scannerSheetStyles;
 
 	return (
@@ -63,15 +62,9 @@ export function ScannerCandidatesSheet({
 								</span>
 							</span>
 							{candidate.existingReturn && (
-								<span className={existingReturn}>
-									Zwrot przyjęty{' '}
-									{formatWarsawDateTime(
-										new Date(candidate.existingReturn.receivedAt),
-									)}{' '}
-									przez {candidate.existingReturn.receivedByName}
-									{candidate.existingReturn.deletedAt &&
-										`, usunięty ${formatWarsawDateTime(new Date(candidate.existingReturn.deletedAt))} przez ${candidate.existingReturn.deletedByName ?? '—'}`}
-								</span>
+								<ScannerExistingReturnNote
+									existingReturn={candidate.existingReturn}
+								/>
 							)}
 							<span className={candidateReasons}>
 								{candidate.reasons.map((reason) => reason.label).join(' · ')}

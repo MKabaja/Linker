@@ -251,4 +251,9 @@ function fromUnixSeconds(seconds: number): Date {
 	return new Date(seconds * MILLISECONDS_PER_SECOND);
 }
 
-export { isAuthorizedSyncRequest, syncOrderIndex, syncPendingPackages };
+export {
+	isAuthorizedSyncRequest,
+	isSyncAvailable,
+	syncOrderIndex,
+	syncPendingPackages,
+};

@@ -16,6 +16,7 @@ const numberNameByKind: NumberNameByKind = {
 	orderId: 'ID zamówienia',
 	externalId: 'ID zewnętrzne',
 	postcode: 'kod pocztowy',
+	returnReference: 'kod zwrotu',
 };
 
 /**

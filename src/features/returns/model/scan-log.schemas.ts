@@ -35,6 +35,7 @@ const scanLogInputSchema = z.object({
 					'phone',
 					'name',
 					'postcode',
+					'returnReference',
 				]),
 				sources: z.array(z.string().max(40)).max(10),
 				votes: z.number().int().min(0).max(10_000),
