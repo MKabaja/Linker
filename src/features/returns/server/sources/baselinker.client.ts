@@ -15,9 +15,11 @@ import {
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
 	type BaseLinkerPickPackEntry,
+	type BaseLinkerProductImages,
 	type BaseLinkerShipment,
 	type BaseLinkerStatusEvent,
 	getCourierPackagesStatusHistoryResponseSchema,
+	getInventoryProductsDataResponseSchema,
 	getJournalListResponseSchema,
 	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,
@@ -45,6 +47,10 @@ type BaseLinkerParameters = Record<
 >;
 
 type StatusEventsByPackageId = Map<number, BaseLinkerStatusEvent[]>;
+
+type ProductImagesById = Record<string, BaseLinkerProductImages>;
+
+type InventoryProductsQuery = { inventoryId: number; productIds: number[] };
 
 type BaseLinkerResult<T> = RemoteResult<T>;
 
@@ -281,6 +287,27 @@ async function fetchBaseLinkerOrderStatuses(
 		: result;
 }
 
+/**
+ * Pobiera EAN i zdjęcia produktów z katalogu (`getInventoryProductsData`, najwyżej 1000 identyfikatorów).
+ *
+ * @remarks Mapa jest po identyfikatorze produktu zapisanym jako tekst; produktów, których katalog nie zna, w niej nie ma.
+ */
+async function fetchBaseLinkerProductImages(
+	{ inventoryId, productIds }: InventoryProductsQuery,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<ProductImagesById>> {
+	const result = await callReadOnlyMethod({
+		method: 'getInventoryProductsData',
+		parameters: { inventory_id: inventoryId, products: productIds },
+		schema: getInventoryProductsDataResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.products }
+		: result;
+}
+
 function callReadOnlyMethod<T>({
 	method,
 	parameters,
@@ -461,7 +488,10 @@ export {
 	fetchBaseLinkerOrders,
 	fetchBaseLinkerPackageJournal,
 	fetchBaseLinkerPackagesStatusHistory,
+	fetchBaseLinkerProductImages,
+	type InventoryProductsQuery,
 	type OrderReturnsQuery,
 	type OrdersQuery,
+	type ProductImagesById,
 	type StatusEventsByPackageId,
 };

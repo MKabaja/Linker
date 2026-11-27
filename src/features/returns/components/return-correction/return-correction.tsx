@@ -8,6 +8,8 @@ import { returnCorrectionStyles } from './return-correction.styles';
 type ReturnCorrectionProps = {
 	returnId: number;
 	isIssued: boolean;
+	/** Blokuje zmianę, np. gdy zwrot jest usunięty. */
+	isDisabled: boolean;
 	/** Kto i kiedy zaznaczył; `null`, gdy korekta nie jest wystawiona. */
 	issuedLabel: string | null;
 };
@@ -25,9 +27,10 @@ const messageByFailedStatus: MessageByFailedStatus = {
 export function ReturnCorrection({
 	returnId,
 	isIssued,
+	isDisabled,
 	issuedLabel,
 }: ReturnCorrectionProps) {
-	const { field, label, status, error } = returnCorrectionStyles;
+	const { root, field, label, status, error } = returnCorrectionStyles;
 	const checkboxId = useId();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [isSaving, startTransition] = useTransition();
@@ -50,12 +53,12 @@ export function ReturnCorrection({
 	}
 
 	return (
-		<div>
+		<div className={root}>
 			<label htmlFor={checkboxId} className={field}>
 				<Checkbox
 					id={checkboxId}
 					checked={shownIsIssued}
-					disabled={isSaving}
+					disabled={isSaving || isDisabled}
 					onChange={(event) => changeIsIssued(event.currentTarget.checked)}
 				/>
 				<span className={label}>Wystawiono korektę</span>

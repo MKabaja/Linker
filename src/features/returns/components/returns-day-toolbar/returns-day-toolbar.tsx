@@ -1,4 +1,4 @@
-import { Download, ScanLine } from 'lucide-react';
+import { ChartColumn, Download, ScanLine } from 'lucide-react';
 import Link from 'next/link';
 import { CopyOrderIdsButton } from '@/features/returns/components/copy-order-ids-button';
 import { ReturnsCorrectionFilterNav } from '@/features/returns/components/returns-correction-filter';
@@ -14,36 +14,39 @@ type ReturnsDayToolbarProps = {
 };
 
 export function ReturnsDayToolbar({ scope, orderIds }: ReturnsDayToolbarProps) {
-	const { root, actions } = returnsDayToolbarStyles;
+	const { root, filters, actions } = returnsDayToolbarStyles;
 	const { date } = scope;
 
 	return (
 		<div className={root}>
-			<ReturnsDatePicker scope={scope} />
-			<ReturnsSortSelect scope={scope} />
-			<ReturnsCorrectionFilterNav scope={scope} />
+			<div className={filters}>
+				<ReturnsDatePicker scope={scope} />
+				<ReturnsCorrectionFilterNav scope={scope} />
+				<ReturnsSortSelect scope={scope} />
+			</div>
 			<div className={actions}>
-				<CopyOrderIdsButton orderIds={orderIds} />
-				<a
-					href={`/api/returns/export?date=${date}`}
-					download
-					className={buttonVariants({ variant: 'default' })}
-				>
-					<Download />
-					Eksport CSV
-				</a>
-				<Link
-					href="/returns/stats"
-					className={buttonVariants({ variant: 'ghost' })}
-				>
-					Statystyki
-				</Link>
 				<Link
 					href="/returns/scan"
 					className={buttonVariants({ variant: 'accent' })}
 				>
 					<ScanLine />
 					Skanuj
+				</Link>
+				<CopyOrderIdsButton orderIds={orderIds} />
+				<a
+					href={`/api/returns/export?date=${date}`}
+					download
+					className={buttonVariants({ variant: 'outline' })}
+				>
+					<Download />
+					Eksport CSV
+				</a>
+				<Link
+					href="/returns/stats"
+					className={buttonVariants({ variant: 'outline' })}
+				>
+					<ChartColumn />
+					Statystyki
 				</Link>
 			</div>
 		</div>

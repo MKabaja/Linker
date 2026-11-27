@@ -13,3 +13,7 @@
 @utility section-label {
 	@apply text-sm text-dim;
 }
+
+@utility card-hover {
+	@apply motion-safe:transition-colors motion-safe:duration-150 hover:border-line-strong hover:bg-hover/40;
+}

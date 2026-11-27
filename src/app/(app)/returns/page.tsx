@@ -18,16 +18,12 @@ export default async function ReturnsPage(props: PageProps<'/returns'>) {
 
 	return (
 		<Reveal as="section">
-			<PageHeader
-				title="Zwroty"
-				actions={
-					<ReturnsDayToolbar
-						scope={scope}
-						orderIds={dayReturns.returns.map(({ orderId }) => orderId)}
-					/>
-				}
+			<PageHeader title="Zwroty" />
+			<ReturnsDayToolbar
+				scope={scope}
+				orderIds={dayReturns.returns.map(({ orderId }) => orderId)}
 			/>
-			<ReturnsDaySummary summary={dayReturns.summary} />
+			<ReturnsDaySummary summary={dayReturns.summary} scope={scope} />
 			<PageContent>
 				<ReturnsDayTable returns={dayReturns.returns} listScope={scope} />
 			</PageContent>

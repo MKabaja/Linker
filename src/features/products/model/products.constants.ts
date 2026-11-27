@@ -5,6 +5,7 @@ type PrimaveraErrorMessageByCode = Record<PrimaveraErrorCode, string>;
 const PRODUCTS_PAGE_SIZE = 50;
 const PRODUCTS_SEARCH_MAX_LENGTH = 100;
 const PRODUCT_THUMBNAILS_URL = 'https://orders.pvex.pl/thumbs';
+const OPTIMIZED_IMAGE_HOSTNAME = 'kozackadrogeria.pl';
 
 const primaveraErrorMessageByCode: PrimaveraErrorMessageByCode = {
 	MISSING_TOKEN: 'Brak tokenu Primavery. Ustaw PRIMAVERA_TOKEN w .env.local.',
@@ -16,6 +17,7 @@ const primaveraErrorMessageByCode: PrimaveraErrorMessageByCode = {
 };
 
 export {
+	OPTIMIZED_IMAGE_HOSTNAME,
 	PRODUCT_THUMBNAILS_URL,
 	PRODUCTS_PAGE_SIZE,
 	PRODUCTS_SEARCH_MAX_LENGTH,

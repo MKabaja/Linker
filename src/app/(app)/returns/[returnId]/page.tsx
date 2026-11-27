@@ -1,10 +1,14 @@
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+import { type ReactNode, Suspense } from 'react';
 import { DeletedReturnBanner } from '@/features/returns/components/deleted-return-banner';
 import { DuplicateReturnAlert } from '@/features/returns/components/duplicate-return-alert';
 import { ReturnCorrection } from '@/features/returns/components/return-correction';
 import { ReturnCustomer } from '@/features/returns/components/return-customer';
-import { ReturnEditor } from '@/features/returns/components/return-editor';
+import {
+	ReturnDeleteButton,
+	ReturnEditor,
+	ReturnNoteForm,
+} from '@/features/returns/components/return-editor';
 import { ReturnHeader } from '@/features/returns/components/return-header';
 import { ReturnHistory } from '@/features/returns/components/return-history';
 import { ReturnInfoSection } from '@/features/returns/components/return-info-section';
@@ -29,13 +33,18 @@ import {
 } from '@/features/returns/model/returns-page.schemas';
 import { getOrderDetails } from '@/features/returns/server/services/order-details.service';
 import { getOrderLiveDetails } from '@/features/returns/server/services/order-live-details.service';
+import { getReturnItemImageUrls } from '@/features/returns/server/services/return-item-images.service';
 import {
 	getReturn,
 	getReturnNeighbors,
 } from '@/features/returns/server/services/returns.service';
+import { carrierLabelByCarrier } from '@/features/returns/utils/carrier';
 import { describeReturnMatch } from '@/features/returns/utils/return-match';
 import { toReturnsListSearch } from '@/features/returns/utils/returns-list-query';
 import { formatWarsawDateTime } from '@/shared/lib/warsaw-time';
+import { returnPageStyles } from './return-page.styles';
+
+type EditableSectionProps = { isDisabled: boolean; children: ReactNode };
 
 export default async function ReturnPage(
 	props: PageProps<'/returns/[returnId]'>,
@@ -56,11 +65,17 @@ export default async function ReturnPage(
 		notFound();
 	}
 
+	const imageUrlByItemIdPromise = getReturnItemImageUrls({
+		orderId: returnDetails.orderId,
+		items: returnDetails.items,
+	});
+
 	const [orderDetails, neighbors] = await Promise.all([
 		getOrderDetails(returnDetails.orderId, new Date()),
 		getReturnNeighbors(returnDetails.id, listScope),
 	]);
 	const { deletion, correction } = returnDetails;
+	const isDeleted = deletion !== null;
 	const returnMatch = describeReturnMatch({
 		matchedBy: returnDetails.matchedBy,
 		scannedLabel: returnDetails.scannedLabel,
@@ -97,57 +112,80 @@ export default async function ReturnPage(
 				/>
 				<ReturnHeader
 					orderId={returnDetails.orderId}
+					carrierLabel={
+						returnMatch.carrier
+							? carrierLabelByCarrier[returnMatch.carrier]
+							: null
+					}
 					source={returnDetails.source}
 					statusLabel={getStatusLabel(orderDetails)}
-					dateLabel={formatWarsawDateTime(returnDetails.createdAt)}
+					receivedLabel={`Przyjęto ${formatWarsawDateTime(returnDetails.createdAt)} · ${returnDetails.receivedBy.name}`}
 				/>
-				<ScanNextLink />
-				<div className="grid items-start gap-6 lg:grid-cols-2">
-					<div className="flex flex-col gap-6">
-						<Reveal order={1}>
+				<div className={returnPageStyles.columns}>
+					<div className={returnPageStyles.column}>
+						<Reveal order={1} className={returnPageStyles.items}>
+							<EditableSection isDisabled={isDeleted}>
+								<ReturnEditor
+									returnId={returnDetails.id}
+									items={returnDetails.items}
+									imageUrlByItemIdPromise={imageUrlByItemIdPromise}
+								/>
+							</EditableSection>
+						</Reveal>
+						<Reveal order={2} className={returnPageStyles.note}>
+							<EditableSection isDisabled={isDeleted}>
+								<ReturnNoteForm
+									returnId={returnDetails.id}
+									note={returnDetails.note}
+								/>
+							</EditableSection>
+						</Reveal>
+						<Reveal order={9} className={returnPageStyles.delete}>
+							<EditableSection isDisabled={isDeleted}>
+								<ReturnDeleteButton returnId={returnDetails.id} />
+							</EditableSection>
+						</Reveal>
+					</div>
+					<div className={returnPageStyles.column}>
+						<Reveal order={1} className={returnPageStyles.correction}>
+							<ReturnInfoSection title="Korekta">
+								<ReturnWapro
+									wmsCode={returnDetails.wmsCode}
+									waproOrderNumber={returnDetails.waproOrderNumber}
+								/>
+								<ReturnCorrection
+									returnId={returnDetails.id}
+									isIssued={correction !== null}
+									isDisabled={isDeleted}
+									issuedLabel={correction && formatCorrectionLabel(correction)}
+								/>
+							</ReturnInfoSection>
+						</Reveal>
+						<Reveal order={2} className={returnPageStyles.match}>
 							<ReturnMatch match={returnMatch} />
 						</Reveal>
-						<Reveal order={2}>
-							<ReturnWapro
-								wmsCode={returnDetails.wmsCode}
-								waproOrderNumber={returnDetails.waproOrderNumber}
-							/>
-						</Reveal>
-						<Reveal order={3}>
+						<Reveal order={3} className={returnPageStyles.packages}>
 							<ReturnPackages orderDetails={orderDetails} />
 						</Reveal>
 						<Suspense fallback={<LiveSectionsSkeleton />}>
 							<LiveSections orderId={returnDetails.orderId} />
 						</Suspense>
-					</div>
-					<div className="flex flex-col gap-6">
-						<fieldset disabled={deletion !== null} className="contents">
-							<Reveal order={2}>
-								<ReturnInfoSection title="Korekta">
-									<ReturnCorrection
-										returnId={returnDetails.id}
-										isIssued={correction !== null}
-										issuedLabel={
-											correction && formatCorrectionLabel(correction)
-										}
-									/>
-								</ReturnInfoSection>
-							</Reveal>
-							<Reveal order={3}>
-								<ReturnEditor
-									returnId={returnDetails.id}
-									note={returnDetails.note}
-									items={returnDetails.items}
-								/>
-							</Reveal>
-						</fieldset>
+						<Reveal order={6} className={returnPageStyles.history}>
+							<ReturnHistory events={returnDetails.events} />
+						</Reveal>
 					</div>
 				</div>
-				<Reveal order={4}>
-					<ReturnHistory events={returnDetails.events} />
-				</Reveal>
+				<ScanNextLink />
 			</PageContent>
 		</Reveal>
+	);
+}
+
+function EditableSection({ isDisabled, children }: EditableSectionProps) {
+	return (
+		<fieldset disabled={isDisabled} className={returnPageStyles.editable}>
+			{children}
+		</fieldset>
 	);
 }
 
@@ -168,17 +206,27 @@ async function LiveSections({ orderId }: { orderId: number }) {
 
 	return (
 		<>
-			<ReturnCustomer result={result} />
-			<ReturnShipping result={result} />
+			<Reveal order={4} className={returnPageStyles.customer}>
+				<ReturnCustomer result={result} />
+			</Reveal>
+			<Reveal order={5} className={returnPageStyles.shipping}>
+				<ReturnShipping result={result} />
+			</Reveal>
 		</>
 	);
 }
 
 function LiveSectionsSkeleton() {
 	return (
-		<div aria-busy="true" className="flex flex-col gap-6">
-			<Skeleton className="h-40 w-full" />
-			<Skeleton className="h-24 w-full" />
-		</div>
+		<>
+			<Skeleton
+				aria-busy="true"
+				className={`${returnPageStyles.customer} h-40 w-full`}
+			/>
+			<Skeleton
+				aria-busy="true"
+				className={`${returnPageStyles.shipping} h-24 w-full`}
+			/>
+		</>
 	);
 }

@@ -4,16 +4,19 @@ import { returnHeaderStyles } from './return-header.styles';
 
 type ReturnHeaderProps = {
 	orderId: number;
+	/** Przewoźnik z dopasowania; `null`, gdy nie udało się go rozpoznać. */
+	carrierLabel: string | null;
 	source: string;
 	statusLabel: string;
-	dateLabel: string;
+	receivedLabel: string;
 };
 
 export function ReturnHeader({
 	orderId,
+	carrierLabel,
 	source,
 	statusLabel,
-	dateLabel,
+	receivedLabel,
 }: ReturnHeaderProps) {
 	const { header, title, meta } = returnHeaderStyles;
 
@@ -22,22 +25,18 @@ export function ReturnHeader({
 			<h1 className={title}>
 				Zwrot zamówienia <BaseLinkerOrderLink orderId={orderId} />
 			</h1>
-			<dl className={meta}>
-				<HeaderField label="Źródło">{source}</HeaderField>
-				<HeaderField label="Status">{statusLabel}</HeaderField>
-				<HeaderField label="Przyjęto">{dateLabel}</HeaderField>
-			</dl>
+			<ul className={meta}>
+				{carrierLabel && <MetaItem>{carrierLabel}</MetaItem>}
+				<MetaItem>{source}</MetaItem>
+				<MetaItem>{statusLabel}</MetaItem>
+				<MetaItem>{receivedLabel}</MetaItem>
+			</ul>
 		</header>
 	);
 }
 
-type HeaderFieldProps = { label: string; children: ReactNode };
+type MetaItemProps = { children: ReactNode };
 
-function HeaderField({ label, children }: HeaderFieldProps) {
-	return (
-		<div>
-			<dt className={returnHeaderStyles.label}>{label}</dt>
-			<dd className={returnHeaderStyles.value}>{children}</dd>
-		</div>
-	);
+function MetaItem({ children }: MetaItemProps) {
+	return <li className={returnHeaderStyles.metaItem}>{children}</li>;
 }

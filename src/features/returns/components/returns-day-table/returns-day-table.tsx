@@ -1,4 +1,3 @@
-import { FileCheck2 } from 'lucide-react';
 import Link from 'next/link';
 import { BaseLinkerOrderLink } from '@/features/returns/components/baselinker-order-link';
 import { CopyableOrderValue } from '@/features/returns/components/copyable-order-value';
@@ -14,7 +13,10 @@ import {
 	formatWarsawDateTime,
 	formatWarsawTime,
 } from '@/shared/lib/warsaw-time';
-import { returnsDayTableStyles } from './returns-day-table.styles';
+import {
+	correctionPillVariants,
+	returnsDayTableStyles,
+} from './returns-day-table.styles';
 
 type ReturnsDayTableProps = {
 	returns: ReturnRecord[];
@@ -22,17 +24,18 @@ type ReturnsDayTableProps = {
 	listScope: ReturnsListScope;
 };
 
+type CorrectionCellProps = { correction: ReturnCorrection | null };
+
 const columnLabels = [
 	'Godzina',
 	'Zamówienie',
-	'WMS',
-	'ZO',
-	'Źródło',
 	'Rodzaj',
-	'Korekta',
 	'Sztuki',
+	'Korekta',
+	'ZO',
+	'WMS',
+	'Źródło',
 	'Notatka',
-	'Szczegóły',
 ];
 
 export function ReturnsDayTable({ returns, listScope }: ReturnsDayTableProps) {
@@ -45,14 +48,13 @@ export function ReturnsDayTable({ returns, listScope }: ReturnsDayTableProps) {
 		bodyRow,
 		bodyCell,
 		timeCell,
+		rowLink,
+		interactive,
 		codeCell,
-		detailsLink,
 		quantityCell,
+		correctionCell,
 		noteCell,
 		importMark,
-		correctionCell,
-		correctionIssued,
-		correctionMissing,
 		empty,
 	} = returnsDayTableStyles;
 
@@ -88,75 +90,89 @@ export function ReturnsDayTable({ returns, listScope }: ReturnsDayTableProps) {
 							className={bodyRow}
 						>
 							<td className={`${bodyCell} ${timeCell}`}>
-								{formatWarsawTime(returnRecord.createdAt)}
+								<Link
+									href={`/returns/${returnRecord.id}${toReturnsListSearch(listScope)}`}
+									className={rowLink}
+								>
+									{formatWarsawTime(returnRecord.createdAt)}
+									<span className="sr-only">
+										, szczegóły zwrotu zamówienia {returnRecord.orderId}
+									</span>
+								</Link>
 							</td>
 							<td className={bodyCell}>
-								<BaseLinkerOrderLink orderId={returnRecord.orderId} />
+								<span className={interactive}>
+									<BaseLinkerOrderLink orderId={returnRecord.orderId} />
+								</span>
 							</td>
-							<td className={`${bodyCell} ${codeCell}`}>
-								<CopyableOrderValue
-									label="kod WMS"
-									value={returnRecord.wmsCode}
-									variant="mono"
-								/>
-							</td>
-							<td className={`${bodyCell} ${codeCell}`}>
-								<CopyableOrderValue
-									label="numer ZO"
-									value={returnRecord.waproOrderNumber}
-								/>
-							</td>
-							<td className={bodyCell}>{returnRecord.source}</td>
 							<td className={bodyCell}>
 								<ReturnKindChip kind={returnRecord.kind} />
-							</td>
-							<td className={`${bodyCell} ${correctionCell}`}>
-								{returnRecord.correction ? (
-									<span
-										role="img"
-										aria-label="Korekta wystawiona"
-										title={formatCorrectionTitle(returnRecord.correction)}
-										className={correctionIssued}
-									>
-										<FileCheck2 aria-hidden="true" className="size-4" />
-									</span>
-								) : (
-									<span
-										role="img"
-										aria-label="Brak korekty"
-										title="Brak korekty"
-										className={correctionMissing}
-									>
-										<FileCheck2 aria-hidden="true" className="size-4" />
-									</span>
-								)}
 							</td>
 							<td className={`${bodyCell} ${quantityCell}`}>
 								{formatQuantities(returnRecord)}
 							</td>
-							<td className={`${bodyCell} ${noteCell}`}>
+							<td className={`${bodyCell} ${correctionCell}`}>
+								<CorrectionPill correction={returnRecord.correction} />
+							</td>
+							<td className={`${bodyCell} ${codeCell}`}>
+								<span className={interactive}>
+									<CopyableOrderValue
+										label="numer ZO"
+										value={returnRecord.waproOrderNumber}
+									/>
+								</span>
+							</td>
+							<td className={`${bodyCell} ${codeCell}`}>
+								<span className={interactive}>
+									<CopyableOrderValue
+										label="kod WMS"
+										value={returnRecord.wmsCode}
+										variant="mono"
+									/>
+								</span>
+							</td>
+							<td className={bodyCell}>{returnRecord.source}</td>
+							<td
+								className={`${bodyCell} ${noteCell}`}
+								title={returnRecord.note || undefined}
+							>
 								{returnRecord.receivedBy.id === null && (
 									<span className={importMark}>Import</span>
 								)}{' '}
 								{returnRecord.note}
-							</td>
-							<td className={bodyCell}>
-								<Link
-									href={`/returns/${returnRecord.id}${toReturnsListSearch(listScope)}`}
-									className={detailsLink}
-								>
-									Szczegóły
-									<span className="sr-only">
-										{' '}
-										zwrotu zamówienia {returnRecord.orderId}
-									</span>
-								</Link>
 							</td>
 						</Reveal>
 					))}
 				</tbody>
 			</table>
 		</div>
+	);
+}
+
+function CorrectionPill({ correction }: CorrectionCellProps) {
+	if (!correction) {
+		return (
+			<span
+				role="img"
+				aria-label="Brak korekty"
+				className={correctionPillVariants({ state: 'missing' })}
+			>
+				Brak
+			</span>
+		);
+	}
+
+	const title = formatCorrectionTitle(correction);
+
+	return (
+		<span
+			role="img"
+			aria-label={title}
+			title={title}
+			className={correctionPillVariants({ state: 'issued' })}
+		>
+			Wystawiona
+		</span>
 	);
 }
 

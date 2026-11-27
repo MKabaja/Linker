@@ -1,3 +1,5 @@
+'use client';
+
 import { type SubmitEvent, useState, useTransition } from 'react';
 import { Button } from '@/shared/components/button';
 import { RETURN_NOTE_MAX_LENGTH } from '@/features/returns/model/returns.constants';

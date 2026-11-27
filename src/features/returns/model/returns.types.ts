@@ -104,7 +104,13 @@ type DayReturns = {
 	/** `YYYY-MM-DD` w strefie Europe/Warsaw. */
 	date: string;
 	returns: ReturnRecord[];
-	summary: { total: number; full: number; partial: number };
+	summary: {
+		total: number;
+		full: number;
+		partial: number;
+		/** Zwroty dnia bez wystawionej korekty, niezależnie od filtra korekty. */
+		withoutCorrection: number;
+	};
 };
 
 type CreateReturnResult =

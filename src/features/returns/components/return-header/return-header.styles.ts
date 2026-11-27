@@ -1,7 +1,7 @@
 export const returnHeaderStyles = {
-	header: 'flex flex-col gap-3',
+	header: 'flex flex-col gap-2',
 	title: 'text-lg font-semibold tracking-tight',
-	meta: 'card grid grid-cols-2 gap-x-6 gap-y-3 p-4 sm:grid-cols-3',
-	label: 'section-label',
-	value: 'mt-1 text-off',
+	meta: 'flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-off',
+	metaItem:
+		'flex items-center gap-3 not-last:after:text-faint not-last:after:content-["·"]',
 } satisfies Record<string, string>;

@@ -58,11 +58,12 @@ function PackagesContent({ orderDetails }: ReturnPackagesProps) {
 							{orderPackage.packageNumber}
 						</CopyValueButton>
 					</span>
-					{orderPackage.innerNumber !== orderPackage.packageNumber && (
-						<span className={inner}>
-							Numer wewnętrzny: {orderPackage.innerNumber}
-						</span>
-					)}
+					{orderPackage.innerNumber &&
+						orderPackage.innerNumber !== orderPackage.packageNumber && (
+							<span className={inner}>
+								Numer wewnętrzny: {orderPackage.innerNumber}
+							</span>
+						)}
 				</li>
 			))}
 		</ul>

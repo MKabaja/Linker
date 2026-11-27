@@ -7,11 +7,14 @@ const BASELINKER_TIMEOUT_MILLISECONDS = 20_000;
 const WMS_EXTRA_FIELD_ID = '77709';
 const MIN_PAUSE_MILLISECONDS = 650;
 const DEFAULT_PAUSE_MILLISECONDS = 1500;
+const DEFAULT_INVENTORY_ID = 18840;
 
 type BaseLinkerConfig = {
 	/** `null`, gdy token nie jest ustawiony: integracja wyłączona. */
 	token: string | null;
 	pauseMilliseconds: number;
+	/** Katalog produktów BaseLinkera (`BASELINKER_INVENTORY_ID`), z którego pochodzą zdjęcia. */
+	inventoryId: number;
 };
 
 const baseLinkerEnvSchema = z.object({
@@ -25,6 +28,11 @@ const baseLinkerEnvSchema = z.object({
 		.int()
 		.min(MIN_PAUSE_MILLISECONDS)
 		.catch(DEFAULT_PAUSE_MILLISECONDS),
+	BASELINKER_INVENTORY_ID: z.coerce
+		.number()
+		.int()
+		.positive()
+		.catch(DEFAULT_INVENTORY_ID),
 });
 
 /**
@@ -40,6 +48,7 @@ function getBaseLinkerConfig(): BaseLinkerConfig {
 	return {
 		token: env.BASELINKER_TOKEN,
 		pauseMilliseconds: env.BASELINKER_PAUSE_MS,
+		inventoryId: env.BASELINKER_INVENTORY_ID,
 	};
 }
 

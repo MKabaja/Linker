@@ -19,7 +19,6 @@ export function CopyOrderIdsButton({ orderIds }: CopyOrderIdsButtonProps) {
 	return (
 		<Button
 			variant="outline"
-			size="lg"
 			disabled={orderIds.length === 0}
 			onClick={copyOrderIds}
 		>

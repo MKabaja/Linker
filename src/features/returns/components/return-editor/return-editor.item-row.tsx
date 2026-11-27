@@ -1,11 +1,13 @@
 import { Minus, Plus } from 'lucide-react';
-import { ProductThumbnail } from '@/features/products/components/product-thumbnail';
 import { Button } from '@/shared/components/button';
+import type { ImageUrlByItemId } from '@/features/returns/model/product-images.types';
 import type { ReturnItem } from '@/features/returns/model/returns.types';
+import { ReturnItemThumbnail } from './return-editor.item-thumbnail';
 import { returnItemRowStyles } from './return-editor.styles';
 
 type ReturnItemRowProps = {
 	item: ReturnItem;
+	imageUrlByItemIdPromise: Promise<ImageUrlByItemId>;
 	isDisabled: boolean;
 	onQuantityChange: (item: ReturnItem, quantityReceived: number) => void;
 };
@@ -14,6 +16,7 @@ const MAX_RECEIVED_QUANTITY = 999;
 
 export function ReturnItemRow({
 	item,
+	imageUrlByItemIdPromise,
 	isDisabled,
 	onQuantityChange,
 }: ReturnItemRowProps) {
@@ -39,7 +42,10 @@ export function ReturnItemRow({
 		<li className={row}>
 			<div className={product}>
 				<span className={thumbnail}>
-					<ProductThumbnail ean={item.ean} />
+					<ReturnItemThumbnail
+						item={item}
+						imageUrlByItemIdPromise={imageUrlByItemIdPromise}
+					/>
 				</span>
 				<div className={description}>
 					<span className={name}>{item.name}</span>

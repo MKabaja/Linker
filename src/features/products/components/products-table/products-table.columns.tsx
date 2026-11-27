@@ -18,7 +18,12 @@ export const productsTableColumns = columnHelper.columns([
 	columnHelper.display({
 		id: 'thumbnail',
 		header: 'Zdjęcie',
-		cell: (info) => <ProductThumbnail ean={info.row.original.ean} />,
+		cell: (info) => (
+			<ProductThumbnail
+				ean={info.row.original.ean}
+				name={info.row.original.name}
+			/>
+		),
 	}),
 	columnHelper.accessor('ean', {
 		header: 'EAN',

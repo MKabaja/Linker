@@ -7,7 +7,7 @@ export default function ReturnsLoading() {
 	return (
 		<section>
 			<PageHeader title="Zwroty" />
-			<Skeleton className="h-24 w-full rounded-none" />
+			<Skeleton className="h-32 w-full rounded-none" />
 			<PageContent>
 				<ReturnsDayTableSkeleton />
 			</PageContent>

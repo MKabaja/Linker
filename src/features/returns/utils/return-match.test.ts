@@ -57,6 +57,49 @@ describe('describeReturnMatch', () => {
 		expect(result.packageMatch).toEqual({ kind: 'shipping' });
 	});
 
+	it('dopasowuje numer z cyfrą dokleconą przez OCR i bierze przewoźnika z paczki', () => {
+		const result = describeReturnMatch({
+			matchedBy: 'auto',
+			scannedLabel: '1521000012351126087471725',
+			packages: [buildPackage({ packageNumber: '521000012351126087471725' })],
+		});
+
+		expect(result.carrier).toBe('inpost');
+		expect(result.packageMatch).toEqual({ kind: 'shipping' });
+	});
+
+	it('dopasowuje numer krótszy o znak na końcu', () => {
+		const result = describeReturnMatch({
+			matchedBy: 'auto',
+			scannedLabel: '52100001235112608747172',
+			packages: [buildPackage({ packageNumber: '521000012351126087471725' })],
+		});
+
+		expect(result.carrier).toBe('inpost');
+		expect(result.packageMatch).toEqual({ kind: 'shipping' });
+	});
+
+	it('nie dopasowuje przy nadmiarze ponad 2 znaki ani przy krótkim numerze', () => {
+		const longPackage = buildPackage({
+			packageNumber: '521000012351126087471725',
+		});
+
+		expect(
+			describeReturnMatch({
+				matchedBy: 'auto',
+				scannedLabel: '123521000012351126087471725',
+				packages: [longPackage],
+			}).packageMatch,
+		).toEqual({ kind: 'none' });
+		expect(
+			describeReturnMatch({
+				matchedBy: 'auto',
+				scannedLabel: '12345',
+				packages: [buildPackage({ packageNumber: '1234567' })],
+			}).packageMatch,
+		).toEqual({ kind: 'none' });
+	});
+
 	it('nie dopasowuje obcego numeru ani brakującego numeru', () => {
 		const packages = [buildPackage()];
 

@@ -9,6 +9,7 @@ import type {
 	DeleteReturnResult,
 	OrderDetails,
 	RestoreReturnResult,
+	ReturnCorrection,
 	ReturnDetails,
 	ReturnNeighbors,
 	ReturnRecord,
@@ -16,7 +17,10 @@ import type {
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
 import { defaultReturnsListFilters } from '@/features/returns/model/returns-list.constants';
-import type { ReturnsListScope } from '@/features/returns/model/returns-list.types';
+import type {
+	ReturnsCorrectionFilter,
+	ReturnsListScope,
+} from '@/features/returns/model/returns-list.types';
 import { toDuplicateReturnWarning } from '@/features/returns/server/mappers/duplicate-return.mapper';
 import {
 	findReturnById,
@@ -48,6 +52,17 @@ type ReturnStateChangeRequest = { returnId: number; userId: number; now: Date };
 type ReturnCorrectionRequest = ReturnStateChangeRequest & { isIssued: boolean };
 
 type DayScope = ReturnsListScope & { date: string };
+
+type CorrectionPredicateByFilter = Record<
+	ReturnsCorrectionFilter,
+	(correction: ReturnCorrection | null) => boolean
+>;
+
+const correctionFilterPredicateByFilter: CorrectionPredicateByFilter = {
+	all: () => true,
+	without: (correction) => correction === null,
+	with: (correction) => correction !== null,
+};
 
 /**
  * Tworzy zwrot z pozycji zamówienia, domyślnie z przyjętymi wszystkimi zamówionymi sztukami.
@@ -206,11 +221,18 @@ function getReturnByOrderId(orderId: number): Promise<ReturnRecord | null> {
 /**
  * Zwraca zwroty przyjęte danego dnia (strefa Europe/Warsaw) w wybranej kolejności, z liczbą pełnych i częściowych.
  *
- * @remarks Podsumowanie liczy zwroty po filtrze korekty, czyli te, które są na liście.
+ * @remarks Podsumowanie (poza `withoutCorrection`) liczy zwroty po filtrze korekty, czyli te, które są na liście.
+ * `withoutCorrection` obejmuje cały dzień niezależnie od filtra.
  */
 async function getReturnsOfDay(scope: DayScope): Promise<DayReturns> {
-	const { date } = scope;
-	const dayReturns = await findReturnsInScope(scope);
+	const { date, correction } = scope;
+	const allDayReturns = await findReturnsInScope({
+		...scope,
+		correction: 'all',
+	});
+	const dayReturns = allDayReturns.filter(({ correction: issuedCorrection }) =>
+		correctionFilterPredicateByFilter[correction](issuedCorrection),
+	);
 	const full = dayReturns.filter(({ kind }) => kind === 'full').length;
 
 	return {
@@ -220,6 +242,9 @@ async function getReturnsOfDay(scope: DayScope): Promise<DayReturns> {
 			total: dayReturns.length,
 			full,
 			partial: dayReturns.length - full,
+			withoutCorrection: allDayReturns.filter(
+				({ correction: issuedCorrection }) => issuedCorrection === null,
+			).length,
 		},
 	};
 }

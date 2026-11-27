@@ -148,8 +148,26 @@ const getOrderReturnsResponseSchema = z.object({
 	returns: z.array(baseLinkerOrderReturnSchema).default([]),
 });
 
+const emptyArrayAsRecord = (value: unknown) =>
+	Array.isArray(value) ? {} : value;
+
+const baseLinkerProductImagesSchema = z.object({
+	ean: looseString,
+	images: z
+		.preprocess(emptyArrayAsRecord, z.record(z.string(), looseString))
+		.catch({}),
+});
+
+const getInventoryProductsDataResponseSchema = z.object({
+	products: z.preprocess(
+		emptyArrayAsRecord,
+		z.record(z.string(), baseLinkerProductImagesSchema),
+	),
+});
+
 type BaseLinkerOrder = z.infer<typeof baseLinkerOrderSchema>;
 type BaseLinkerJournalLog = z.infer<typeof baseLinkerJournalLogSchema>;
+type BaseLinkerProductImages = z.infer<typeof baseLinkerProductImagesSchema>;
 type BaseLinkerOrderReturn = z.infer<typeof baseLinkerOrderReturnSchema>;
 type BaseLinkerPackage = z.infer<typeof baseLinkerPackageSchema>;
 type BaseLinkerOrderCustomer = z.infer<typeof baseLinkerOrderCustomerSchema>;
@@ -168,9 +186,11 @@ export {
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
 	type BaseLinkerPickPackEntry,
+	type BaseLinkerProductImages,
 	type BaseLinkerShipment,
 	type BaseLinkerStatusEvent,
 	getCourierPackagesStatusHistoryResponseSchema,
+	getInventoryProductsDataResponseSchema,
 	getJournalListResponseSchema,
 	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,

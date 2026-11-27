@@ -1,7 +1,7 @@
 export const returnHistoryStyles = {
 	section: 'flex flex-col gap-3',
 	heading: 'section-label',
-	list: 'card flex flex-col overflow-hidden',
+	list: 'card card-hover flex flex-col overflow-hidden',
 	event:
 		'flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-line px-4 py-3 text-sm first:border-t-0',
 	kind: 'font-medium text-main',

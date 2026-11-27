@@ -1,11 +1,11 @@
 import { cva } from 'class-variance-authority';
 
 export const returnMatchStyles = {
-	section: 'flex flex-col gap-3',
+	section: 'flex flex-col gap-2 lg:gap-3',
 	heading: 'section-label',
-	card: 'card flex flex-col gap-3 border-brand/30 bg-brand/5 p-4',
-	method: 'text-base font-semibold text-main',
-	label: 'font-mono text-xl font-semibold break-all text-main',
+	card: 'card flex flex-col gap-2 border-brand/30 bg-brand/5 p-3 hover:border-brand/50 hover:bg-brand/10 motion-safe:transition-colors motion-safe:duration-150 lg:gap-3 lg:p-4',
+	method: 'text-sm font-semibold text-main lg:text-base',
+	label: 'font-mono text-base font-semibold break-all text-main lg:text-xl',
 	missing: 'text-sm text-dim',
 	badges: 'flex flex-wrap gap-2',
 } satisfies Record<string, string>;
