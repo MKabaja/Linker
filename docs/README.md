@@ -11,6 +11,7 @@ Dokumenty wewnętrzne: zawierają informacje o infrastrukturze firmy, nie publik
 | `planProjektu.md` | Plan faz projektu (produkty, zamówienia, listy zakupowe) |
 | `planZwrotow.md` | Plan brancha `feat/returns`: moduł zwrotów |
 | `decyzje.md` | Rejestr decyzji i świadomych pominięć |
+| `design.md` | Wygląd UI: tokeny, typografia, komponenty, login (zrzuty wzoru w `referencje/wyglad/`) |
 | `PR_TEMPLATE.md` | Szablon opisu pull requesta |
 
 ## `referencje/`: mapy systemów (aktualizowane przy każdym badaniu)

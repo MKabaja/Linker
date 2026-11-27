@@ -61,6 +61,7 @@ Clean Code, KISS, YAGNI. Priorytety: poprawność, bezpieczeństwo, czytelność
 - TypeScript: `type` zamiast `interface`; bez `any`, nieuzasadnionych `as`, `!`, `@ts-ignore`. Dane z API i plików walidowane w czasie działania. Stan jako discriminated union; zamiast `switch` po unii obiekt `Record<Stan, Handler>`. Złożone typy (`Record<...>`, sygnatury) jako nazwane aliasy.
 - React: render czysty; nie trzymaj w stanie tego, co da się obliczyć; `useEffect` tylko do synchronizacji z systemem zewnętrznym, z cleanup. Bez ręcznego `useMemo`/`useCallback`/`memo` (działa React Compiler). Reguły biznesowe w zwykłych funkcjach, nie w hookach. Props z `variant`/`size` zamiast mnożenia booleanów, typ propsów w pliku komponentu jako nazwany alias, także dla prymitywów base-ui (`type InputProps = InputPrimitive.Props`, bez przestrzeni nazw w sygnaturze). Nazwane importy z `react`. Semantyczny HTML i obsługa klawiatury.
 - Klasy Tailwinda w `*.styles.ts` obok komponentu: `xStyles` (`satisfies Record<string, string>`) albo `xVariants` (cva).
+- Wygląd (tokeny, promienie, typografia, wzory komponentów): `docs/design.md`. Przeczytaj przed każdą zmianą UI.
 - Next.js: Server Components domyślnie, `'use client'` tylko na granicy interaktywności (także plik z hookami/kontekstem eksportowany przez barrel do Server Componentu). Błędy oczekiwane (zła odpowiedź API, brak danych) jako zwracane wartości; nieoczekiwane jako wyjątki do `error.tsx`. Uwzględniaj loading, error i empty. Linki typowane przez `Route` z `next`.
 
 ```ts
