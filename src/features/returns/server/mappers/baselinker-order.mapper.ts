@@ -4,6 +4,7 @@ import type {
 	IndexedPackage,
 	OrderIndexEntry,
 } from '@/features/returns/model/order-index.types';
+import { WMS_EXTRA_FIELD_ID } from '@/features/returns/server/sources/baselinker.config';
 import type {
 	BaseLinkerOrder,
 	BaseLinkerPackage,
@@ -22,7 +23,7 @@ const MILLISECONDS_PER_SECOND = 1000;
  * Mapuje zamówienie z `getOrders` na wpis indeksu: zamówienie, pozycje i ostatnią przesyłkę
  * (`delivery_package_nr`; pozostałe przesyłki daje dopiero `getOrderPackages`).
  *
- * @remarks Imię i nazwisko z `delivery_fullname`, a gdy jest pusty, z `invoice_fullname`. Ulica i e-mail nie trafiają do indeksu.
+ * @remarks Imię i nazwisko z `delivery_fullname`, a gdy jest pusty, z `invoice_fullname`. Ulica i e-mail nie trafiają do indeksu. Numer WAPRO to `extra_field_1`, a kod WMS pole dodatkowe `WMS_EXTRA_FIELD_ID`.
  */
 function mapBaseLinkerOrder(order: BaseLinkerOrder): OrderIndexEntry {
 	const { firstName, lastName } = splitFullName(
@@ -45,6 +46,8 @@ function mapBaseLinkerOrder(order: BaseLinkerOrder): OrderIndexEntry {
 			phoneDigits: normalizePhone(order.phone),
 			postcode: normalizePostcode(order.delivery_postcode),
 			cityNormalized: normalizeText(order.delivery_city),
+			waproOrderNumber: order.extra_field_1.trim(),
+			wmsCode: (order.custom_extra_fields[WMS_EXTRA_FIELD_ID] ?? '').trim(),
 		},
 		items: order.products.map(mapProduct),
 		packages: mapBaseLinkerPackages([

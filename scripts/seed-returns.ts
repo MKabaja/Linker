@@ -219,6 +219,8 @@ function createEntry({
 			phoneDigits: `${5 + Math.floor(random() * 4)}${digits(random, 8)}`,
 			postcode: digits(random, 5),
 			cityNormalized: normalizeText(pick(random, CITIES)),
+			waproOrderNumber: '',
+			wmsCode: '',
 		},
 		items: createItems({ orderId, random, products }),
 		packages: Array.from({ length: packageCount }, () =>

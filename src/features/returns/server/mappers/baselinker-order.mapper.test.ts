@@ -21,6 +21,8 @@ function buildOrder(overrides: Partial<BaseLinkerOrder> = {}): BaseLinkerOrder {
 		delivery_city: 'Łódź',
 		delivery_package_module: 'dhl',
 		delivery_package_nr: ' 317 345 065 09 ',
+		extra_field_1: ' ZO 49006/26/K ',
+		custom_extra_fields: { '77709': ' 5900001601709 ' },
 		products: [
 			{
 				order_product_id: 101,
@@ -52,6 +54,8 @@ describe('mapBaseLinkerOrder', () => {
 			phoneDigits: '732012383',
 			postcode: '32432',
 			cityNormalized: 'lodz',
+			waproOrderNumber: 'ZO 49006/26/K',
+			wmsCode: '5900001601709',
 		});
 	});
 
@@ -62,6 +66,15 @@ describe('mapBaseLinkerOrder', () => {
 
 		expect(order.firstNameNormalized).toBe('jan');
 		expect(order.lastNameNormalized).toBe('kowalski');
+	});
+
+	it('brak pól dodatkowych daje puste numery WAPRO i WMS', () => {
+		const { order } = mapBaseLinkerOrder(
+			buildOrder({ extra_field_1: '', custom_extra_fields: {} }),
+		);
+
+		expect(order.waproOrderNumber).toBe('');
+		expect(order.wmsCode).toBe('');
 	});
 
 	it('niepotwierdzone zamówienie nie ma daty potwierdzenia', () => {

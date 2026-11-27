@@ -26,6 +26,8 @@ function buildReturn(overrides: Partial<ReturnRecord> = {}): ReturnRecord {
 		id: 1,
 		orderId: 353637496,
 		source: 'allegro',
+		waproOrderNumber: '',
+		wmsCode: '',
 		note: '',
 		receivedBy: { id: 1, name: 'Ania' },
 		createdAt: new Date('2026-11-25T08:05:00Z'),

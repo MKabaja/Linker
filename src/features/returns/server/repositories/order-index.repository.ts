@@ -93,6 +93,8 @@ async function upsertBatch(entries: OrderIndexEntry[], syncedAt: Date) {
 					phoneDigits: excluded('phone_digits'),
 					postcode: excluded('postcode'),
 					cityNormalized: excluded('city_normalized'),
+					waproOrderNumber: excluded('wapro_order_number'),
+					wmsCode: excluded('wms_code'),
 					syncedAt: excluded('synced_at'),
 				},
 			});
@@ -209,7 +211,7 @@ async function countOrdersPendingPackages(): Promise<number> {
 async function deleteOrdersBefore(before: Date): Promise<number> {
 	const deleted = await db
 		.delete(indexedOrders)
-		.where(lt(orderDate, before))
+		.where(lt(orderDate, before.toISOString()))
 		.returning({ orderId: indexedOrders.orderId });
 
 	return deleted.length;
@@ -311,6 +313,8 @@ async function findIndexedOrderEntry(
 			phoneDigits: orderRow.phoneDigits,
 			postcode: orderRow.postcode,
 			cityNormalized: orderRow.cityNormalized,
+			waproOrderNumber: orderRow.waproOrderNumber,
+			wmsCode: orderRow.wmsCode,
 		},
 		items: itemRows.map(({ orderId: _orderId, ...item }) => item),
 		packages: packageRows.map(
@@ -337,6 +341,8 @@ function toOrderRow(order: OrderIndexEntry['order'], syncedAt: Date) {
 		phoneDigits: order.phoneDigits,
 		postcode: order.postcode,
 		cityNormalized: order.cityNormalized,
+		waproOrderNumber: order.waproOrderNumber,
+		wmsCode: order.wmsCode,
 		syncedAt,
 	};
 }

@@ -4,14 +4,18 @@ import {
 	asc,
 	desc,
 	eq,
+	gt,
 	inArray,
 	isNotNull,
 	isNull,
+	lt,
+	or,
 	type SQL,
 	sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/database/client';
+import { indexedOrders } from '@/database/schema/indexed-orders.schema';
 import { returnEvents } from '@/database/schema/return-events.schema';
 import { returnItems } from '@/database/schema/return-items.schema';
 import { returns } from '@/database/schema/returns.schema';
@@ -25,6 +29,7 @@ import type {
 	ReturnEvent,
 	ReturnEventKind,
 	ReturnItem,
+	ReturnNeighbors,
 	ReturnRecord,
 	ReturnSnapshot,
 } from '@/features/returns/model/returns.types';
@@ -56,6 +61,8 @@ const returnColumns = {
 	id: returns.id,
 	orderId: returns.orderId,
 	source: returns.orderSource,
+	waproOrderNumber: indexedOrders.waproOrderNumber,
+	wmsCode: indexedOrders.wmsCode,
 	note: returns.note,
 	createdAt: returns.createdAt,
 	updatedAt: returns.updatedAt,
@@ -81,6 +88,8 @@ type ReturnRow = {
 	id: number;
 	orderId: number;
 	source: string;
+	waproOrderNumber: string | null;
+	wmsCode: string | null;
 	note: string;
 	createdAt: Date;
 	updatedAt: Date;
@@ -326,6 +335,59 @@ function findReturnsCreatedOn(dateKey: string): Promise<ReturnRecord[]> {
 	);
 }
 
+/**
+ * Zwraca identyfikatory zwrotów przyjętych tuż przed i tuż po wskazanym (kolejność po `created_at`, remis po `id`),
+ * z pominięciem usuniętych.
+ *
+ * @remarks Wskazany zwrot może być usunięty. Gdy go nie ma, oba identyfikatory to `null`.
+ */
+async function findReturnNeighbors(returnId: number): Promise<ReturnNeighbors> {
+	const [current] = await db
+		.select({ createdAt: returns.createdAt })
+		.from(returns)
+		.where(eq(returns.id, returnId));
+
+	if (!current) {
+		return { previousReturnId: null, nextReturnId: null };
+	}
+
+	const isActive = isNull(returns.deletedAt);
+	const isSameMoment = eq(returns.createdAt, current.createdAt);
+	const [previous] = await db
+		.select({ id: returns.id })
+		.from(returns)
+		.where(
+			and(
+				isActive,
+				or(
+					lt(returns.createdAt, current.createdAt),
+					and(isSameMoment, lt(returns.id, returnId)),
+				),
+			),
+		)
+		.orderBy(desc(returns.createdAt), desc(returns.id))
+		.limit(1);
+	const [next] = await db
+		.select({ id: returns.id })
+		.from(returns)
+		.where(
+			and(
+				isActive,
+				or(
+					gt(returns.createdAt, current.createdAt),
+					and(isSameMoment, gt(returns.id, returnId)),
+				),
+			),
+		)
+		.orderBy(asc(returns.createdAt), asc(returns.id))
+		.limit(1);
+
+	return {
+		previousReturnId: previous?.id ?? null,
+		nextReturnId: next?.id ?? null,
+	};
+}
+
 async function findReturnEvents(returnId: number): Promise<ReturnEvent[]> {
 	const rows = await db
 		.select({
@@ -355,6 +417,7 @@ async function findReturnRecords(
 		.from(returns)
 		.leftJoin(users, eq(users.id, returns.receivedBy))
 		.leftJoin(deleter, eq(deleter.id, returns.deletedBy))
+		.leftJoin(indexedOrders, eq(indexedOrders.orderId, returns.orderId))
 		.where(condition)
 		.orderBy(desc(returns.createdAt));
 
@@ -411,6 +474,8 @@ function toReturnRecord(row: ReturnRow, items: ReturnItem[]): ReturnRecord {
 		id: row.id,
 		orderId: row.orderId,
 		source: row.source,
+		waproOrderNumber: row.waproOrderNumber ?? '',
+		wmsCode: row.wmsCode ?? '',
 		note: row.note,
 		receivedBy: {
 			id: row.receivedById,
@@ -434,6 +499,7 @@ export {
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
+	findReturnNeighbors,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
 	restoreReturnWithEvent,

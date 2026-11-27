@@ -4,15 +4,30 @@ import type {
 	OrderIndexEntry,
 	RemoteResult,
 } from '@/features/returns/model/order-index.types';
+import type {
+	OrderCustomer,
+	PickPackEvent,
+	TrackingEvent,
+} from '@/features/returns/model/order-live.types';
 import {
 	mapBaseLinkerOrder,
 	mapBaseLinkerPackages,
 } from '@/features/returns/server/mappers/baselinker-order.mapper';
+import { mapBaseLinkerOrderCustomer } from '@/features/returns/server/mappers/order-customer.mapper';
 import {
+	mapBaseLinkerPickPackEvents,
+	mapBaseLinkerTrackingEvents,
+} from '@/features/returns/server/mappers/order-shipping.mapper';
+import {
+	fetchBaseLinkerOrderCustomer,
 	fetchBaseLinkerOrderPackages,
+	fetchBaseLinkerOrderPickPackHistory,
+	fetchBaseLinkerOrderShipments,
 	fetchBaseLinkerOrderStatuses,
 	fetchBaseLinkerOrders,
+	fetchBaseLinkerPackagesStatusHistory,
 	type OrdersQuery,
+	type StatusEventsByPackageId,
 } from '@/features/returns/server/sources/baselinker.client';
 import { getProcessSingleton } from '@/shared/lib/process-singleton';
 
@@ -21,6 +36,8 @@ const STATUS_NAMES_RETRY_MILLISECONDS = 5 * 60_000;
 const MILLISECONDS_PER_SECOND = 1000;
 
 type StatusNameById = Map<number, string>;
+
+type RemoteShipping = { packageCount: number; trackingEvents: TrackingEvent[] };
 
 type StatusNamesCache = {
 	statusNameById: StatusNameById | null;
@@ -89,6 +106,72 @@ async function findRemoteOrderPackages(
 }
 
 /**
+ * Pobiera dane klienta zamówienia na żywo.
+ *
+ * @returns `ok` z `null`, gdy BaseLinker nie zna zamówienia.
+ */
+async function findRemoteOrderCustomer(
+	orderId: number,
+): Promise<RemoteResult<OrderCustomer | null>> {
+	const result = await fetchBaseLinkerOrderCustomer(orderId);
+
+	if (result.status !== 'ok') {
+		return result;
+	}
+
+	return {
+		status: 'ok',
+		data: result.data ? mapBaseLinkerOrderCustomer(result.data) : null,
+	};
+}
+
+async function findRemotePickPackEvents(
+	orderId: number,
+): Promise<RemoteResult<PickPackEvent[]>> {
+	const result = await fetchBaseLinkerOrderPickPackHistory(orderId);
+
+	return result.status === 'ok'
+		? { status: 'ok', data: mapBaseLinkerPickPackEvents(result.data) }
+		: result;
+}
+
+/**
+ * Pobiera liczbę przesyłek wychodzących i zdarzenia ich śledzenia.
+ *
+ * @remarks Gdy nie uda się pobrać historii statusów, zdarzenia pochodzą tylko z bieżących statusów przesyłek.
+ */
+async function findRemoteShipping(
+	orderId: number,
+): Promise<RemoteResult<RemoteShipping>> {
+	const shipmentsResult = await fetchBaseLinkerOrderShipments(orderId);
+
+	if (shipmentsResult.status !== 'ok') {
+		return shipmentsResult;
+	}
+
+	const shipments = shipmentsResult.data.filter(({ is_return }) => !is_return);
+	const historyResult =
+		shipments.length > 0
+			? await fetchBaseLinkerPackagesStatusHistory(
+					shipments.map(({ package_id }) => package_id),
+				)
+			: null;
+	const historyByPackageId: StatusEventsByPackageId =
+		historyResult?.status === 'ok' ? historyResult.data : new Map();
+
+	return {
+		status: 'ok',
+		data: {
+			packageCount: shipments.length,
+			trackingEvents: mapBaseLinkerTrackingEvents({
+				shipments,
+				historyByPackageId,
+			}),
+		},
+	};
+}
+
+/**
  * Zwraca nazwy statusów zamówień albo `null`, gdy integracja jest wyłączona lub API nie odpowiada.
  *
  * @remarks Lista jest pamiętana w procesie przez godzinę, a po błędzie kolejna próba jest najwcześniej po 5 minutach.
@@ -131,7 +214,10 @@ export {
 	findOrderStatusNames,
 	findRemoteOrderByExternalId,
 	findRemoteOrderById,
+	findRemoteOrderCustomer,
 	findRemoteOrderPackages,
 	findRemoteOrdersConfirmedFrom,
+	findRemotePickPackEvents,
+	findRemoteShipping,
 	type StatusNameById,
 };

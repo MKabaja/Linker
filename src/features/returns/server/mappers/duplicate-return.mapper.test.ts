@@ -9,6 +9,8 @@ function buildReturnRecord(
 		id: 7,
 		orderId: 356_648_562,
 		source: 'allegro',
+		waproOrderNumber: '',
+		wmsCode: '',
 		note: '',
 		receivedBy: { id: 1, name: 'Ania' },
 		createdAt: new Date('2026-11-25T22:30:00.000Z'),

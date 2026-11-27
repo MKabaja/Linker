@@ -9,9 +9,17 @@ import {
 } from './baselinker.config';
 import {
 	type BaseLinkerOrder,
+	type BaseLinkerOrderCustomer,
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
+	type BaseLinkerPickPackEntry,
+	type BaseLinkerShipment,
+	type BaseLinkerStatusEvent,
+	getCourierPackagesStatusHistoryResponseSchema,
+	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,
+	getOrderPickPackHistoryResponseSchema,
+	getOrderShipmentsResponseSchema,
 	getOrderStatusListResponseSchema,
 	getOrdersResponseSchema,
 } from './baselinker.schemas';
@@ -26,7 +34,12 @@ const READ_ONLY_METHOD_PATTERN = /^get[A-Z]\w*$/;
 
 type ReadOnlyMethod = `get${string}`;
 
-type BaseLinkerParameters = Record<string, string | number | boolean>;
+type BaseLinkerParameters = Record<
+	string,
+	string | number | boolean | number[]
+>;
+
+type StatusEventsByPackageId = Map<number, BaseLinkerStatusEvent[]>;
 
 type BaseLinkerResult<T> = RemoteResult<T>;
 
@@ -91,7 +104,7 @@ async function fetchBaseLinkerOrders(
 ): Promise<BaseLinkerResult<BaseLinkerOrder[]>> {
 	const result = await callReadOnlyMethod({
 		method: 'getOrders',
-		parameters: query,
+		parameters: { ...query, include_custom_extra_fields: true },
 		schema: getOrdersResponseSchema,
 		priority: options.priority ?? 'interactive',
 	});
@@ -99,6 +112,93 @@ async function fetchBaseLinkerOrders(
 	return result.status === 'ok'
 		? { status: 'ok', data: result.data.orders }
 		: result;
+}
+
+/**
+ * Pobiera dane klienta jednego zamówienia (`getOrders` z `order_id`), także niepotwierdzonego.
+ *
+ * @remarks Zawiera dane osobowe, więc wynik nie trafia do bazy ani do logów.
+ * @returns `ok` z `null`, gdy zamówienia nie ma.
+ */
+async function fetchBaseLinkerOrderCustomer(
+	orderId: number,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerOrderCustomer | null>> {
+	const result = await callReadOnlyMethod({
+		method: 'getOrders',
+		parameters: { order_id: orderId, get_unconfirmed_orders: true },
+		schema: getOrderCustomersResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.orders[0] ?? null }
+		: result;
+}
+
+async function fetchBaseLinkerOrderPickPackHistory(
+	orderId: number,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerPickPackEntry[]>> {
+	const result = await callReadOnlyMethod({
+		method: 'getOrderPickPackHistory',
+		parameters: { order_id: orderId },
+		schema: getOrderPickPackHistoryResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.history }
+		: result;
+}
+
+/**
+ * Pobiera przesyłki zamówienia ze statusem śledzenia (`getOrderPackages`).
+ */
+async function fetchBaseLinkerOrderShipments(
+	orderId: number,
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<BaseLinkerShipment[]>> {
+	const result = await callReadOnlyMethod({
+		method: 'getOrderPackages',
+		parameters: { order_id: orderId },
+		schema: getOrderShipmentsResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	return result.status === 'ok'
+		? { status: 'ok', data: result.data.packages }
+		: result;
+}
+
+/**
+ * Pobiera historię statusów śledzenia wskazanych przesyłek (`getCourierPackagesStatusHistory`).
+ *
+ * @remarks Mapa zawiera tylko przesyłki, dla których API zwróciło numeryczny identyfikator w kluczu.
+ */
+async function fetchBaseLinkerPackagesStatusHistory(
+	packageIds: number[],
+	options: CallOptions = {},
+): Promise<BaseLinkerResult<StatusEventsByPackageId>> {
+	const result = await callReadOnlyMethod({
+		method: 'getCourierPackagesStatusHistory',
+		parameters: { package_ids: packageIds },
+		schema: getCourierPackagesStatusHistoryResponseSchema,
+		priority: options.priority ?? 'interactive',
+	});
+
+	if (result.status !== 'ok') {
+		return result;
+	}
+
+	return {
+		status: 'ok',
+		data: new Map(
+			Object.entries(result.data.packages_history).map(
+				([packageId, events]) => [Number(packageId), events],
+			),
+		),
+	};
 }
 
 async function fetchBaseLinkerOrderPackages(
@@ -303,8 +403,13 @@ export {
 	type BaseLinkerFailure,
 	type BaseLinkerResult,
 	type CallOptions,
+	fetchBaseLinkerOrderCustomer,
 	fetchBaseLinkerOrderPackages,
+	fetchBaseLinkerOrderPickPackHistory,
+	fetchBaseLinkerOrderShipments,
 	fetchBaseLinkerOrderStatuses,
 	fetchBaseLinkerOrders,
+	fetchBaseLinkerPackagesStatusHistory,
 	type OrdersQuery,
+	type StatusEventsByPackageId,
 };

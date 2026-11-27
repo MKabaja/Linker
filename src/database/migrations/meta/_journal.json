@@ -50,6 +50,13 @@
       "when": 1795674489202,
       "tag": "20261126062809_soft_delete_returns",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795766089707,
+      "tag": "20261127075449_add_wapro_and_wms_to_indexed_orders",
+      "breakpoints": true
     }
   ]
 }

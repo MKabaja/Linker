@@ -30,6 +30,8 @@ const baseLinkerOrderSchema = z.object({
 	delivery_city: looseString,
 	delivery_package_module: looseString,
 	delivery_package_nr: looseString,
+	extra_field_1: looseString,
+	custom_extra_fields: z.record(z.string(), looseString).catch({}),
 	products: z.array(baseLinkerProductSchema).default([]),
 });
 
@@ -47,6 +49,63 @@ const getOrderPackagesResponseSchema = z.object({
 	packages: z.array(baseLinkerPackageSchema),
 });
 
+const baseLinkerOrderCustomerSchema = z.object({
+	user_login: looseString,
+	phone: looseString,
+	email: looseString,
+	delivery_method: looseString,
+	delivery_fullname: looseString,
+	delivery_company: looseString,
+	delivery_address: looseString,
+	delivery_city: looseString,
+	delivery_postcode: looseString,
+	delivery_country_code: looseString,
+	delivery_point_name: looseString,
+	delivery_point_address: looseString,
+	delivery_point_city: looseString,
+	delivery_point_postcode: looseString,
+	payment_method: looseString,
+});
+
+const getOrderCustomersResponseSchema = z.object({
+	orders: z.array(baseLinkerOrderCustomerSchema),
+});
+
+const baseLinkerPickPackEntrySchema = z.object({
+	action_type: z.coerce.number().int(),
+	profile_id: looseString,
+	entry_date: z.coerce.number().int(),
+});
+
+const getOrderPickPackHistoryResponseSchema = z.object({
+	history: z.array(baseLinkerPickPackEntrySchema).default([]),
+});
+
+const baseLinkerShipmentSchema = z.object({
+	package_id: z.coerce.number().int(),
+	tracking_status: z.coerce.number().int().catch(0),
+	tracking_status_date: z.coerce.number().int().catch(0),
+	is_return: z.preprocess(
+		(value) => value === true || value === 1 || value === '1',
+		z.boolean(),
+	),
+});
+
+const getOrderShipmentsResponseSchema = z.object({
+	packages: z.array(baseLinkerShipmentSchema),
+});
+
+const baseLinkerStatusEventSchema = z.object({
+	tracking_status: z.coerce.number().int().catch(0),
+	tracking_status_date: z.coerce.number().int().catch(0),
+});
+
+const getCourierPackagesStatusHistoryResponseSchema = z.object({
+	packages_history: z
+		.record(z.string(), z.array(baseLinkerStatusEventSchema))
+		.catch({}),
+});
+
 const getOrderStatusListResponseSchema = z.object({
 	statuses: z.array(
 		z.object({ id: z.coerce.number().int(), name: looseString }),
@@ -55,15 +114,27 @@ const getOrderStatusListResponseSchema = z.object({
 
 type BaseLinkerOrder = z.infer<typeof baseLinkerOrderSchema>;
 type BaseLinkerPackage = z.infer<typeof baseLinkerPackageSchema>;
+type BaseLinkerOrderCustomer = z.infer<typeof baseLinkerOrderCustomerSchema>;
+type BaseLinkerPickPackEntry = z.infer<typeof baseLinkerPickPackEntrySchema>;
+type BaseLinkerShipment = z.infer<typeof baseLinkerShipmentSchema>;
+type BaseLinkerStatusEvent = z.infer<typeof baseLinkerStatusEventSchema>;
 type BaseLinkerOrderStatus = z.infer<
 	typeof getOrderStatusListResponseSchema
 >['statuses'][number];
 
 export {
 	type BaseLinkerOrder,
+	type BaseLinkerOrderCustomer,
 	type BaseLinkerOrderStatus,
 	type BaseLinkerPackage,
+	type BaseLinkerPickPackEntry,
+	type BaseLinkerShipment,
+	type BaseLinkerStatusEvent,
+	getCourierPackagesStatusHistoryResponseSchema,
+	getOrderCustomersResponseSchema,
 	getOrderPackagesResponseSchema,
+	getOrderPickPackHistoryResponseSchema,
+	getOrderShipmentsResponseSchema,
 	getOrderStatusListResponseSchema,
 	getOrdersResponseSchema,
 };

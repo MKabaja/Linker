@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 const BASELINKER_ENDPOINT = 'https://api.baselinker.com/connector.php';
 const BASELINKER_TIMEOUT_MILLISECONDS = 20_000;
+/** Identyfikator pola dodatkowego „WMS” (kod kreskowy zamówienia w WAPRO) w `custom_extra_fields`. */
+const WMS_EXTRA_FIELD_ID = '77709';
 const MIN_PAUSE_MILLISECONDS = 650;
 const DEFAULT_PAUSE_MILLISECONDS = 1500;
 
@@ -51,4 +53,5 @@ export {
 	type BaseLinkerConfig,
 	getBaseLinkerConfig,
 	isBaseLinkerEnabled,
+	WMS_EXTRA_FIELD_ID,
 };

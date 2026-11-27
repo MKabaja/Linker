@@ -10,6 +10,7 @@ import type {
 	OrderDetails,
 	RestoreReturnResult,
 	ReturnDetails,
+	ReturnNeighbors,
 	ReturnRecord,
 	UpdateReturnResult,
 } from '@/features/returns/model/returns.types';
@@ -18,6 +19,7 @@ import {
 	findReturnById,
 	findReturnByOrderId,
 	findReturnEvents,
+	findReturnNeighbors,
 	findReturnsCreatedOn,
 	insertReturnIfAbsent,
 	restoreReturnWithEvent,
@@ -160,6 +162,13 @@ async function getReturn(returnId: number): Promise<ReturnDetails | null> {
 	return { ...returnRecord, events: await findReturnEvents(returnId) };
 }
 
+/**
+ * Zwraca sąsiednie zwroty w kolejności przyjęcia, z pominięciem usuniętych; `null` oznacza koniec listy.
+ */
+function getReturnNeighbors(returnId: number): Promise<ReturnNeighbors> {
+	return findReturnNeighbors(returnId);
+}
+
 function getReturnRecord(returnId: number): Promise<ReturnRecord | null> {
 	return findReturnById(returnId);
 }
@@ -221,6 +230,7 @@ export {
 	exportReturnsOfDay,
 	getReturn,
 	getReturnByOrderId,
+	getReturnNeighbors,
 	getReturnRecord,
 	getReturnsOfDay,
 	restoreReturn,

@@ -18,6 +18,10 @@ type IndexedOrderRecord = {
 	/** Same cyfry. */
 	postcode: string;
 	cityNormalized: string;
+	/** Numer zamówienia w WAPRO (`extra_field_1`), np. `ZO 49006/26/K`, albo `''`. */
+	waproOrderNumber: string;
+	/** Kod kreskowy zamówienia w WAPRO (pole dodatkowe WMS) albo `''`. */
+	wmsCode: string;
 };
 
 type IndexedOrderItem = {

@@ -1,0 +1,2 @@
+ALTER TABLE "indexed_orders" ADD COLUMN "wapro_order_number" varchar(100) DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "indexed_orders" ADD COLUMN "wms_code" varchar(100) DEFAULT '' NOT NULL;

@@ -22,6 +22,8 @@ export const indexedOrders = pgTable(
 		phoneDigits: varchar({ length: 9 }).default('').notNull(),
 		postcode: varchar({ length: 10 }).default('').notNull(),
 		cityNormalized: varchar({ length: 100 }).default('').notNull(),
+		waproOrderNumber: varchar({ length: 100 }).default('').notNull(),
+		wmsCode: varchar({ length: 100 }).default('').notNull(),
 		packagesSyncedAt: timestamp({ withTimezone: true }),
 		syncedAt: timestamp({ withTimezone: true }).notNull(),
 	},

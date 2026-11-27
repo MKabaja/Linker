@@ -52,6 +52,10 @@ type ReturnRecord = {
 	id: number;
 	orderId: number;
 	source: string;
+	/** Numer zamówienia w WAPRO z indeksu; `''`, gdy brak zamówienia w indeksie albo numeru. */
+	waproOrderNumber: string;
+	/** Kod WMS z indeksu; `''`, gdy brak zamówienia w indeksie albo kodu. */
+	wmsCode: string;
 	note: string;
 	/** `id` jest `null` dla zwrotu z importu; `name` jest wtedy etykietą importu. */
 	receivedBy: { id: number | null; name: string };
@@ -75,6 +79,12 @@ type ReturnEvent = {
 };
 
 type ReturnDetails = ReturnRecord & { events: ReturnEvent[] };
+
+/** Sąsiednie zwroty w kolejności przyjęcia (bez usuniętych); `null` na końcu listy. */
+type ReturnNeighbors = {
+	previousReturnId: number | null;
+	nextReturnId: number | null;
+};
 
 type DayReturns = {
 	/** `YYYY-MM-DD` w strefie Europe/Warsaw. */
@@ -180,6 +190,7 @@ export type {
 	ReturnItemCondition,
 	ReturnKind,
 	ReturnMatchedBy,
+	ReturnNeighbors,
 	ReturnRecord,
 	ReturnSnapshot,
 	ShopMatchingConfig,

@@ -36,9 +36,9 @@ Dziennik zdarzeń zamówień (`getJournalList`) — **włączony** od 26.10.2026
 
 | ID | Nazwa | Co zawiera (zaobserwowane) |
 | --- | --- | --- |
-| 1 (`extra_field_1`) | Pole dodatkowe 1 | numer dokumentu z WAPRO, np. `ZO 32805/26/K` — najpewniej wpisuje go SellIntegro po utworzeniu zamówienia w WAPRO |
+| 1 (`extra_field_1`) | Pole dodatkowe 1 | numer dokumentu z WAPRO, np. `ZO 32805/26/K` (bywa pusty) — najpewniej wpisuje go SellIntegro po utworzeniu zamówienia w WAPRO; zapisywane w `indexed_orders.wapro_order_number` |
 | 2 (`extra_field_2`) | Pole dodatkowe 2 | puste |
-| 77709 | WMS | niepobrane — wymaga `include_custom_extra_fields: true` w `getOrders` |
+| 77709 | WMS | kod kreskowy zamówienia w WAPRO, np. `5900001601709`; **pobierane** (potwierdzone 27.11.2026) przez `getOrders` z `include_custom_extra_fields: true`, wraca w `custom_extra_fields["77709"]`; zapisywane w `indexed_orders.wms_code` |
 | 77974 | TypTransakcji | niepobrane, j.w. |
 | 81109 | Ilość paczek | niepobrane, j.w. |
 
@@ -94,7 +94,8 @@ Nazwy statusów mogą mieć spacje/tabulatory na końcu — przycinaj (`trim`).
 - Jedno zamówienie: `{"order_id": 353712167, "get_unconfirmed_orders": true}`
 - Lista: `{"status_id": 327888, "get_unconfirmed_orders": false, "date_from": <unix>}`
 - Pola zaobserwowane: `order_id`, `order_source`, `order_source_id`, `order_status_id`, `date_add`, `date_confirmed`, `date_in_status` (wejście w obecny status, unix), `admin_comments`, `extra_field_1`, `extra_field_2`, `products[]` → `name`, `ean`, `sku`, `quantity`, `product_id`, `storage` (`db`), `storage_id` (= `inventory_id`), `warehouse_id`
-- `custom_extra_fields` wraca `null`, jeśli nie podasz `include_custom_extra_fields: true` (parametr z pamięci — do potwierdzenia)
+- `custom_extra_fields` wraca `null`, jeśli nie podasz `include_custom_extra_fields: true`; z parametrem `{"77709": "5900001601709"}` — **potwierdzone 27.11.2026**. Kształt bywa `null`, obiekt albo pusta tablica (schemat Zod to toleruje)
+- Pola klienta używane na ekranie zwrotu (pobierane na żywo, nie zapisywane): `user_login`, `phone`, `email`, `delivery_method`, `delivery_fullname`, `delivery_company`, `delivery_address`, `delivery_city`, `delivery_postcode`, `delivery_country_code`, `delivery_point_*`, `payment_method`
 - Zawiera dane osobowe klienta — do plików zapisuj tylko wybrane pola
 - Brak endpointu na same pozycje — sumowanie po EAN po swojej stronie
 - Historii statusów nie zwraca — tylko bieżący status i `date_in_status`
