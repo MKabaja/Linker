@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "tsx scripts/stop-stale-dev-server.ts",
     "dev": "next dev",
+    "predev:lan": "tsx scripts/stop-stale-dev-server.ts && tsx scripts/make-lan-cert.ts",
+    "dev:lan": "next dev -H 0.0.0.0 -p 3443 --experimental-https --experimental-https-key certificates/lan-key.pem --experimental-https-cert certificates/lan-cert.pem",
     "build": "next build",
     "start": "next start",
+    "start:lan": "tsx scripts/make-lan-cert.ts && next build && tsx scripts/https-server.ts",
+    "cert:lan": "tsx scripts/make-lan-cert.ts --force",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
@@ -15,6 +20,7 @@
     "db:generate": "drizzle-kit generate --config src/database/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config src/database/config/drizzle.config.ts",
     "user:create": "tsx --conditions=react-server scripts/create-user.ts",
+    "returns:sync": "tsx --conditions=react-server scripts/sync-orders.ts",
     "returns:seed": "tsx --conditions=react-server scripts/seed-returns.ts",
     "returns:import-demo": "tsx --conditions=react-server scripts/import-demo-returns.ts",
     "test": "vitest run"

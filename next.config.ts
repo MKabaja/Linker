@@ -1,9 +1,10 @@
 import type { NextConfig } from 'next';
+import { listLanAddresses } from './scripts/lan-addresses';
 
 const nextConfig: NextConfig = {
-	/* config options here */
 	reactCompiler: true,
 	typedRoutes: true,
+	allowedDevOrigins: [...listLanAddresses(), '*.trycloudflare.com'],
 };
 
 export default nextConfig;
